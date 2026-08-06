@@ -90,7 +90,14 @@ const navItems = [
 ];
 
 const ROLE_NAVIGATION = {
-  ADMIN: ["dashboard", "inbox", "campaigns", "contacts", "templates", "settings"],
+  ADMIN: [
+    "dashboard",
+    "inbox",
+    "campaigns",
+    "contacts",
+    "templates",
+    "settings",
+  ],
 
   CAMPAIGN_MANAGER: ["dashboard", "campaigns", "contacts", "templates"],
 
@@ -138,7 +145,6 @@ export function MiniSidebar({ onSectionChange }) {
   const user = useAuthStore((state) => state.user);
   const [expandedMenu, setExpandedMenu] = useState(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [logoLoaded, setLogoLoaded] = useState(false);
   const sidebarRef = useRef(null);
   const allowedItems = ROLE_NAVIGATION[user?.role] || [];
   const logout = useAuthStore((state) => state.logout);
@@ -204,30 +210,19 @@ export function MiniSidebar({ onSectionChange }) {
             <motion.button
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
-              onClick={() => navigate(routeMap[ROLE_NAVIGATION[user?.role]?.[0]] ?? "/login")}
+              onClick={() =>
+                navigate(routeMap[ROLE_NAVIGATION[user?.role]?.[0]] ?? "/login")
+              }
               className="relative flex h-12 w-12 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-slate-950 text-white shadow-[0_8px_24px_rgba(15,23,42,0.28)]"
               aria-label="Go to home"
             >
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-              {/* Drop the chosen logo file at FRONTEND/public/logo.png — it
-                  takes over automatically once it loads; the WA/Genius text
-                  stays as the fallback for as long as that file is missing. */}
-              <img
-                src="/logo.png"
-                alt="WA Genius"
-                className="absolute inset-0 h-full w-full object-cover"
-                style={{ display: logoLoaded ? "block" : "none" }}
-                onLoad={() => setLogoLoaded(true)}
-                onError={() => setLogoLoaded(false)}
-              />
-              {!logoLoaded && (
-                <div className="relative flex flex-col items-center leading-none">
-                  <span className="text-[13px] font-black tracking-wide text-white">WA</span>
-                  <span className="mt-0.5 text-[6px] font-bold uppercase tracking-[0.22em] text-emerald-400">
-                    Genius
-                  </span>
-                </div>
-              )}
+              <div className="relative flex flex-col items-center leading-none">
+                <span className="text-[13px] font-black tracking-wide text-white">WA</span>
+                <span className="mt-0.5 text-[6px] font-bold uppercase tracking-[0.22em] text-emerald-400">
+                  Genius
+                </span>
+              </div>
             </motion.button>
           </div>
 
