@@ -43,7 +43,10 @@ export default function WhatsAppOnboardingPage() {
           setConnectedDetails(data.whatsapp || data);
         }
       } catch (err) {
-        console.warn("[Onboarding] Could not fetch initial WhatsApp status:", err);
+        console.warn(
+          "[Onboarding] Could not fetch initial WhatsApp status:",
+          err,
+        );
       } finally {
         setCheckingInitialStatus(false);
       }
@@ -85,17 +88,24 @@ export default function WhatsAppOnboardingPage() {
       }
 
       try {
-        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        const data =
+          typeof event.data === "string" ? JSON.parse(event.data) : event.data;
 
         if (data?.type === "WA_EMBEDDED_SIGNUP") {
-          console.log("[EmbeddedSignup] Event received:", data.event, data.data);
+          console.log(
+            "[EmbeddedSignup] Event received:",
+            data.event,
+            data.data,
+          );
 
           if (data.event === "FINISH" && data.data) {
             if (data.data.waba_id) {
               metaSessionRef.current.wabaId = String(data.data.waba_id);
             }
             if (data.data.phone_number_id) {
-              metaSessionRef.current.phoneNumberId = String(data.data.phone_number_id);
+              metaSessionRef.current.phoneNumberId = String(
+                data.data.phone_number_id,
+              );
             }
           } else if (data.event === "CANCEL") {
             setConnecting(false);
@@ -107,7 +117,8 @@ export default function WhatsAppOnboardingPage() {
             setConnecting(false);
             setStatusStage("ERROR");
             setErrorMessage(
-              data.data?.error_message || "Meta Embedded Signup encountered an error.",
+              data.data?.error_message ||
+                "Meta Embedded Signup encountered an error.",
             );
           }
         }
@@ -123,16 +134,92 @@ export default function WhatsAppOnboardingPage() {
     };
   }, [statusStage]);
 
+  const handleMetaLoginResponse = async (response) => {
+    setConnecting(false);
+    console.log("[EmbeddedSignup] Meta dialog response:", response);
+
+    const authCode = response?.authResponse?.code;
+
+    if (!authCode) {
+      // Check if cancelled or error
+      if (response?.status === "not_authorized") {
+        setStatusStage("ERROR");
+        setErrorMessage(
+          "Authorization was denied. Please grant the required permissions in the Meta dialog.",
+        );
+      } else if (statusStage !== "SUCCESS") {
+        setStatusStage("ERROR");
+        setErrorMessage(
+          "Setup was cancelled or closed before completion. Please try again.",
+        );
+      }
+      return;
+    }
+
+    // We received the Meta authorization code!
+    console.log(
+      "[EmbeddedSignup] Received authorization code. Beginning backend exchange...",
+    );
+
+    try {
+      setStatusStage("CONNECTING");
+
+      // Visual transition to processing stage
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      setStatusStage("PROCESSING");
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setStatusStage("SAVING");
+
+      // Send code and optional session hints to Wagenius backend
+      const result = await completeEmbeddedSignup({
+        code: authCode,
+        wabaId: metaSessionRef.current.wabaId || undefined,
+        phoneNumberId: metaSessionRef.current.phoneNumberId || undefined,
+      });
+
+      console.log(
+        "[EmbeddedSignup] Backend successfully connected WhatsApp:",
+        result,
+      );
+
+      useAuthStore.getState().setSetupStatus("READY");
+      setStatusStage("SUCCESS");
+      toast.success("WhatsApp Business Account connected successfully!");
+
+      // Wait briefly so user sees the success confirmation before navigation
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1500);
+    } catch (error) {
+      console.error(
+        "[EmbeddedSignup] Error during backend exchange:",
+        error,
+      );
+      setStatusStage("ERROR");
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to complete WhatsApp connection. Please verify your Meta Business details and try again.";
+      setErrorMessage(msg);
+      toast.error(msg);
+    }
+  };
+
   const handleConnectWhatsApp = () => {
     if (!window.FB) {
       console.error("Meta SDK is not loaded yet.");
-      toast.error("WhatsApp setup is still initializing. Please wait a few seconds and try again.");
+      toast.error(
+        "WhatsApp setup is still initializing. Please wait a few seconds and try again.",
+      );
       return;
     }
 
     if (!META_CONFIG_ID) {
       console.error("VITE_META_CONFIG_ID is not configured in environment.");
-      toast.error("Meta configuration is missing. Please contact platform support.");
+      toast.error(
+        "Meta configuration is missing. Please contact platform support.",
+      );
       return;
     }
 
@@ -141,64 +228,8 @@ export default function WhatsAppOnboardingPage() {
     setConnecting(true);
 
     window.FB.login(
-      async (response) => {
-        setConnecting(false);
-        console.log("[EmbeddedSignup] Meta dialog response:", response);
-
-        const authCode = response.authResponse?.code;
-
-        if (!authCode) {
-          // Check if cancelled or error
-          if (response.status === "not_authorized") {
-            setStatusStage("ERROR");
-            setErrorMessage("Authorization was denied. Please grant the required permissions in the Meta dialog.");
-          } else if (statusStage !== "SUCCESS") {
-            setStatusStage("ERROR");
-            setErrorMessage("Setup was cancelled or closed before completion. Please try again.");
-          }
-          return;
-        }
-
-        // We received the Meta authorization code!
-        console.log("[EmbeddedSignup] Received authorization code. Beginning backend exchange...");
-
-        try {
-          setStatusStage("CONNECTING");
-
-          // Visual transition to processing stage
-          await new Promise((resolve) => setTimeout(resolve, 600));
-          setStatusStage("PROCESSING");
-
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          setStatusStage("SAVING");
-
-          // Send code and optional session hints to Wagenius backend
-          const result = await completeEmbeddedSignup({
-            code: authCode,
-            wabaId: metaSessionRef.current.wabaId || undefined,
-            phoneNumberId: metaSessionRef.current.phoneNumberId || undefined,
-          });
-
-          console.log("[EmbeddedSignup] Backend successfully connected WhatsApp:", result);
-
-          useAuthStore.getState().setSetupStatus("READY");
-          setStatusStage("SUCCESS");
-          toast.success("WhatsApp Business Account connected successfully!");
-
-          // Wait briefly so user sees the success confirmation before navigation
-          setTimeout(() => {
-            navigate("/dashboard");
-          }, 1500);
-        } catch (error) {
-          console.error("[EmbeddedSignup] Error during backend exchange:", error);
-          setStatusStage("ERROR");
-          const msg =
-            error.response?.data?.message ||
-            error.message ||
-            "Failed to complete WhatsApp connection. Please verify your Meta Business details and try again.";
-          setErrorMessage(msg);
-          toast.error(msg);
-        }
+      (response) => {
+        void handleMetaLoginResponse(response);
       },
       {
         config_id: META_CONFIG_ID,
@@ -258,7 +289,9 @@ export default function WhatsAppOnboardingPage() {
             Connect your WhatsApp Business account
           </h1>
           <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-            Connect your WhatsApp Business number directly through Meta in under 2 minutes to start launching campaigns, automated bots, and shared inboxes.
+            Connect your WhatsApp Business number directly through Meta in under
+            2 minutes to start launching campaigns, automated bots, and shared
+            inboxes.
           </p>
         </div>
 
@@ -277,7 +310,8 @@ export default function WhatsAppOnboardingPage() {
                     WhatsApp is Already Connected
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-                    Your company account is already linked to WhatsApp Business API.
+                    Your company account is already linked to WhatsApp Business
+                    API.
                     {connectedDetails?.phoneNumberId && (
                       <span className="block mt-1 text-slate-600 font-mono text-xs">
                         Phone ID: {connectedDetails.phoneNumberId}
@@ -336,25 +370,35 @@ export default function WhatsAppOnboardingPage() {
                     { key: "SAVING", label: "WABA Setup" },
                     { key: "SUCCESS", label: "Connected" },
                   ].map((step, idx) => {
-                    const stepOrder = ["CONNECTING", "PROCESSING", "SAVING", "SUCCESS"];
+                    const stepOrder = [
+                      "CONNECTING",
+                      "PROCESSING",
+                      "SAVING",
+                      "SUCCESS",
+                    ];
                     const currentIdx = stepOrder.indexOf(statusStage);
                     const isDone = currentIdx >= idx;
                     const isCurrent = statusStage === step.key;
 
                     return (
-                      <div key={step.key} className="flex flex-col items-center gap-1.5">
+                      <div
+                        key={step.key}
+                        className="flex flex-col items-center gap-1.5"
+                      >
                         <div
                           className={`h-2 w-full rounded-full transition-all duration-300 ${
                             isDone
                               ? "bg-emerald-600"
                               : isCurrent
-                              ? "bg-emerald-400 animate-pulse"
-                              : "bg-slate-200"
+                                ? "bg-emerald-400 animate-pulse"
+                                : "bg-slate-200"
                           }`}
                         />
                         <span
                           className={`text-[10px] font-medium ${
-                            isDone ? "text-emerald-700 font-semibold" : "text-slate-400"
+                            isDone
+                              ? "text-emerald-700 font-semibold"
+                              : "text-slate-400"
                           }`}
                         >
                           {step.label}
@@ -378,7 +422,8 @@ export default function WhatsAppOnboardingPage() {
                     Official WhatsApp Business Connection
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-                    A secure Meta dialog window will open to authenticate and link your WhatsApp Business number.
+                    A secure Meta dialog window will open to authenticate and
+                    link your WhatsApp Business number.
                   </p>
                 </div>
 
@@ -387,8 +432,12 @@ export default function WhatsAppOnboardingPage() {
                   <div className="max-w-md mx-auto p-4 rounded-xl border border-red-200 bg-red-50/80 text-left flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
                     <div className="space-y-1 text-xs">
-                      <p className="font-semibold text-red-900">Connection Incomplete</p>
-                      <p className="text-red-700 leading-relaxed">{errorMessage}</p>
+                      <p className="font-semibold text-red-900">
+                        Connection Incomplete
+                      </p>
+                      <p className="text-red-700 leading-relaxed">
+                        {errorMessage}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -427,30 +476,39 @@ export default function WhatsAppOnboardingPage() {
             <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <h3 className="text-xs font-bold text-slate-900">Direct Meta Cloud API</h3>
+                <h3 className="text-xs font-bold text-slate-900">
+                  Direct Meta Cloud API
+                </h3>
               </div>
               <p className="text-[11.5px] text-slate-500 leading-relaxed">
-                Direct official connection with 0% extra fee or middleman charges.
+                Direct official connection with 0% extra fee or middleman
+                charges.
               </p>
             </div>
 
             <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-2">
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-amber-500" />
-                <h3 className="text-xs font-bold text-slate-900">Auto Template Sync</h3>
+                <h3 className="text-xs font-bold text-slate-900">
+                  Auto Template Sync
+                </h3>
               </div>
               <p className="text-[11.5px] text-slate-500 leading-relaxed">
-                All approved Meta message templates sync into your workspace instantly.
+                All approved Meta message templates sync into your workspace
+                instantly.
               </p>
             </div>
 
             <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-2">
               <div className="flex items-center gap-2">
                 <Lock className="h-4 w-4 text-blue-500" />
-                <h3 className="text-xs font-bold text-slate-900">End-to-End Secure</h3>
+                <h3 className="text-xs font-bold text-slate-900">
+                  End-to-End Secure
+                </h3>
               </div>
               <p className="text-[11.5px] text-slate-500 leading-relaxed">
-                Authenticated directly via Meta OAuth 2.0 with token-based encryption.
+                Authenticated directly via Meta OAuth 2.0 with token-based
+                encryption.
               </p>
             </div>
           </div>
@@ -459,7 +517,9 @@ export default function WhatsAppOnboardingPage() {
           <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
             <div className="flex items-center gap-2">
               <Lock className="h-3.5 w-3.5 text-emerald-600" />
-              <span>Official Graph API v23.0 • Meta Verified Embedded Signup</span>
+              <span>
+                Official Graph API v23.0 • Meta Verified Embedded Signup
+              </span>
             </div>
             <button
               type="button"
@@ -476,9 +536,13 @@ export default function WhatsAppOnboardingPage() {
       <footer className="max-w-5xl w-full mx-auto px-6 py-6 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
         <p>© 2026 WA GENIUS. All rights reserved.</p>
         <div className="flex items-center gap-4">
-          <a href="/privacy-policy" className="hover:text-slate-700 transition">Privacy Policy</a>
+          <a href="/privacy-policy" className="hover:text-slate-700 transition">
+            Privacy Policy
+          </a>
           <span>•</span>
-          <a href="/data-deletion" className="hover:text-slate-700 transition">Data Deletion</a>
+          <a href="/data-deletion" className="hover:text-slate-700 transition">
+            Data Deletion
+          </a>
         </div>
       </footer>
     </div>
