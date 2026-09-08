@@ -19,7 +19,15 @@ const {
 const { verifyToken } = require("../middlewares/authMiddleware");
 const { authorize } = require("../middlewares/roleMiddleware");
 const { companyScope } = require("../middlewares/companyScope");
+const { requireCompanySetup } = require("../middlewares/setupGate");
 const PERMISSIONS = require("../constants/permissions");
+
+router.use(
+  ["/messages", "/conversations", "/send-message"],
+  verifyToken,
+  companyScope,
+  requireCompanySetup(),
+);
 
 // These three previously had no auth at all — saveMessage/updateMessageStatus
 // are also invoked directly (bypassing Express entirely, via a synthetic req)

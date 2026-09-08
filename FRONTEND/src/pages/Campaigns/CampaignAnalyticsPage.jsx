@@ -10,8 +10,6 @@ import {
   Cell,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -28,8 +26,6 @@ import {
   Send,
 } from "lucide-react";
 import { contactsToCsvFile } from "../../utils/segmentToCsv";
-
-const socket = getInboxSocket();
 
 // Maps a funnel stage key to the Campaign.contacts field that proves a
 // contact reached it — used both for counting and for filtering the
@@ -57,7 +53,8 @@ export default function CampaignAnalyticsPage() {
   const [lastEventAt, setLastEventAt] = useState(null);
   const [replyAnalytics, setReplyAnalytics] = useState(null);
   const [activeStage, setActiveStage] = useState(null);
-  const [segregationThresholdHours, setSegregationThresholdHours] = useState(24);
+  const [segregationThresholdHours, setSegregationThresholdHours] =
+    useState(24);
   const [selectedReplierPhones, setSelectedReplierPhones] = useState(new Set());
 
   const toTrendPoint = (campaignSnapshot, ts = new Date()) => {
@@ -100,10 +97,6 @@ export default function CampaignAnalyticsPage() {
     });
   };
 
-  useEffect(() => {
-    fetchCampaign();
-  }, []);
-
   const fetchCampaign = async () => {
     try {
       const res = await api.get(`/api/campaigns/${id}`);
@@ -145,7 +138,14 @@ export default function CampaignAnalyticsPage() {
   };
 
   useEffect(() => {
+    fetchCampaign();
+  }, []);
+
+  useEffect(() => {
+    const socket = getInboxSocket();
+
     joinRoom("campaigns");
+
     const handleSocketConnect = () => undefined;
     const handleSocketDisconnect = () => undefined;
 
@@ -154,12 +154,17 @@ export default function CampaignAnalyticsPage() {
 
     const handleCampaignUpdate = (updatedCampaign) => {
       if (updatedCampaign._id.toString() === id) {
-        const now = new Date(); // capture arrival time immediately
+        const now = new Date();
+
         setCampaign(updatedCampaign);
-        const nextPoint = toTrendPoint(updatedCampaign, now); // use arrival time
+
+        const nextPoint = toTrendPoint(updatedCampaign, now);
+
         setLastEventAt(nextPoint.eventAt);
+
         setTrendData((prev) => {
           const last = prev[prev.length - 1];
+
           if (
             last &&
             last.sent === nextPoint.sent &&
@@ -167,16 +172,19 @@ export default function CampaignAnalyticsPage() {
           ) {
             return prev;
           }
+
           return [...prev.slice(-29), nextPoint];
         });
       }
     };
+
     socket.on("campaign_updated", handleCampaignUpdate);
 
     return () => {
       socket.off("connect", handleSocketConnect);
       socket.off("disconnect", handleSocketDisconnect);
       socket.off("campaign_updated", handleCampaignUpdate);
+
       leaveRoom("campaigns");
     };
   }, [id]);
@@ -186,7 +194,8 @@ export default function CampaignAnalyticsPage() {
   }
 
   const pendingCount = Math.max(
-    (campaign?.totalContacts || 0) - ((campaign?.sentCount || 0) + (campaign?.failedCount || 0)),
+    (campaign?.totalContacts || 0) -
+      ((campaign?.sentCount || 0) + (campaign?.failedCount || 0)),
     0,
   );
 
@@ -194,7 +203,8 @@ export default function CampaignAnalyticsPage() {
   // skewed low by contacts a still-running campaign hasn't reached yet
   // (sentCount/totalContacts would dip during a campaign's normal
   // in-progress window and look like a problem when there isn't one).
-  const attemptedCount = (campaign?.sentCount || 0) + (campaign?.failedCount || 0);
+  const attemptedCount =
+    (campaign?.sentCount || 0) + (campaign?.failedCount || 0);
   const successRate =
     attemptedCount > 0
       ? Math.round(((campaign?.sentCount || 0) / attemptedCount) * 100)
@@ -310,15 +320,36 @@ export default function CampaignAnalyticsPage() {
   // without a read receipt ever confirming, so these aren't a strict
   // breakdown of one another.
   const funnelStages = [
-    { key: "sent", label: "Sent", count: contacts.filter((c) => c.sentAt).length },
-    { key: "delivered", label: "Delivered", count: contacts.filter((c) => c.deliveredAt).length },
-    { key: "read", label: "Read", count: contacts.filter((c) => c.readAt).length },
-    { key: "replied", label: "Replied", count: contacts.filter((c) => c.repliedAt).length },
+    {
+      key: "sent",
+      label: "Sent",
+      count: contacts.filter((c) => c.sentAt).length,
+    },
+    {
+      key: "delivered",
+      label: "Delivered",
+      count: contacts.filter((c) => c.deliveredAt).length,
+    },
+    {
+      key: "read",
+      label: "Read",
+      count: contacts.filter((c) => c.readAt).length,
+    },
+    {
+      key: "replied",
+      label: "Replied",
+      count: contacts.filter((c) => c.repliedAt).length,
+    },
     { key: "clicked", label: "Clicked", comingSoon: true },
-    { key: "failed", label: "Failed", count: contacts.filter((c) => c.failedAt).length },
+    {
+      key: "failed",
+      label: "Failed",
+      count: contacts.filter((c) => c.failedAt).length,
+    },
   ];
 
-  const totalContactsForFunnel = campaign?.totalContacts || contacts.length || 0;
+  const totalContactsForFunnel =
+    campaign?.totalContacts || contacts.length || 0;
 
   const filteredContacts = activeStage
     ? contacts.filter((c) => c[STAGE_TIMESTAMP_FIELD[activeStage]])
@@ -336,9 +367,12 @@ export default function CampaignAnalyticsPage() {
         : null,
     }));
 
-  const untimedRepliers = repliersWithTiming.filter((c) => c.hoursToReply === null);
+  const untimedRepliers = repliersWithTiming.filter(
+    (c) => c.hoursToReply === null,
+  );
   const bucketedRepliers = repliersWithTiming.filter(
-    (c) => c.hoursToReply !== null && c.hoursToReply <= segregationThresholdHours,
+    (c) =>
+      c.hoursToReply !== null && c.hoursToReply <= segregationThresholdHours,
   );
 
   function toggleReplierSelection(phone) {
@@ -353,14 +387,17 @@ export default function CampaignAnalyticsPage() {
   function toggleSelectAllRepliers() {
     setSelectedReplierPhones((prev) => {
       const allSelected =
-        bucketedRepliers.length > 0 && bucketedRepliers.every((c) => prev.has(c.phone));
+        bucketedRepliers.length > 0 &&
+        bucketedRepliers.every((c) => prev.has(c.phone));
       if (allSelected) return new Set();
       return new Set(bucketedRepliers.map((c) => c.phone));
     });
   }
 
   function handleBroadcastToRepliers() {
-    const selected = bucketedRepliers.filter((c) => selectedReplierPhones.has(c.phone));
+    const selected = bucketedRepliers.filter((c) =>
+      selectedReplierPhones.has(c.phone),
+    );
     if (selected.length === 0) return;
 
     const file = contactsToCsvFile(selected, "fast-repliers-followup.csv");
@@ -499,7 +536,9 @@ export default function CampaignAnalyticsPage() {
                 <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
                   <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h2 className="text-base font-semibold text-slate-900">Funnel</h2>
+                      <h2 className="text-base font-semibold text-slate-900">
+                        Funnel
+                      </h2>
                       <p className="mt-1 text-sm text-slate-500">
                         Click a stage to filter the contact table below
                         {activeStage ? " — click again to clear" : ""}
@@ -511,7 +550,9 @@ export default function CampaignAnalyticsPage() {
                     {funnelStages.map((stage) => {
                       const percent =
                         !stage.comingSoon && totalContactsForFunnel > 0
-                          ? Math.round((stage.count / totalContactsForFunnel) * 100)
+                          ? Math.round(
+                              (stage.count / totalContactsForFunnel) * 100,
+                            )
                           : null;
                       const isActive = activeStage === stage.key;
 
@@ -521,7 +562,9 @@ export default function CampaignAnalyticsPage() {
                           type="button"
                           disabled={stage.comingSoon}
                           onClick={() =>
-                            setActiveStage((prev) => (prev === stage.key ? null : stage.key))
+                            setActiveStage((prev) =>
+                              prev === stage.key ? null : stage.key,
+                            )
                           }
                           className={`rounded-xl border px-3 py-3 text-left transition ${
                             stage.comingSoon
@@ -543,7 +586,9 @@ export default function CampaignAnalyticsPage() {
                               <p className="mt-1.5 text-xl font-semibold text-slate-900">
                                 {stage.count}
                               </p>
-                              <p className="text-xs text-slate-500">{percent}%</p>
+                              <p className="text-xs text-slate-500">
+                                {percent}%
+                              </p>
                             </>
                           )}
                         </button>
@@ -752,7 +797,9 @@ export default function CampaignAnalyticsPage() {
                           <button
                             key={t.hours}
                             type="button"
-                            onClick={() => setSegregationThresholdHours(t.hours)}
+                            onClick={() =>
+                              setSegregationThresholdHours(t.hours)
+                            }
                             className={`rounded-md px-3 py-1.5 text-[12.5px] font-medium transition ${
                               segregationThresholdHours === t.hours
                                 ? "bg-white text-slate-900 shadow-sm"
@@ -796,7 +843,9 @@ export default function CampaignAnalyticsPage() {
                                 type="checkbox"
                                 checked={
                                   bucketedRepliers.length > 0 &&
-                                  bucketedRepliers.every((c) => selectedReplierPhones.has(c.phone))
+                                  bucketedRepliers.every((c) =>
+                                    selectedReplierPhones.has(c.phone),
+                                  )
                                 }
                                 onChange={toggleSelectAllRepliers}
                                 className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300"
@@ -819,18 +868,26 @@ export default function CampaignAnalyticsPage() {
                         <tbody className="divide-y divide-slate-100 bg-white">
                           {bucketedRepliers.length === 0 ? (
                             <tr>
-                              <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-400">
+                              <td
+                                colSpan={5}
+                                className="px-5 py-8 text-center text-sm text-slate-400"
+                              >
                                 No repliers in this window
                               </td>
                             </tr>
                           ) : (
                             bucketedRepliers.map((c) => (
-                              <tr key={c.phone} className="hover:bg-slate-50/70">
+                              <tr
+                                key={c.phone}
+                                className="hover:bg-slate-50/70"
+                              >
                                 <td className="px-5 py-3.5">
                                   <input
                                     type="checkbox"
                                     checked={selectedReplierPhones.has(c.phone)}
-                                    onChange={() => toggleReplierSelection(c.phone)}
+                                    onChange={() =>
+                                      toggleReplierSelection(c.phone)
+                                    }
                                     className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300"
                                   />
                                 </td>
@@ -965,7 +1022,7 @@ export default function CampaignAnalyticsPage() {
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
+                  <div className="overflow-visible">
                     <table className="min-w-full divide-y divide-slate-200">
                       <thead className="bg-slate-50">
                         <tr>
@@ -1027,32 +1084,89 @@ export default function CampaignAnalyticsPage() {
                             </td>
 
                             <td className="px-5 py-4 text-sm text-slate-500">
-                              {contact.sentAt ? formatEventTime(contact.sentAt) : "—"}
+                              {contact.sentAt
+                                ? formatEventTime(contact.sentAt)
+                                : "—"}
                             </td>
                             <td className="px-5 py-4 text-sm text-slate-500">
-                              {contact.deliveredAt ? formatEventTime(contact.deliveredAt) : "—"}
+                              {contact.deliveredAt
+                                ? formatEventTime(contact.deliveredAt)
+                                : "—"}
                             </td>
                             <td className="px-5 py-4 text-sm text-slate-500">
-                              {contact.readAt ? formatEventTime(contact.readAt) : "—"}
+                              {contact.readAt
+                                ? formatEventTime(contact.readAt)
+                                : "—"}
                             </td>
                             <td className="px-5 py-4 text-sm text-slate-500">
-                              {contact.repliedAt ? formatEventTime(contact.repliedAt) : "—"}
+                              {contact.repliedAt
+                                ? formatEventTime(contact.repliedAt)
+                                : "—"}
                             </td>
 
                             <td className="px-5 py-4">
-                              <span
-                                className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium capitalize ring-1 ${
-                                  contact.status === "sent" ||
-                                  contact.status === "delivered" ||
-                                  contact.status === "read"
-                                    ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                                    : contact.status === "failed"
-                                      ? "bg-rose-50 text-rose-700 ring-rose-100"
+                              {contact.status === "failed" ? (
+                                <div className="group relative inline-block">
+                                  <span className="inline-flex cursor-help items-center rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 ring-1 ring-rose-100">
+                                    Failed
+                                  </span>
+
+                                  <div
+                                    className="
+                                    pointer-events-none
+                                    absolute
+                                    bottom-full
+                                    left-1/2
+                                    z-[9999]
+                                    mb-2
+                                    hidden
+                                    w-96
+                                    -translate-x-1/2
+                                    rounded-xl
+                                    border
+                                    border-slate-200
+                                    bg-white
+                                    p-4
+                                    text-left
+                                    shadow-xl
+                                    group-hover:block"
+                                  >
+                                    <p className="text-sm font-semibold text-slate-900">
+                                      Why did this message fail?
+                                    </p>
+
+                                    {contact.failure?.title && (
+                                      <p className="mt-2 text-sm font-medium text-slate-800">
+                                        Message: {contact.failure.title}
+                                      </p>
+                                    )}
+
+                                    {contact.failure?.details && (
+                                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                                        {contact.failure.details}
+                                      </p>
+                                    )}
+
+                                    {contact.failure?.code && (
+                                      <p className="mt-3 border-t border-slate-200 pt-2 text-xs text-slate-500">
+                                        Error code: {contact.failure.code}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span
+                                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium capitalize ring-1 ${
+                                    contact.status === "sent" ||
+                                    contact.status === "delivered" ||
+                                    contact.status === "read"
+                                      ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
                                       : "bg-slate-100 text-slate-700 ring-slate-200"
-                                }`}
-                              >
-                                {contact.status}
-                              </span>
+                                  }`}
+                                >
+                                  {contact.status}
+                                </span>
+                              )}
                             </td>
                             <td className="px-5 py-4">
                               {contact.status === "failed" ? (

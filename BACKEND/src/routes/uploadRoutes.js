@@ -7,6 +7,7 @@ const { verifyToken } = require("../middlewares/authMiddleware");
 const { authorize } = require("../middlewares/roleMiddleware");
 const { companyScope } = require("../middlewares/companyScope");
 const PERMISSIONS = require("../constants/permissions");
+const { requireCompanySetup } = require("../middlewares/setupGate");
 
 const router = express.Router();
 
@@ -14,6 +15,7 @@ router.post(
   "/upload",
   verifyToken,
   companyScope,
+  requireCompanySetup(),
   authorize(PERMISSIONS.CAMPAIGNS),
   upload.single("file"),
   uploadCampaign,

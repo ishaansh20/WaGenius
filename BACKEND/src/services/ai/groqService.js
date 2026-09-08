@@ -4,7 +4,7 @@ const SYSTEM_PROMPT = require("../../config/aiPrompt");
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
 const generateReply = async (userMessage) => {
   try {

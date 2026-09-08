@@ -2,6 +2,7 @@ import {
   BarChart3,
   Bot,
   ClipboardList,
+  CreditCard,
   FileText,
   LayoutDashboard,
   Settings,
@@ -22,11 +23,12 @@ const navItems = [
   { label: "Templates", path: "/templates", icon: FileText, section: "templates" },
   { label: "Create Template", path: "/templates/create", icon: Sparkles, section: "templates" },
   { label: "Approved Templates", path: "/templates/approved", icon: ShieldCheck, section: "templates" },
+  { label: "Billing & Plans", path: "/billing", icon: CreditCard, section: "billing" },
   { label: "Settings", path: "/settings", icon: Settings, section: "settings" },
 ];
 
 const ROLE_NAVIGATION = {
-  ADMIN: ["dashboard", "inbox", "campaigns", "contacts", "templates", "settings"],
+  ADMIN: ["dashboard", "inbox", "campaigns", "contacts", "templates", "billing", "settings"],
   CAMPAIGN_MANAGER: ["dashboard", "campaigns", "contacts", "templates"],
   SUPPORT_AGENT: ["inbox", "contacts"],
   TEAM_LEAD: ["dashboard", "inbox", "contacts"],

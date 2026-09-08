@@ -4,7 +4,10 @@
 const requirePlatformRole = (allowedPlatformRoles) => {
   return (req, res, next) => {
     try {
-      if (!req.user?.platformRole || !allowedPlatformRoles.includes(req.user.platformRole)) {
+      if (
+        !req.platformUser?.platformRole ||
+        !allowedPlatformRoles.includes(req.platformUser.platformRole)
+      ) {
         return res.status(403).json({
           success: false,
           message: "Access denied",

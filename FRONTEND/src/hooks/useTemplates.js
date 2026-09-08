@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import api from "../services/api";
 import { getInboxSocket, joinRoom, leaveRoom } from "../services/socket";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 // Centralizes template + category fetching, live status sync, and the
 // mutations every template list page needs — Templates, Approved Templates,
@@ -44,7 +44,9 @@ export function useTemplates() {
     const socket = getInboxSocket();
     const handleTemplateStatusUpdate = (updatedTemplate) => {
       setTemplates((prev) =>
-        prev.map((item) => (item._id === updatedTemplate._id ? updatedTemplate : item)),
+        prev.map((item) =>
+          item._id === updatedTemplate._id ? updatedTemplate : item,
+        ),
       );
     };
     socket.on("template_status_updated", handleTemplateStatusUpdate);
@@ -59,7 +61,9 @@ export function useTemplates() {
       status: newStatus,
     });
     setTemplates((prev) =>
-      prev.map((item) => (item._id === templateId ? { ...item, status: newStatus } : item)),
+      prev.map((item) =>
+        item._id === templateId ? { ...item, status: newStatus } : item,
+      ),
     );
   }, []);
 

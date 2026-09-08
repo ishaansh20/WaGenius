@@ -57,18 +57,15 @@ export default function CreateGroupModal({ isOpen, onClose, segment, onChanged }
     setIsNewContactOpen(false);
     setNewContactName("");
     setNewContactPhone("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, segment]);
 
   useEffect(() => {
     if (activeSegment) loadMembers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSegment]);
 
   useEffect(() => {
     if (!isPickerOpen) return;
     loadPickerContacts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPickerOpen, pickerSearch]);
 
   if (!isOpen) return null;

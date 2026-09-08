@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, Search } from "lucide-react";
+import { Menu } from "lucide-react";
 
 import { MiniSidebar } from "./MiniSidebar";
 import MobileSidebar from "./MobileSidebar";

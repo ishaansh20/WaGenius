@@ -38,7 +38,7 @@ export function parseCsvLine(line, delimiter) {
 }
 
 export function parseCsvAnalysis(text) {
-  const normalizedText = text.replace(/^﻿/, "").trim();
+  const normalizedText = text.replace(/^\uFEFF/, "").trim();
   if (!normalizedText) return EMPTY_CSV_ANALYSIS;
   const lines = normalizedText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   if (lines.length === 0) return EMPTY_CSV_ANALYSIS;

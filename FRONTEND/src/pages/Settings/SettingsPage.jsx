@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Search, UserPlus, Users } from "lucide-react";
+import { Lock, Search, UserPlus, Users } from "lucide-react";
+import { toast } from "react-hot-toast";
+import usePlan from "../../hooks/usePlan";
 import {
   getUsers,
   updateUserStatus,
@@ -24,9 +26,9 @@ export default function SettingsPage() {
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const { canUse, hasReachedLimit } = usePlan();
+  const canManageTeam = canUse("teamManagement");
+  const usersLimitReached = hasReachedLimit("users");
 
   const fetchUsers = async () => {
     try {
@@ -38,6 +40,10 @@ export default function SettingsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const handleToggleStatus = async (user) => {
     try {
@@ -77,11 +83,11 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <DashboardLayout title="User Management">
+      <DashboardLayout title="Settings">
         <main className="flex-1 py-5 sm:py-6 lg:py-2">
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />
-            <p className="text-[13px] text-slate-500">Loading users…</p>
+            <p className="text-[13px] text-slate-500">Loading settings…</p>
           </div>
         </main>
       </DashboardLayout>
@@ -96,25 +102,35 @@ export default function SettingsPage() {
           {/* Page header */}
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white">
-                <Users className="h-4 w-4 text-slate-500" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm">
+                <Users className="h-4 w-4 text-slate-600" />
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                   Administration
                 </p>
                 <h1 className="text-[17px] font-semibold leading-tight text-slate-900">
-                  {activeTab === "users" ? "User Management" : activeTab === "pricing" ? "Pricing" : "WhatsApp"}
+                  {activeTab === "users" ? "User Management" : activeTab === "pricing" ? "Meta Rates & Fallbacks" : "WhatsApp Connection"}
                 </h1>
               </div>
             </div>
 
             {activeTab === "users" && (
               <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-emerald-700 active:bg-emerald-800"
+                onClick={() => {
+                  if (!canManageTeam) {
+                    toast.error("Team management is available on Pro and Enterprise plans. Upgrade to invite team members.", { icon: "🔒" });
+                    return;
+                  }
+                  if (usersLimitReached) {
+                    toast.error("User limit reached for your plan. Upgrade to add more team members.", { icon: "🔒" });
+                    return;
+                  }
+                  setIsCreateModalOpen(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-emerald-700 active:bg-emerald-800 shadow-sm"
               >
-                <UserPlus className="h-3.5 w-3.5" />
+                {(!canManageTeam || usersLimitReached) ? <Lock className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
                 <span className="hidden sm:inline">Create User</span>
                 <span className="sm:hidden">New</span>
               </button>
@@ -125,7 +141,7 @@ export default function SettingsPage() {
           <div className="inline-flex items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
             {[
               { key: "users", label: "Users" },
-              { key: "pricing", label: "Pricing" },
+              { key: "pricing", label: "Meta Rates Fallback" },
               { key: "whatsapp", label: "WhatsApp" },
             ].map((tab) => (
               <button

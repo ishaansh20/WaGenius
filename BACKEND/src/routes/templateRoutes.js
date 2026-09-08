@@ -20,6 +20,10 @@ const { verifyToken } = require("../middlewares/authMiddleware");
 const { authorize } = require("../middlewares/roleMiddleware");
 const { companyScope } = require("../middlewares/companyScope");
 const PERMISSIONS = require("../constants/permissions");
+const { checkLimit, checkFeature } = require("../middlewares/planGate");
+const { requireCompanySetup } = require("../middlewares/setupGate");
+
+router.use(verifyToken, companyScope, requireCompanySetup());
 
 // GET ALL TEMPLATES
 router.get(
@@ -53,6 +57,7 @@ router.post(
   verifyToken,
   companyScope,
   authorize(PERMISSIONS.TEMPLATE_MANAGE),
+  checkLimit("templates"),
   templateUploadFields,
   createTemplate,
 );
@@ -64,6 +69,7 @@ router.post(
   verifyToken,
   companyScope,
   authorize(PERMISSIONS.TEMPLATE_MANAGE),
+  checkFeature("ai"),
   draftTemplate,
 );
 

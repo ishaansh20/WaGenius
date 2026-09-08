@@ -1,5 +1,6 @@
 const fs = require("fs");
 const csv = require("csv-parser");
+const mongoose = require("mongoose");
 
 const Contact = require("../models/contact");
 const Conversation = require("../models/conversation");
@@ -311,16 +312,20 @@ const importContacts = async (req, res) => {
 const getSegmentationStats = async (req, res) => {
   try {
     const { companyId } = req;
+    // Aggregate pipelines skip Mongoose's automatic string->ObjectId casting
+    // (unlike find()/countDocuments()), so $match needs a real ObjectId or
+    // it silently matches nothing.
+    const companyObjectId = new mongoose.Types.ObjectId(companyId);
     const [byTag, bySource, optedOutCount, totalCount] = await Promise.all([
       Contact.aggregate([
-        { $match: { companyId } },
+        { $match: { companyId: companyObjectId } },
         { $unwind: "$tags" },
         { $group: { _id: "$tags", count: { $sum: 1 } } },
         { $project: { _id: 0, tag: "$_id", count: 1 } },
         { $sort: { count: -1 } },
       ]),
       Contact.aggregate([
-        { $match: { companyId } },
+        { $match: { companyId: companyObjectId } },
         // $group bypasses Mongoose's schema-level default entirely — a raw
         // aggregation sees exactly what's stored, so contacts created before
         // the `source` field existed have no field at all, not "whatsapp".
@@ -347,6 +352,42 @@ const getSegmentationStats = async (req, res) => {
   }
 };
 
+const escapeCsvCell = (value) => {
+  const str = String(value ?? "");
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+};
+
+const exportContacts = async (req, res) => {
+  try {
+    const contacts = await Contact.find({ companyId: req.companyId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const rows = [
+      "Name,Phone,Tags,Source,Opted Out,Created At",
+      ...contacts.map((c) =>
+        [
+          c.name,
+          c.phone,
+          (c.tags || []).join("|"),
+          c.source || "whatsapp",
+          c.optedOut ? "Yes" : "No",
+          new Date(c.createdAt).toISOString(),
+        ]
+          .map(escapeCsvCell)
+          .join(","),
+      ),
+    ];
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="contacts-export.csv"`);
+    res.send(rows.join("\n"));
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: "Failed to export contacts" });
+  }
+};
+
 module.exports = {
   getContacts,
   getContact,
@@ -356,5 +397,6 @@ module.exports = {
   bulkDeleteContacts,
   bulkUpdateTags,
   importContacts,
+  exportContacts,
   getSegmentationStats,
 };

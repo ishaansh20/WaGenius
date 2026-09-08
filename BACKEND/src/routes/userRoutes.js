@@ -13,6 +13,8 @@ const { companyScope } = require("../middlewares/companyScope");
 
 const PERMISSIONS = require("../constants/permissions");
 
+const { checkLimit, checkFeature } = require("../middlewares/planGate");
+
 const router = express.Router();
 
 router.post(
@@ -20,6 +22,8 @@ router.post(
   verifyToken,
   companyScope,
   authorize(PERMISSIONS.USER_MANAGEMENT),
+  checkFeature("teamManagement"),
+  checkLimit("users"),
   createUser,
 );
 

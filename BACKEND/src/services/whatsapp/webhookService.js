@@ -10,19 +10,44 @@ const { getIO } = require("../../sockets/socket");
 // pauses, so these need to flow through the same pipeline rather than
 // leaving a template looking permanently "APPROVED" once it stops being
 // usable.
-const TRACKED_TEMPLATE_STATUSES = ["APPROVED", "REJECTED", "PENDING", "PAUSED", "DISABLED"];
+const TRACKED_TEMPLATE_STATUSES = [
+  "APPROVED",
+  "REJECTED",
+  "PENDING",
+  "PAUSED",
+  "DISABLED",
+];
 
 const processIncomingMessage = async (companyId, message, metadata) => {
   return await handleIncomingMessage(companyId, message, metadata);
 };
 
 const processStatusUpdate = async (companyId, status) => {
+  let failure = null;
+
+  if (status.status === "failed" && status.errors?.length) {
+    const metaError = status.errors[0];
+
+    console.error(
+      `❌ Meta reported delivery failure for message ${status.id} to ${status.recipient_id}:`,
+      JSON.stringify(status.errors, null, 2),
+    );
+
+    failure = {
+      code: metaError.code ? String(metaError.code) : null,
+      title: metaError.title || null,
+      message: metaError.message || null,
+      details: metaError.error_data?.details || metaError.details || null,
+    };
+  }
+
   const req = {
     companyId,
     body: {
       phone: status.recipient_id,
       status: status.status,
       whatsappMessageId: status.id,
+      failure,
     },
   };
 

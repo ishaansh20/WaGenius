@@ -230,7 +230,7 @@ const retryFailedCampaignMessages = async (req, res) => {
       });
     }
 
-    const { phone } = req.body;
+    const { phone } = req.body || {};
 
     const failedContacts = campaign.contacts.filter(
       (contact) =>

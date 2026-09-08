@@ -3,8 +3,13 @@ const { verifyToken } = require("../middlewares/authMiddleware");
 const { authorize } = require("../middlewares/roleMiddleware");
 const { companyScope } = require("../middlewares/companyScope");
 const PERMISSIONS = require("../constants/permissions");
+const { checkFeature } = require("../middlewares/planGate");
+const { requireCompanySetup } = require("../middlewares/setupGate");
 
 const router = express.Router();
+
+// Require authenticated company context and READY setup status for all campaign actions
+router.use(verifyToken, companyScope, requireCompanySetup());
 
 const {
   getCampaigns,
@@ -73,11 +78,13 @@ router.get(
   getCampaignReplyAnalytics,
 );
 
+// Campaign report CSV download — gated on analyticsExport feature flag (Pro+)
 router.get(
   "/:id/report",
   verifyToken,
   companyScope,
   authorize(PERMISSIONS.CAMPAIGN_ANALYTICS),
+  checkFeature("analyticsExport"),
   downloadCampaignReport,
 );
 

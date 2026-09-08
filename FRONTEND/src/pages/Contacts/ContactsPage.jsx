@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Search, UploadCloud, UserPlus, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, UploadCloud, UserPlus, Users, Lock, Sparkles } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { fetchContacts, fetchSegments, updateContact } from "../../services/api";
+import usePlan from "../../hooks/usePlan";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import ContactsTable from "../../components/contacts/ContactsTable";
 import AddContactModal from "../../components/contacts/AddContactModal";
@@ -33,7 +34,6 @@ export default function ContactsPage() {
 
   useEffect(() => {
     loadContacts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, sourceFilter, optedOutFilter]);
 
   useEffect(() => {
@@ -130,6 +130,30 @@ export default function ContactsPage() {
     goToCampaignUpload(file, count);
   }
 
+  const { canUse, getLimit, plan } = usePlan();
+  const contactLimit = getLimit("contacts");
+  const isLimitReached = contactLimit > 0 && contactLimit !== -1 && total >= contactLimit;
+
+  function handleImportClick() {
+    if (!canUse("contactImport")) {
+      toast.error("Bulk CSV import is available on Pro and Enterprise plans.", {
+        icon: "🔒",
+      });
+      return;
+    }
+    setIsImportModalOpen(true);
+  }
+
+  function handleAddContactClick() {
+    if (isLimitReached) {
+      toast.error(`Contact limit reached (${total}/${contactLimit}). Upgrade to Pro to add more contacts.`, {
+        icon: "🔒",
+      });
+      return;
+    }
+    setIsAddModalOpen(true);
+  }
+
   return (
     <DashboardLayout title="Contacts">
       <main className="flex-1 py-5 sm:py-6 lg:py-2">
@@ -142,7 +166,7 @@ export default function ContactsPage() {
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                  Address Book
+                  Address Book · <span className="font-bold text-slate-600">{plan?.name || "Free"} Plan ({total} / {contactLimit === -1 ? "Unlimited" : contactLimit.toLocaleString()})</span>
                 </p>
                 <h1 className="text-[17px] font-semibold leading-tight text-slate-900">
                   Contacts
@@ -152,15 +176,34 @@ export default function ContactsPage() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsImportModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-medium text-slate-700 transition hover:bg-slate-50"
+                onClick={handleImportClick}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[13px] font-medium transition ${
+                  !canUse("contactImport")
+                    ? "border-slate-200 bg-slate-50 text-slate-400 hover:bg-slate-100"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+                title={!canUse("contactImport") ? "Bulk Import is available on Pro & Enterprise" : "Import Contacts"}
               >
-                <UploadCloud className="h-3.5 w-3.5" />
+                {!canUse("contactImport") ? (
+                  <Lock className="h-3.5 w-3.5 text-amber-500" />
+                ) : (
+                  <UploadCloud className="h-3.5 w-3.5" />
+                )}
                 <span className="hidden sm:inline">Import</span>
+                {!canUse("contactImport") && (
+                  <span className="rounded bg-amber-100 px-1 py-0.2 text-[9px] font-bold text-amber-800">
+                    PRO
+                  </span>
+                )}
               </button>
+
               <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-emerald-700 active:bg-emerald-800"
+                onClick={handleAddContactClick}
+                className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-medium text-white transition ${
+                  isLimitReached
+                    ? "bg-slate-400 cursor-not-allowed"
+                    : "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800"
+                }`}
               >
                 <UserPlus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Add Contact</span>
@@ -168,6 +211,24 @@ export default function ContactsPage() {
               </button>
             </div>
           </div>
+
+          {/* Limit Reached Banner */}
+          {isLimitReached && (
+            <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-xs text-amber-900">
+              <div className="flex items-center gap-2 font-medium">
+                <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>
+                  You have reached your limit of <strong>{contactLimit} contacts</strong> on the {plan?.name || "Free"} Plan. Existing contacts are safe, but upgrade to Pro to add or import more.
+                </span>
+              </div>
+              <button
+                onClick={() => navigate("/billing")}
+                className="shrink-0 font-bold text-emerald-700 hover:underline flex items-center gap-1"
+              >
+                <Sparkles className="h-3 w-3" /> Upgrade to Pro
+              </button>
+            </div>
+          )}
 
           {/* Filters */}
           <div className="flex flex-col gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:gap-3">

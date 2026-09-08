@@ -20,10 +20,6 @@ export default function PricingSettingsPanel() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    load();
-  }, []);
-
   async function load() {
     try {
       const res = await fetchPricingConfig();
@@ -35,6 +31,10 @@ export default function PricingSettingsPanel() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    load();
+  }, []);
 
   async function handleSave() {
     try {

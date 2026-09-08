@@ -189,7 +189,10 @@ const getConversations = async (req, res) => {
     // requests. "Give me everything older than this timestamp" doesn't
     // have that problem.
     const before = req.query.before ? new Date(req.query.before) : null;
-    const filter = { companyId: req.companyId, ...(before ? { lastMessageTime: { $lt: before } } : {}) };
+    const filter = {
+      companyId: req.companyId,
+      ...(before ? { lastMessageTime: { $lt: before } } : {}),
+    };
 
     const rows = await Conversation.find(filter)
       .populate("contact")
@@ -236,7 +239,10 @@ const getMessagesbyConversation = async (req, res) => {
 const markConversationAsRead = async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const conversation = await Conversation.findOne({ _id: conversationId, companyId: req.companyId });
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      companyId: req.companyId,
+    });
 
     if (!conversation) {
       return res.status(404).json({
@@ -260,7 +266,9 @@ const markConversationAsRead = async (req, res) => {
 };
 
 const { sendTextMessage } = require("../services/whatsapp/whatsappService");
-const { getCompanyWhatsAppCredentials } = require("../services/whatsapp/companyCredentials");
+const {
+  getCompanyWhatsAppCredentials,
+} = require("../services/whatsapp/companyCredentials");
 
 const ROLE_LABELS = {
   ADMIN: "Admin",
@@ -314,7 +322,7 @@ const sendMessage = async (req, res) => {
 
 const updateMessageStatus = async (req, res) => {
   try {
-    const { phone, status, whatsappMessageId } = req.body;
+    const { phone, status, whatsappMessageId, failure } = req.body;
     const { companyId } = req;
 
     const lastMessage = await Message.findOne({
@@ -341,6 +349,11 @@ const updateMessageStatus = async (req, res) => {
 
     if (shouldApplyStatusUpdate(lastMessage.status, status)) {
       lastMessage.status = status;
+
+      if (status === "failed" && failure) {
+        lastMessage.failure = failure;
+      }
+
       await lastMessage.save();
     } else {
       console.log("Ignoring out-of-order or redundant status", {
@@ -358,9 +371,16 @@ const updateMessageStatus = async (req, res) => {
       // send-time failures are stamped in campaignSenderService.js instead,
       // at the moment the send actually happens.
       const timestampField = WEBHOOK_STATUS_TIMESTAMP_FIELD[status];
-      const setFields = { "contacts.$.status": status };
+      const setFields = {
+        "contacts.$.status": status,
+      };
+
       if (timestampField) {
         setFields[`contacts.$.${timestampField}`] = new Date();
+      }
+
+      if (status === "failed" && failure) {
+        setFields["contacts.$.failure"] = failure;
       }
 
       await Campaign.updateOne(
@@ -401,7 +421,10 @@ const toggleConversationAi = async (req, res) => {
     const { conversationId } = req.params;
     const { aiEnabled } = req.body;
 
-    const conversation = await Conversation.findOne({ _id: conversationId, companyId: req.companyId });
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      companyId: req.companyId,
+    });
 
     if (!conversation) {
       return res.status(404).json({
@@ -468,7 +491,10 @@ const updateContactTags = async (req, res) => {
     const { id } = req.params;
     const { tags } = req.body;
 
-    const contact = await Contact.findOne({ _id: id, companyId: req.companyId });
+    const contact = await Contact.findOne({
+      _id: id,
+      companyId: req.companyId,
+    });
 
     if (!contact) {
       return res.status(404).json({
@@ -511,7 +537,10 @@ const updateContactConsent = async (req, res) => {
     const { id } = req.params;
     const { optedOut } = req.body;
 
-    const contact = await Contact.findOne({ _id: id, companyId: req.companyId });
+    const contact = await Contact.findOne({
+      _id: id,
+      companyId: req.companyId,
+    });
 
     if (!contact) {
       return res.status(404).json({
@@ -558,7 +587,9 @@ const assignConversation = async (req, res) => {
 
     const conversation = await Conversation.findOne({ _id: id, companyId });
     if (!conversation) {
-      return res.status(404).json({ success: false, message: "Conversation not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Conversation not found" });
     }
 
     // Unassign path — agentId null/undefined clears all assignment fields
@@ -568,7 +599,8 @@ const assignConversation = async (req, res) => {
       conversation.assignedAt = null;
       await conversation.save();
 
-      const updatedConversation = await Conversation.findById(id).populate("contact");
+      const updatedConversation =
+        await Conversation.findById(id).populate("contact");
 
       const io = getIO();
       io.to("inbox").emit("conversation_assigned", {
@@ -577,7 +609,9 @@ const assignConversation = async (req, res) => {
         assignedBy: null,
       });
 
-      return res.status(200).json({ success: true, conversation: updatedConversation });
+      return res
+        .status(200)
+        .json({ success: true, conversation: updatedConversation });
     }
 
     // Scoped to the same company — otherwise Company A could assign one of
@@ -585,7 +619,9 @@ const assignConversation = async (req, res) => {
     // Company B.
     const agent = await User.findOne({ _id: agentId, companyId });
     if (!agent) {
-      return res.status(404).json({ success: false, message: "Agent not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Agent not found" });
     }
 
     if (agent.role !== ROLES.SUPPORT_AGENT) {
@@ -608,10 +644,14 @@ const assignConversation = async (req, res) => {
       assignedBy: req.user.userId,
     });
 
-    return res.status(200).json({ success: true, conversation: updatedConversation });
+    return res
+      .status(200)
+      .json({ success: true, conversation: updatedConversation });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ success: false, message: "Failed to assign conversation" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to assign conversation" });
   }
 };
 

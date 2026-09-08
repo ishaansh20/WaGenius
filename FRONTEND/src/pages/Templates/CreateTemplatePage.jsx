@@ -4,7 +4,8 @@ import { toast } from "react-hot-toast";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import StepBadge from "../../components/common/StepBadge";
-import { CheckCircle, FileText, Save, ShieldCheck, Sparkles, UploadCloud, X } from "lucide-react";
+import { CheckCircle, FileText, Lock, Save, ShieldCheck, Sparkles, UploadCloud, X } from "lucide-react";
+import usePlan from "../../hooks/usePlan";
 import {
   LANGUAGES,
   META_CATEGORIES,
@@ -22,6 +23,8 @@ export default function CreateTemplatePage() {
   const fileInputRef = useRef(null);
   const descRef = useRef(null);
   const { id } = useParams();
+
+  const { hasReachedLimit, getLimit, getUsage, plan } = usePlan();
 
   const [loading, setLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -52,6 +55,40 @@ export default function CreateTemplatePage() {
   const variableCount = variableTokens.length;
 
   const mergedCategories = mergeCategories(categories);
+
+  async function fetchCategories() {
+    try {
+      setCategories(await fetchTemplateCategories());
+    } catch (error) {
+      console.log(error);
+      toast.error("Couldn't load categories — try refreshing the page");
+    }
+  }
+
+  async function fetchTemplateById() {
+    if (!id) return;
+    try {
+      const res = await api.get(`/api/templates/${id}`);
+      const template = res.data.template;
+      setFormData({
+        name: template.name || "",
+        category: template.category || "",
+        description: template.description || "",
+        status: template.status || "draft",
+      });
+      setMetaForm({
+        metaTemplateName: template.metaTemplateName || "",
+        metaCategory: template.metaCategory || "",
+        language: template.language || "en_US",
+        bodyVariableExamples: template.bodyVariableExamples || [],
+      });
+      setMetaStatus(template.metaStatus || "not_submitted");
+      setRejectionReason(template.rejectionReason || "");
+    } catch (error) {
+      console.log(error);
+      toast.error("Couldn't load this template — try refreshing the page");
+    }
+  }
 
   useEffect(() => {
     fetchCategories();
@@ -90,40 +127,6 @@ export default function CreateTemplatePage() {
     e.preventDefault(); e.stopPropagation(); setDragActive(false);
     const f = e.dataTransfer.files?.[0];
     if (f) setMedia(f);
-  }
-
-  async function fetchCategories() {
-    try {
-      setCategories(await fetchTemplateCategories());
-    } catch (error) {
-      console.log(error);
-      toast.error("Couldn't load categories — try refreshing the page");
-    }
-  }
-
-  async function fetchTemplateById() {
-    if (!id) return;
-    try {
-      const res = await api.get(`/api/templates/${id}`);
-      const template = res.data.template;
-      setFormData({
-        name: template.name || "",
-        category: template.category || "",
-        description: template.description || "",
-        status: template.status || "draft",
-      });
-      setMetaForm({
-        metaTemplateName: template.metaTemplateName || "",
-        metaCategory: template.metaCategory || "",
-        language: template.language || "en_US",
-        bodyVariableExamples: template.bodyVariableExamples || [],
-      });
-      setMetaStatus(template.metaStatus || "not_submitted");
-      setRejectionReason(template.rejectionReason || "");
-    } catch (error) {
-      console.log(error);
-      toast.error("Couldn't load this template — try refreshing the page");
-    }
   }
 
   function handleExampleChange(index, value) {
@@ -200,6 +203,17 @@ export default function CreateTemplatePage() {
     <DashboardLayout title={id ? "Edit Template" : "Create Template"}>
       <div className="w-full">
         <form onSubmit={handleSubmit}>
+
+          {/* Template limit reached banner — only show when creating a new template */}
+          {!id && hasReachedLimit("templates") && (
+            <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px]">
+              <Lock className="h-4 w-4 shrink-0 text-amber-600" />
+              <span className="text-amber-800">
+                <strong>Template limit reached</strong> ({getUsage("templates")}/{getLimit("templates")} templates).
+                {" "}Upgrade to <strong>{plan?.slug === "free" ? "Pro" : "Enterprise"}</strong> to create more templates.
+              </span>
+            </div>
+          )}
 
           {/* Page header */}
           <div className="mb-6">

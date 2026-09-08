@@ -1,29 +1,98 @@
 const Company = require("../models/company");
-const { setCompanyWhatsAppCredentials } = require("../services/whatsapp/companyCredentials");
+const Subscription = require("../models/subscription");
+const { resolveSetupStatus, SETUP_STATUS } = require("../utils/setupStatus");
+const {
+  setCompanyWhatsAppCredentials,
+} = require("../services/whatsapp/companyCredentials");
+
+function hasEnvWhatsAppCredentials() {
+  return !!(
+    process.env.META_ACCESS_TOKEN &&
+    process.env.META_PHONE_NUMBER_ID &&
+    process.env.META_WABA_ID
+  );
+}
 
 // Never returns the access token itself — only enough to show connection
 // status on the Settings page.
 const getWhatsAppStatus = async (req, res) => {
   try {
-    const company = await Company.findById(req.companyId).select("whatsapp name");
+    const [company, subscription] = await Promise.all([
+      Company.findById(req.companyId).select("whatsapp name setupStatus"),
+      Subscription.findOne({ companyId: req.companyId }),
+    ]);
 
     if (!company) {
-      return res.status(404).json({ success: false, message: "Company not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Company not found" });
     }
+
+    const setupStatus = resolveSetupStatus(company, subscription);
+    if (company.setupStatus !== setupStatus) {
+      company.setupStatus = setupStatus;
+      await company.save();
+    }
+
+    const isConnected = company.whatsapp?.connected === true;
+    const whatsappData = {
+      connected: isConnected,
+      phoneNumberId: company.whatsapp?.phoneNumberId || "",
+      wabaId: company.whatsapp?.wabaId || "",
+      tokenType: company.whatsapp?.tokenType || "",
+      connectedAt: company.whatsapp?.connectedAt || null,
+      onboardingCompleted: Boolean(
+        company.whatsapp?.onboardingCompletedAt || isConnected,
+      ),
+      onboardingCompletedAt: company.whatsapp?.onboardingCompletedAt || null,
+    };
 
     res.status(200).json({
       success: true,
-      whatsapp: {
-        connected: company.whatsapp.connected,
-        phoneNumberId: company.whatsapp.phoneNumberId,
-        wabaId: company.whatsapp.wabaId,
-        tokenType: company.whatsapp.tokenType,
-        connectedAt: company.whatsapp.connectedAt,
-      },
+      setupStatus,
+      ...whatsappData,
+      whatsapp: whatsappData,
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Failed to fetch WhatsApp connection status" });
+    console.error("[WhatsApp] Failed to fetch connection status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch WhatsApp connection status",
+    });
+  }
+};
+
+const getCompanySetupStatus = async (req, res) => {
+  try {
+    const [company, subscription] = await Promise.all([
+      Company.findById(req.companyId).select("name setupStatus whatsapp"),
+      Subscription.findOne({ companyId: req.companyId }),
+    ]);
+
+    if (!company) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Company not found" });
+    }
+
+    const setupStatus = resolveSetupStatus(company, subscription);
+
+    if (company.setupStatus !== setupStatus) {
+      company.setupStatus = setupStatus;
+      await company.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      setupStatus,
+      hasPlan: Boolean(subscription?.planId),
+      hasWhatsApp: company?.whatsapp?.connected === true,
+    });
+  } catch (error) {
+    console.error("[Company] Failed to fetch setup status:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch setup status" });
   }
 };
 
@@ -50,34 +119,70 @@ const connectWhatsApp = async (req, res) => {
       tokenType: "manual",
     });
 
-    res.status(200).json({ success: true, message: "WhatsApp Business Account connected" });
+    res
+      .status(200)
+      .json({ success: true, message: "WhatsApp Business Account connected" });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ success: false, message: "Failed to connect WhatsApp Business Account" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to connect WhatsApp Business Account",
+      });
   }
 };
 
 const disconnectWhatsApp = async (req, res) => {
   try {
-    await Company.updateOne(
+    const result = await Company.updateOne(
       { _id: req.companyId },
       {
         $set: {
+          setupStatus: SETUP_STATUS.WHATSAPP_ONBOARDING_REQUIRED,
           "whatsapp.connected": false,
           "whatsapp.accessToken": "",
           "whatsapp.phoneNumberId": "",
           "whatsapp.wabaId": "",
+          "whatsapp.apiVersion": "",
           "whatsapp.tokenType": "",
           "whatsapp.connectedAt": null,
+          "whatsapp.onboardingCompletedAt": null,
         },
       },
     );
 
-    res.status(200).json({ success: true, message: "WhatsApp Business Account disconnected" });
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Company not found",
+      });
+    }
+
+    console.log(
+      `[WhatsApp] Disconnected credentials for company ${req.companyId}`,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "WhatsApp Business Account disconnected",
+    });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Failed to disconnect WhatsApp Business Account" });
+    console.error(
+      "[WhatsApp] Failed to disconnect WhatsApp:",
+      error,
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to disconnect WhatsApp Business Account",
+    });
   }
 };
 
-module.exports = { getWhatsAppStatus, connectWhatsApp, disconnectWhatsApp };
+module.exports = {
+  getWhatsAppStatus,
+  getCompanySetupStatus,
+  connectWhatsApp,
+  disconnectWhatsApp,
+};

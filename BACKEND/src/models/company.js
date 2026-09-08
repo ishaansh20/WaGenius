@@ -32,16 +32,39 @@ const companySchema = new mongoose.Schema(
       default: "active",
     },
 
+    setupStatus: {
+      type: String,
+      enum: [
+        "PLAN_SELECTION_REQUIRED",
+        "WHATSAPP_ONBOARDING_REQUIRED",
+        "READY",
+      ],
+      default: "PLAN_SELECTION_REQUIRED",
+      index: true,
+    },
+
     whatsapp: {
       connected: { type: Boolean, default: false },
-      // Encrypted at rest — see services/whatsapp/companyCredentials.js,
-      // which is the only place this should be decrypted.
+
+      // Encrypted at rest
       accessToken: { type: String, default: "" },
+
       phoneNumberId: { type: String, default: "", index: true },
+
       wabaId: { type: String, default: "", index: true },
+
       apiVersion: { type: String, default: "" },
-      tokenType: { type: String, enum: ["manual", "embedded_signup", ""], default: "" },
+
+      tokenType: {
+        type: String,
+        enum: ["manual", "embedded_signup", ""],
+        default: "",
+      },
+
       connectedAt: { type: Date, default: null },
+
+      // Used to determine whether WhatsApp onboarding is complete
+      onboardingCompletedAt: { type: Date, default: null },
     },
   },
   {

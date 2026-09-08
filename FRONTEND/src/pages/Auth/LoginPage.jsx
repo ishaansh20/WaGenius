@@ -129,7 +129,8 @@ function LoginForm({
           New company? <Link to="/signup">Create an account</Link>
         </p>
         <p className="login-card-footer-text">
-          <Link to="/privacy-policy">Privacy Policy</Link> · <Link to="/data-deletion">Data Deletion</Link>
+          <Link to="/privacy-policy">Privacy Policy</Link> ·{" "}
+          <Link to="/data-deletion">Data Deletion</Link>
         </p>
         <p className="login-card-footer-text">
           © {new Date().getFullYear()} Wagenius. All rights reserved.
@@ -159,9 +160,18 @@ function LoginPage() {
         `${API_BASE_URL}/api/auth/login`,
         formData,
       );
-      login({ token: data.token, user: data.user });
+      const status = data.setupStatus || data.company?.setupStatus;
+      login({ token: data.token, user: data.user, setupStatus: status });
+
       toast.success("Login successful");
-      navigate("/");
+
+      if (status === "PLAN_SELECTION_REQUIRED") {
+        navigate("/billing");
+      } else if (status === "WHATSAPP_ONBOARDING_REQUIRED") {
+        navigate("/onboarding/whatsapp");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || "Login failed");
     } finally {

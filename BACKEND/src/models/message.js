@@ -59,6 +59,24 @@ const messageSchema = new mongoose.Schema(
       type: String,
       index: true,
     },
+    failure: {
+      code: {
+        type: String,
+        default: null,
+      },
+      title: {
+        type: String,
+        default: null,
+      },
+      message: {
+        type: String,
+        default: null,
+      },
+      details: {
+        type: String,
+        default: null,
+      },
+    },
     replyAttributedCampaign: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Campaign",

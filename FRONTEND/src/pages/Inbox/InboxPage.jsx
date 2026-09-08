@@ -9,7 +9,12 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, MessageSquareText, Pencil, Sparkles, X, Menu } from "lucide-react";
+import {
+  Check,
+  Pencil,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { MiniSidebar } from "../../components/layout/MiniSidebar";
 import { ConversationSidebar } from "../../components/conversation/ConversationSidebar";
@@ -36,8 +41,6 @@ import {
   normalizeMessage,
 } from "../../store/conversationStore";
 import MobileSidebar from "../../components/layout/MobileSidebar";
-
-const socket = getInboxSocket();
 
 function getInitials(name) {
   return name
@@ -153,7 +156,13 @@ export function InboxPage() {
 
       return (conversation.contact.tags || []).includes(selectedTag);
     });
-  }, [deferredQuery, state.conversations, state.filter, selectedTag, currentUserId]);
+  }, [
+    deferredQuery,
+    state.conversations,
+    state.filter,
+    selectedTag,
+    currentUserId,
+  ]);
 
   const activeMessages = useMemo(
     () => state.messagesByConversation[state.activeConversationId] || [],
@@ -220,7 +229,11 @@ export function InboxPage() {
     } catch {
       dispatch({ type: "SET_LOADING_MORE_CONVERSATIONS", payload: false });
     }
-  }, [state.isLoadingMoreConversations, state.hasMoreConversations, state.nextConversationsCursor]);
+  }, [
+    state.isLoadingMoreConversations,
+    state.hasMoreConversations,
+    state.nextConversationsCursor,
+  ]);
 
   useEffect(() => {
     fetchAgents()
@@ -306,6 +319,7 @@ export function InboxPage() {
   }, [state.activeConversationId]);
 
   useEffect(() => {
+    const socket = getInboxSocket();
     const handleNewMessage = (payload) => {
       const normalizedMessage = normalizeMessage(payload);
       const targetConversationId = normalizedMessage.conversationId;
@@ -952,7 +966,6 @@ export function InboxPage() {
                       </span>
                       <Sparkles className="h-4 w-4" />
                     </button>
-
                   </div>
                 </div>
               </div>

@@ -10,6 +10,8 @@ import { extractVariableTokens, mergeCategories } from "../../constants/template
 import { EMPTY_CSV_ANALYSIS, parseCsvAnalysis } from "../../utils/csvAnalysis";
 import { fetchSegments, fetchTemplateCategories } from "../../services/api";
 import { fetchSegmentAsCsvFile } from "../../utils/segmentToCsv";
+import usePlan from "../../hooks/usePlan";
+import { Lock } from "lucide-react";
 
 /* ── shared input class ── */
 const inputCls =
@@ -79,6 +81,10 @@ export default function CampaignUpload() {
 
   const mergedCategories = mergeCategories(categories);
 
+  const { canUse, hasReachedLimit, getLimit, getUsage, plan } = usePlan();
+  const canSchedule = canUse("campaignSchedule");
+  const campaignLimitReached = hasReachedLimit("campaigns");
+
   const mergedTemplates = dbTemplates.filter(
     (t) =>
       t.category?.toLowerCase() === campaignType.toLowerCase() &&
@@ -106,10 +112,6 @@ export default function CampaignUpload() {
     .map((button, index) => ({ button, index }))
     .filter(({ button }) => button.type === "URL" && /\{\{1\}\}/.test(button.url || ""))
     .map(({ index }) => index);
-
-  const filteredTemplates = mergedTemplates.filter((t) =>
-    (t.name || t.title || "").toLowerCase().includes(templateSearch.toLowerCase()),
-  );
 
   const hasMessage = message.trim().length > 0;
 
@@ -311,6 +313,17 @@ export default function CampaignUpload() {
     <DashboardLayout title="Create Campaign">
       <div className="w-full">
         <form onSubmit={handleSubmit}>
+          {/* Campaign limit reached banner */}
+          {campaignLimitReached && (
+            <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px]">
+              <Lock className="h-4 w-4 shrink-0 text-amber-600" />
+              <span className="text-amber-800">
+                <strong>Monthly campaign limit reached</strong> ({getUsage("campaigns")}/{getLimit("campaigns")} this month).
+                {" "}Upgrade to <strong>{plan?.slug === "free" ? "Pro" : "Enterprise"}</strong> to send more campaigns this month.
+              </span>
+            </div>
+          )}
+
           {/* Page header */}
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
@@ -392,13 +405,20 @@ export default function CampaignUpload() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsScheduled(true)}
-                      className={`rounded-md px-4 py-1.5 text-[12.5px] font-medium transition-all ${
+                      onClick={() => {
+                        if (!canSchedule) {
+                          toast.error("Campaign scheduling is available on Pro and Enterprise plans. Upgrade to unlock.", { icon: "🔒" });
+                          return;
+                        }
+                        setIsScheduled(true);
+                      }}
+                      className={`rounded-md px-4 py-1.5 text-[12.5px] font-medium transition-all flex items-center gap-1.5 ${
                         isScheduled
                           ? "bg-white text-slate-900 shadow-sm"
                           : "text-slate-500 hover:text-slate-800"
                       }`}
                     >
+                      {!canSchedule && <Lock className="h-3 w-3 text-slate-400" />}
                       Schedule for Later
                     </button>
                   </div>

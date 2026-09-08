@@ -1,7 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -28,8 +27,28 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("setupStatus");
 
       window.location.href = "/login";
+    } else if (error.response?.status === 403) {
+      const code = error.response?.data?.code;
+      const currentPath = window.location.pathname;
+
+      if (
+        code === "PLAN_SELECTION_REQUIRED" &&
+        !currentPath.startsWith("/billing") &&
+        !currentPath.startsWith("/pricing")
+      ) {
+        window.location.href = "/billing";
+      } else if (
+        code === "WHATSAPP_ONBOARDING_REQUIRED" &&
+        !currentPath.startsWith("/onboarding") &&
+        !currentPath.startsWith("/whatsapp-onboarding") &&
+        !currentPath.startsWith("/billing") &&
+        !currentPath.startsWith("/pricing")
+      ) {
+        window.location.href = "/onboarding/whatsapp";
+      }
     }
 
     return Promise.reject(error);
@@ -57,7 +76,7 @@ export async function sendInboxMessage(payload) {
   try {
     const { data } = await api.post("/api/send-message", payload);
     return data;
-  } catch (error) {
+  } catch {
     const { data } = await api.post("/api/messages", payload);
     return data;
   }
@@ -70,7 +89,7 @@ export async function toggleConversationAi(conversationId, aiEnabled) {
       { aiEnabled },
     );
     return data;
-  } catch (error) {
+  } catch {
     return { success: false, aiEnabled };
   }
 }
@@ -84,9 +103,12 @@ export async function updateContactTags(contactId, tags) {
 }
 
 export async function updateContactConsent(contactId, optedOut) {
-  const response = await api.patch(`/api/messages/contacts/${contactId}/consent`, {
-    optedOut,
-  });
+  const response = await api.patch(
+    `/api/messages/contacts/${contactId}/consent`,
+    {
+      optedOut,
+    },
+  );
 
   return response.data;
 }
@@ -130,7 +152,11 @@ export async function bulkDeleteContacts(ids) {
 }
 
 export async function bulkUpdateContactTags({ ids, tags, action }) {
-  const { data } = await api.patch("/api/contacts/bulk-tags", { ids, tags, action });
+  const { data } = await api.patch("/api/contacts/bulk-tags", {
+    ids,
+    tags,
+    action,
+  });
   return data;
 }
 
@@ -150,7 +176,9 @@ export async function fetchCostSummary() {
 }
 
 export async function fetchMetaPricing(range = "30d") {
-  const { data } = await api.get("/api/meta-account/pricing", { params: { range } });
+  const { data } = await api.get("/api/meta-account/pricing", {
+    params: { range },
+  });
   return data;
 }
 
@@ -171,6 +199,19 @@ export async function registerCompany(payload) {
 
 export async function fetchWhatsAppStatus() {
   const { data } = await api.get("/api/companies/whatsapp-status");
+  return data;
+}
+
+export async function fetchWhatsAppConnectionStatus() {
+  const { data } = await api.get("/api/company/whatsapp/status");
+  return data;
+}
+
+export async function completeEmbeddedSignup(payload) {
+  const { data } = await api.post(
+    "/api/company/whatsapp/embedded-signup/complete",
+    payload,
+  );
   return data;
 }
 
@@ -210,12 +251,16 @@ export async function fetchSegmentContacts(id) {
 }
 
 export async function addContactsToSegment(id, contactIds) {
-  const { data } = await api.post(`/api/segments/${id}/contacts`, { contactIds });
+  const { data } = await api.post(`/api/segments/${id}/contacts`, {
+    contactIds,
+  });
   return data;
 }
 
 export async function removeContactFromSegment(id, contactId) {
-  const { data } = await api.delete(`/api/segments/${id}/contacts/${contactId}`);
+  const { data } = await api.delete(
+    `/api/segments/${id}/contacts/${contactId}`,
+  );
   return data;
 }
 
@@ -230,5 +275,36 @@ export async function fetchAgents() {
   return list.filter((u) => u.role === "SUPPORT_AGENT");
 }
 
+export async function fetchPlans() {
+  const { data } = await api.get("/api/plans");
+  return data;
+}
+
+export async function fetchMySubscription() {
+  const { data } = await api.get("/api/subscription/me");
+  return data;
+}
+
+export async function fetchPlanAccess() {
+  const { data } = await api.get("/api/subscription/plan-access");
+  return data;
+}
+
+export async function selectPlan(payload) {
+  const { data } = await api.patch("/api/subscription/me", payload);
+  return data;
+}
+
+export async function endTrial() {
+  const { data } = await api.post("/api/subscription/me/end-trial");
+  return data;
+}
+
+export async function fetchCompanySetupStatus() {
+  const { data } = await api.get("/api/company/setup-status");
+  return data;
+}
+
 export default api;
 export { API_BASE_URL };
+

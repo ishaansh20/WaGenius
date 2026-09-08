@@ -13,6 +13,7 @@ import {
   Sparkles,
   Users,
   LogOut,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -82,6 +83,13 @@ const navItems = [
   },
 
   {
+    id: "billing",
+    icon: CreditCard,
+    label: "Billing & Plans",
+    path: "/billing",
+  },
+
+  {
     id: "settings",
     icon: Settings,
     label: "Settings",
@@ -96,6 +104,7 @@ const ROLE_NAVIGATION = {
     "campaigns",
     "contacts",
     "templates",
+    "billing",
     "settings",
   ],
 
@@ -112,6 +121,7 @@ const routeMap = {
   campaigns: "/campaigns",
   contacts: "/contacts",
   templates: "/templates",
+  billing: "/billing",
   settings: "/settings",
 };
 

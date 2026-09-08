@@ -52,9 +52,13 @@ export default function SignupPage() {
     try {
       setLoading(true);
       const data = await registerCompany(formData);
-      login({ token: data.token, user: data.user });
-      toast.success(`Welcome, ${data.company.name}!`);
-      navigate("/");
+      login({
+        token: data.token,
+        user: data.user,
+        setupStatus: data.setupStatus || "PLAN_SELECTION_REQUIRED",
+      });
+      toast.success(`Welcome, ${data.company.name}! Please select your plan.`);
+      navigate("/pricing");
     } catch (error) {
       toast.error(error.response?.data?.message || "Signup failed");
     } finally {

@@ -21,6 +21,24 @@ const contactSchema = new mongoose.Schema({
   repliedAt: { type: Date, default: null },
   failedAt: { type: Date, default: null },
   clickedAt: { type: Date, default: null },
+  failure: {
+    code: {
+      type: String,
+      default: null,
+    },
+    title: {
+      type: String,
+      default: null,
+    },
+    message: {
+      type: String,
+      default: null,
+    },
+    details: {
+      type: String,
+      default: null,
+    },
+  },
 });
 
 const campaignSchema = new mongoose.Schema(

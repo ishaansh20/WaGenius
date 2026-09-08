@@ -1,5 +1,8 @@
 const User = require("../models/user");
+const PlatformUser = require("../models/platformUser");
 const Company = require("../models/company");
+const Subscription = require("../models/subscription");
+const { resolveSetupStatus, SETUP_STATUS } = require("../utils/setupStatus");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { slugifyCompanyName } = require("../utils/slugify");
@@ -49,6 +52,13 @@ const login = async (req, res) => {
       });
     }
 
+    const [company, subscription] = await Promise.all([
+      Company.findById(user.companyId).select(
+        "name setupStatus whatsapp.connected whatsapp.wabaId whatsapp.phoneNumberId whatsapp.onboardingCompletedAt",
+      ),
+      Subscription.findOne({ companyId: user.companyId }),
+    ]);
+
     // Platform-tier accounts must use the separate platform login — this
     // login endpoint is for company accounts only. Keeps the two auth
     // surfaces from ever sharing a page/session (see requirePlatformRole.js
@@ -78,6 +88,13 @@ const login = async (req, res) => {
       });
     }
 
+    // Determine and sync setupStatus for company
+    const setupStatus = resolveSetupStatus(company, subscription);
+    if (company && company.setupStatus !== setupStatus) {
+      company.setupStatus = setupStatus;
+      await company.save();
+    }
+
     // Generate JWT
     const token = jwt.sign(
       {
@@ -99,12 +116,22 @@ const login = async (req, res) => {
     res.status(200).json({
       success: true,
       token,
+      setupStatus,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
         companyId: user.companyId,
+      },
+      company: {
+        id: company?._id,
+        name: company?.name,
+        setupStatus,
+      },
+      whatsapp: {
+        connected: company?.whatsapp?.connected === true,
+        onboardingCompleted: !!company?.whatsapp?.onboardingCompletedAt,
       },
     });
   } catch (error) {
@@ -129,7 +156,8 @@ const registerCompany = async (req, res) => {
     if (!companyName || !name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Company name, your name, email, and password are all required",
+        message:
+          "Company name, your name, email, and password are all required",
       });
     }
 
@@ -145,6 +173,7 @@ const registerCompany = async (req, res) => {
       name: companyName.trim(),
       slug: await generateUniqueCompanySlug(companyName),
       status: "active",
+      setupStatus: SETUP_STATUS.PLAN_SELECTION_REQUIRED,
     });
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -168,6 +197,7 @@ const registerCompany = async (req, res) => {
     res.status(201).json({
       success: true,
       token,
+      setupStatus: SETUP_STATUS.PLAN_SELECTION_REQUIRED,
       user: {
         id: user._id,
         name: user.name,
@@ -175,7 +205,11 @@ const registerCompany = async (req, res) => {
         role: user.role,
         companyId: company._id,
       },
-      company: { id: company._id, name: company.name },
+      company: {
+        id: company._id,
+        name: company.name,
+        setupStatus: SETUP_STATUS.PLAN_SELECTION_REQUIRED,
+      },
     });
   } catch (error) {
     console.error("Register Company Error:", error);
@@ -203,9 +237,11 @@ const platformLogin = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await PlatformUser.findOne({
+      email: email.toLowerCase(),
+    });
 
-    if (!user || !user.platformRole) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
@@ -215,11 +251,12 @@ const platformLogin = async (req, res) => {
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
-        message: "Account is inactive",
+        message: "Platform account is inactive",
       });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -228,34 +265,38 @@ const platformLogin = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, platformRole: user.platformRole },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN },
+      {
+        platformUserId: user._id,
+        platformRole: user.role,
+      },
+      process.env.PLATFORM_JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      },
     );
 
     user.lastLogin = new Date();
     await user.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        platformRole: user.platformRole,
+        platformRole: user.role,
       },
     });
   } catch (error) {
     console.error("Platform Login Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Server error",
     });
   }
 };
-
 module.exports = {
   login,
   registerCompany,

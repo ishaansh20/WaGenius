@@ -3,13 +3,16 @@ require("dotenv").config();
 const http = require("http");
 
 const connectDB = require("./config/db");
+const { seedDefaultPlans } = require("./config/seedPlans");
 
 const app = require("./app");
 
 const { initSocket } = require("./sockets/socket");
 const { startCampaignPoller } = require("./services/campaign/campaignSchedulerService");
 
-connectDB();
+connectDB().then(() => {
+  seedDefaultPlans();
+});
 
 const server = http.createServer(app);
 

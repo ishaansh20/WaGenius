@@ -38,6 +38,15 @@ const uploadCampaign = async (req, res) => {
       }
     }
 
+    if (scheduleAt && req.plan && req.plan.features?.campaignSchedule === false) {
+      return res.status(403).json({
+        success: false,
+        code: "FEATURE_LOCKED",
+        feature: "campaignSchedule",
+        message: "Campaign scheduling is available on Pro and Enterprise plans. Please upgrade to schedule campaigns.",
+      });
+    }
+
     if (!req.file) {
       return res.status(400).json({
         success: false,

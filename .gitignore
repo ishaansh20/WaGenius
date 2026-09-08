@@ -1,41 +1,45 @@
 # Dependencies
-node_modules/
-FRONTEND/node_modules/
-BACKEND/node_modules/
+**/node_modules/
 
-# Build output
+# Build output and tool metadata
 FRONTEND/dist/
 FRONTEND/dist-ssr/
+.vercel/
+coverage/
+*.tsbuildinfo
 
-# Secrets — never committed
+# Local configuration and secrets
 .env
 .env.*
 !.env.example
-BACKEND/.env
+!.env.*.example
 
-# User-uploaded media — not source, and not meant to live in git
+# Runtime data and generated uploads
 BACKEND/uploads/
+BACKEND/**/*.sqlite
+BACKEND/**/*.db
 
-# Stray archives — redundant backup copies of BACKEND/FRONTEND, not source
-BACKEND/backend.zip
-FRONTEND/frontend.zip
-/backend.zip
-/frontend.zip
+# Archives and generated reports
+*.zip
+*.rar
+FRONTEND/eslint_report.json
 
-# Logs
-logs
+# Logs and local caches
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.npm/
 
-# Editor/OS
+# Editor and operating-system files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj

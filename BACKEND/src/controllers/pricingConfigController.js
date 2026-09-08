@@ -13,7 +13,9 @@ const getPricingConfig = async (req, res) => {
     res.status(200).json({ success: true, config });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ success: false, message: "Failed to fetch pricing config" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch pricing config" });
   }
 };
 
@@ -41,7 +43,9 @@ const updatePricingConfig = async (req, res) => {
     res.status(200).json({ success: true, config });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ success: false, message: "Failed to update pricing config" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update pricing config" });
   }
 };
 
