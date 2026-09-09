@@ -18,11 +18,13 @@ import {
 } from "../../services/api";
 import useAuthStore from "../../store/authStore";
 
+
 const META_APP_ID = import.meta.env.VITE_META_APP_ID;
 const META_CONFIG_ID = import.meta.env.VITE_META_CONFIG_ID;
 
 export default function WhatsAppOnboardingPage() {
   const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
   const [connecting, setConnecting] = useState(false);
   const [statusStage, setStatusStage] = useState(""); // "" | "CONNECTING" | "PROCESSING" | "SAVING" | "SUCCESS" | "ERROR"
   const [errorMessage, setErrorMessage] = useState("");
@@ -271,9 +273,25 @@ export default function WhatsAppOnboardingPage() {
           </span>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700">
-          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-          <span>Official Meta Cloud API Partner</span>
+        <div className="flex items-center gap-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+            <span>Official Meta Cloud API Partner</span>
+          </div>
+          <div className="text-right hidden sm:block">
+            <p className="text-xs font-semibold text-slate-800">{user?.name || user?.email}</p>
+            <p className="text-[11px] text-slate-500">{user?.email}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              navigate("/login");
+            }}
+            className="text-xs font-semibold text-slate-700 hover:text-red-700 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-red-50 shadow-sm transition"
+          >
+            Sign Out
+          </button>
         </div>
       </header>
 
@@ -465,16 +483,6 @@ export default function WhatsAppOnboardingPage() {
                         <ArrowRight className="h-4 w-4" />
                       </>
                     )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      useAuthStore.getState().logout();
-                      navigate("/dashboard");
-                    }}
-                    className="ml-2 w-full sm:w-auto min-w-[120px] py-2 px-4 rounded-xl bg-slate-400 hover:bg-slate-300 text-white font-semibold text-xs sm:text-sm transition-all"
-                  >
-                    Cancel
                   </button>
                 </div>
               </>
