@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const axios = require("axios");
 const { setCompanyWhatsAppCredentials } = require("./companyCredentials");
 const { withRetry } = require("../../utils/withRetry");
@@ -11,6 +12,13 @@ const { withRetry } = require("../../utils/withRetry");
 const getApiVersion = () => process.env.META_API_VERSION || "v23.0";
 const getAppId = () => process.env.META_APP_ID;
 const getAppSecret = () => process.env.META_APP_SECRET;
+
+/**
+ * Generates a cryptographically secure 6-digit numeric PIN for Cloud API phone registration.
+ */
+function generateSixDigitPin() {
+  return crypto.randomInt(100000, 1000000).toString();
+}
 
 /**
  * Exchanges the client-provided authorization code for a Meta access token.
@@ -66,6 +74,116 @@ async function exchangeCodeForAccessToken(code) {
 }
 
 /**
+ * Upgrades a short-lived OAuth access token (~1-2 hours) to a 60-day long-lived access token.
+ */
+async function exchangeForLongLivedToken(shortLivedToken) {
+  const appId = getAppId();
+  const appSecret = getAppSecret();
+  const apiVersion = getApiVersion();
+
+  if (!appId || !appSecret) {
+    throw new Error(
+      "Meta application credentials (META_APP_ID, META_APP_SECRET) are not configured on the server",
+    );
+  }
+
+  const url = `https://graph.facebook.com/${apiVersion}/oauth/access_token`;
+
+  try {
+    const response = await withRetry(
+      () =>
+        axios.get(url, {
+          params: {
+            grant_type: "fb_exchange_token",
+            client_id: appId,
+            client_secret: appSecret,
+            fb_exchange_token: shortLivedToken.trim(),
+          },
+          timeout: 15000,
+        }),
+      { label: "exchangeForLongLivedToken" },
+    );
+
+    const longLivedToken = response.data?.access_token;
+    if (!longLivedToken) {
+      console.warn(
+        "[EmbeddedSignup] Long-lived token response did not contain access_token; continuing with initial token",
+      );
+      return shortLivedToken;
+    }
+
+    console.log(
+      "[EmbeddedSignup] Successfully exchanged short-lived token for long-lived (60-day) token",
+    );
+    return longLivedToken;
+  } catch (error) {
+    const metaError = error.response?.data?.error;
+    console.warn(
+      "[EmbeddedSignup] Failed to exchange short-lived token for long-lived token, falling back to initial token:",
+      metaError || error.message,
+    );
+    return shortLivedToken;
+  }
+}
+
+/**
+ * Registers the phone number with Meta's WhatsApp Cloud API using a 6-digit PIN.
+ * Required for sending/receiving WhatsApp messages on the Cloud API.
+ */
+async function registerPhoneNumber(accessToken, phoneNumberId, pin) {
+  if (!phoneNumberId) {
+    throw new Error("Cannot register phone number: Phone Number ID is missing");
+  }
+
+  const apiVersion = getApiVersion();
+  const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/register`;
+
+  try {
+    const response = await withRetry(
+      () =>
+        axios.post(
+          url,
+          {
+            messaging_product: "whatsapp",
+            pin: String(pin).trim(),
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            timeout: 10000,
+          },
+        ),
+      { label: "registerPhoneNumber" },
+    );
+
+    if (!response.data?.success) {
+      throw new Error("Meta rejected phone number registration");
+    }
+
+    console.log(
+      `[EmbeddedSignup] Successfully registered phone number ${phoneNumberId} with WhatsApp Cloud API`,
+    );
+    return response.data;
+  } catch (error) {
+    const metaError = error.response?.data?.error;
+    console.error(
+      `[EmbeddedSignup] Phone number registration failed for ${phoneNumberId}:`,
+      metaError || error.message,
+    );
+
+    const err = new Error(
+      `Meta phone number registration failed: ${metaError?.message || error.message}`,
+    );
+    err.code = metaError?.code;
+    err.subcode = metaError?.error_subcode;
+    err.status = 400;
+    throw err;
+  }
+}
+
+/**
  * Inspects the token using Meta's debug_token endpoint to discover granted scopes and shared WABA ID.
  */
 async function getWabaIdFromToken(accessToken, wabaIdHint) {
@@ -90,6 +208,16 @@ async function getWabaIdFromToken(accessToken, wabaIdHint) {
     );
 
     const tokenData = response.data?.data;
+    if (tokenData) {
+      console.log(
+        `[EmbeddedSignup] Token debug info: is_valid=${tokenData.is_valid}, expires_at=${
+          tokenData.expires_at
+            ? new Date(tokenData.expires_at * 1000).toISOString()
+            : "never"
+        }, scopes=${tokenData.scopes?.join(",") || "none"}`,
+      );
+    }
+
     const granularScopes = tokenData?.granular_scopes || [];
 
     for (const scopeObj of granularScopes) {
@@ -199,14 +327,19 @@ async function getPhoneNumberIdForWaba(
 /**
  * Subscribes the application to the WABA's webhooks so incoming messages
  * and template updates flow into Wagenius.
+ * Throws on failure so issues are surfaced immediately.
  */
 async function subscribeWabaWebhooks(accessToken, wabaId) {
-  if (!wabaId) return;
+  if (!wabaId) {
+    const err = new Error("Cannot subscribe webhooks: WABA ID is missing");
+    err.status = 400;
+    throw err;
+  }
   const apiVersion = getApiVersion();
 
   try {
     const url = `https://graph.facebook.com/${apiVersion}/${wabaId}/subscribed_apps`;
-    await withRetry(
+    const response = await withRetry(
       () =>
         axios.post(
           url,
@@ -220,14 +353,55 @@ async function subscribeWabaWebhooks(accessToken, wabaId) {
         ),
       { label: "subscribeWabaWebhooks" },
     );
+
+    if (response.data && response.data.success === false) {
+      throw new Error("Meta rejected webhook subscription");
+    }
+
     console.log(
       `[EmbeddedSignup] Successfully subscribed webhooks for WABA ${wabaId}`,
     );
+    return response.data;
+  } catch (error) {
+    const metaError = error.response?.data?.error;
+    console.error(
+      `[EmbeddedSignup] Webhook subscription failed for WABA ${wabaId}:`,
+      metaError || error.message,
+    );
+
+    const err = new Error(
+      `Meta webhook subscription failed: ${metaError?.message || error.message}`,
+    );
+    err.code = metaError?.code;
+    err.subcode = metaError?.error_subcode;
+    err.status = 400;
+    throw err;
+  }
+}
+
+/**
+ * Verifies whether the application is actively subscribed to a WABA's webhooks.
+ */
+async function checkWabaWebhookSubscription(accessToken, wabaId) {
+  if (!wabaId) return false;
+  const apiVersion = getApiVersion();
+  const url = `https://graph.facebook.com/${apiVersion}/${wabaId}/subscribed_apps`;
+
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      timeout: 10000,
+    });
+    const subscribedApps = response.data?.data || [];
+    return subscribedApps.length > 0;
   } catch (error) {
     console.warn(
-      `[EmbeddedSignup] Webhook subscription non-fatal warning for WABA ${wabaId}:`,
+      `[EmbeddedSignup] Failed to check subscribed apps for WABA ${wabaId}:`,
       error.response?.data?.error?.message || error.message,
     );
+    return false;
   }
 }
 
@@ -239,8 +413,17 @@ async function subscribeWabaWebhooks(accessToken, wabaId) {
  * @param {string} options.code - Meta authorization code
  * @param {string} [options.wabaId] - Optional WABA ID hint from WA_EMBEDDED_SIGNUP event
  * @param {string} [options.phoneNumberId] - Optional Phone Number ID hint from WA_EMBEDDED_SIGNUP event
+ * @param {string} [options.pin] - Optional 6-digit registration PIN override
  */
-async function processEmbeddedSignup(companyId, { code, wabaId: wabaIdHint, phoneNumberId: phoneNumberIdHint }) {
+async function processEmbeddedSignup(
+  companyId,
+  {
+    code,
+    wabaId: wabaIdHint,
+    phoneNumberId: phoneNumberIdHint,
+    pin: pinOption,
+  },
+) {
   if (!code || typeof code !== "string" || !code.trim()) {
     const err = new Error("Embedded Signup authorization code is missing");
     err.status = 400;
@@ -253,10 +436,13 @@ async function processEmbeddedSignup(companyId, { code, wabaId: wabaIdHint, phon
     `[EmbeddedSignup] Initiating Meta code exchange for company ${companyId}...`,
   );
 
-  // 1. Exchange authorization code with Meta for access token
-  const accessToken = await exchangeCodeForAccessToken(code);
+  // 1. Exchange authorization code with Meta for short-lived access token
+  const shortLivedToken = await exchangeCodeForAccessToken(code);
 
-  // 2. Discover WABA ID
+  // 2. Exchange short-lived token for 60-day long-lived access token
+  const accessToken = await exchangeForLongLivedToken(shortLivedToken);
+
+  // 3. Discover WABA ID
   const wabaId = await getWabaIdFromToken(accessToken, wabaIdHint);
   if (!wabaId) {
     console.error(
@@ -269,7 +455,7 @@ async function processEmbeddedSignup(companyId, { code, wabaId: wabaIdHint, phon
     throw err;
   }
 
-  // 3. Discover Phone Number ID
+  // 4. Discover Phone Number ID
   const phoneNumberId = await getPhoneNumberIdForWaba(
     accessToken,
     wabaId,
@@ -286,13 +472,28 @@ async function processEmbeddedSignup(companyId, { code, wabaId: wabaIdHint, phon
     throw err;
   }
 
-  // 4. Subscribe app to WABA webhooks
+  // 5. Register phone number for Cloud API (REQUIRED — hard fail if this breaks)
+  const pin =
+    pinOption && String(pinOption).trim().length === 6
+      ? String(pinOption).trim()
+      : generateSixDigitPin();
+
+  console.log(
+    `[EmbeddedSignup] Registering phone number ${phoneNumberId} with Cloud API for company ${companyId}...`,
+  );
+  await registerPhoneNumber(accessToken, phoneNumberId, pin);
+
+  // 6. Subscribe app to WABA webhooks (REQUIRED — hard fail if this breaks)
+  console.log(
+    `[EmbeddedSignup] Subscribing webhooks for WABA ${wabaId}...`,
+  );
   await subscribeWabaWebhooks(accessToken, wabaId);
 
-  // 5. Store encrypted credentials for this company and update connection status
+  // 7. Store encrypted credentials (access token and PIN) for this company and update connection status
   const now = new Date();
   await setCompanyWhatsAppCredentials(companyId, {
     accessToken,
+    pin,
     phoneNumberId,
     wabaId,
     apiVersion,
@@ -318,7 +519,11 @@ async function processEmbeddedSignup(companyId, { code, wabaId: wabaIdHint, phon
 module.exports = {
   processEmbeddedSignup,
   exchangeCodeForAccessToken,
+  exchangeForLongLivedToken,
+  generateSixDigitPin,
+  registerPhoneNumber,
   getWabaIdFromToken,
   getPhoneNumberIdForWaba,
   subscribeWabaWebhooks,
+  checkWabaWebhookSubscription,
 };

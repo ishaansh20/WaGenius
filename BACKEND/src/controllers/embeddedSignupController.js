@@ -18,7 +18,7 @@ const completeEmbeddedSignup = async (req, res) => {
       });
     }
 
-    const { code, wabaId, phoneNumberId } = req.body || {};
+    const { code, wabaId, phoneNumberId, pin } = req.body || {};
 
     if (!code || typeof code !== "string" || !code.trim()) {
       return res.status(400).json({
@@ -51,6 +51,7 @@ const completeEmbeddedSignup = async (req, res) => {
       code: code.trim(),
       wabaId: wabaId ? String(wabaId).trim() : undefined,
       phoneNumberId: phoneNumberId ? String(phoneNumberId).trim() : undefined,
+      pin: pin ? String(pin).trim() : undefined,
     });
 
     return res.status(200).json({

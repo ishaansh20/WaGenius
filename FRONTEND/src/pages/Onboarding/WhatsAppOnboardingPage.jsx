@@ -466,6 +466,16 @@ export default function WhatsAppOnboardingPage() {
                       </>
                     )}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      useAuthStore.getState().logout();
+                      navigate("/dashboard");
+                    }}
+                    className="ml-2 w-full sm:w-auto min-w-[120px] py-2 px-4 rounded-xl bg-slate-400 hover:bg-slate-300 text-white font-semibold text-xs sm:text-sm transition-all"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </>
             )}

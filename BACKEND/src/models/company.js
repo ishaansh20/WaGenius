@@ -49,6 +49,9 @@ const companySchema = new mongoose.Schema(
       // Encrypted at rest
       accessToken: { type: String, default: "" },
 
+      // 6-digit registration PIN, encrypted at rest
+      pin: { type: String, default: "" },
+
       phoneNumberId: { type: String, default: "", index: true },
 
       wabaId: { type: String, default: "", index: true },

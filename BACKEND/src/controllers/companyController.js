@@ -142,6 +142,7 @@ const disconnectWhatsApp = async (req, res) => {
           setupStatus: SETUP_STATUS.WHATSAPP_ONBOARDING_REQUIRED,
           "whatsapp.connected": false,
           "whatsapp.accessToken": "",
+          "whatsapp.pin": "",
           "whatsapp.phoneNumberId": "",
           "whatsapp.wabaId": "",
           "whatsapp.apiVersion": "",

@@ -29,7 +29,7 @@ function isValidObjectId(id) {
 const listCompanies = async (req, res) => {
   try {
     const companies = await Company.find()
-      .select("-whatsapp.accessToken")
+      .select("-whatsapp.accessToken -whatsapp.pin")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -211,7 +211,7 @@ const getCompanyDetail = async (req, res) => {
     }
 
     const company = await Company.findById(id)
-      .select("-whatsapp.accessToken")
+      .select("-whatsapp.accessToken -whatsapp.pin")
       .lean();
 
     if (!company) {
@@ -1056,7 +1056,7 @@ const listAllPlatformWhatsAppAccounts = async (req, res) => {
       totalManual,
     ] = await Promise.all([
       Company.find(filter)
-        .select("-whatsapp.accessToken")
+        .select("-whatsapp.accessToken -whatsapp.pin")
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)

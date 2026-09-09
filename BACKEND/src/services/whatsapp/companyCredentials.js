@@ -70,6 +70,7 @@ async function getCompanyWhatsAppCredentials(companyId) {
       wabaId: company.whatsapp.wabaId,
       apiVersion:
         company.whatsapp.apiVersion || process.env.META_API_VERSION || "v23.0",
+      pin: company.whatsapp.pin ? decryptToken(company.whatsapp.pin) : null,
     };
   }
 
@@ -79,6 +80,7 @@ async function getCompanyWhatsAppCredentials(companyId) {
       phoneNumberId: process.env.META_PHONE_NUMBER_ID,
       wabaId: process.env.META_WABA_ID,
       apiVersion: process.env.META_API_VERSION || "v23.0",
+      pin: null,
     };
   }
 
@@ -89,7 +91,7 @@ async function getCompanyWhatsAppCredentials(companyId) {
 // Signup callback) — the only write path for these fields.
 async function setCompanyWhatsAppCredentials(
   companyId,
-  { accessToken, phoneNumberId, wabaId, apiVersion, tokenType, onboardingCompletedAt },
+  { accessToken, phoneNumberId, wabaId, apiVersion, tokenType, onboardingCompletedAt, pin },
 ) {
   const updateFields = {
     setupStatus: "READY",
@@ -101,6 +103,10 @@ async function setCompanyWhatsAppCredentials(
     "whatsapp.tokenType": tokenType,
     "whatsapp.connectedAt": new Date(),
   };
+
+  if (pin) {
+    updateFields["whatsapp.pin"] = encryptToken(String(pin));
+  }
 
   if (onboardingCompletedAt !== undefined) {
     updateFields["whatsapp.onboardingCompletedAt"] = onboardingCompletedAt;
