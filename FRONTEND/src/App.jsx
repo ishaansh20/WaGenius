@@ -36,6 +36,7 @@ import RoleProtectedRoute from "./components/auth/RoleProtectedRoute";
 import HomeRedirect from "./components/auth/HomeRedirect";
 import WhatsAppOnboardingPage from "./pages/Onboarding/WhatsAppOnboardingPage";
 import BillingPage from "./pages/Billing/BillingPage";
+import NotFoundPage from "./pages/NotFound/NotFoundPage";
 import useAuthStore from "./store/authStore";
 import useSubscriptionStore from "./store/subscriptionStore";
 
@@ -334,6 +335,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,0 +1,224 @@
+/* ======================================== */
+/* Wagenius — 404 Not Found Page            */
+/* ======================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.nf-page {
+  position: relative;
+  min-height: 100vh;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Roboto",
+    sans-serif;
+  overflow: hidden;
+}
+
+/* ── Floating particle canvas ── */
+.nf-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Central radial glow ── */
+.nf-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  width: 640px;
+  height: 640px;
+  background: radial-gradient(
+    circle,
+    rgba(16, 185, 129, 0.08) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Main content ── */
+.nf-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 560px;
+  width: 100%;
+}
+
+/* ── Brand pill ── */
+.nf-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.375rem 0.875rem 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.07);
+  margin-bottom: 2.5rem;
+}
+
+.nf-brand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: #059669;
+  border-radius: 50%;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+/* ── Giant 404 number ── */
+.nf-code {
+  font-size: clamp(6rem, 18vw, 10rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.25rem;
+  user-select: none;
+  filter: drop-shadow(0 0 32px rgba(16, 185, 129, 0.18));
+}
+
+/* ── Heading ── */
+.nf-title {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  margin: 0 0 0.875rem;
+  line-height: 1.2;
+}
+
+/* ── Description ── */
+.nf-desc {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: #64748b;
+  margin: 0 0 2.25rem;
+  max-width: 420px;
+}
+
+.nf-url {
+  font-size: 0.8125rem;
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  padding: 0.1em 0.45em;
+  border-radius: 0.3rem;
+}
+
+/* ── Action buttons ── */
+.nf-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 3rem;
+}
+
+.nf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.75rem;
+  padding: 0 1.375rem;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+}
+
+/* Primary — green */
+.nf-btn-primary {
+  background: #059669;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.14);
+}
+
+.nf-btn-primary:hover {
+  background: #047857;
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.28);
+}
+
+/* Secondary — outlined */
+.nf-btn-secondary {
+  background: #ffffff;
+  color: #334155;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.nf-btn-secondary:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+
+/* ── Footer ── */
+.nf-footer {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .nf-page {
+    padding: 2rem 1.25rem;
+  }
+
+  .nf-brand {
+    margin-bottom: 2rem;
+  }
+
+  .nf-desc {
+    font-size: 0.875rem;
+  }
+
+  .nf-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nf-btn {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
