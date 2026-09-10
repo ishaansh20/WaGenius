@@ -91,16 +91,38 @@ async function getCompanyWhatsAppCredentials(companyId) {
 // Signup callback) — the only write path for these fields.
 async function setCompanyWhatsAppCredentials(
   companyId,
-  { accessToken, phoneNumberId, wabaId, apiVersion, tokenType, onboardingCompletedAt, pin },
+  {
+    accessToken,
+    phoneNumberId,
+    wabaId,
+    apiVersion,
+    tokenType,
+    onboardingCompletedAt,
+    pin,
+    phoneStatus,
+  },
 ) {
+  // Only "registered" (a number is actually usable on Cloud API) counts as
+  // fully connected. "pending" (WABA linked, no number yet) must NOT flip
+  // whatsapp.connected — that flag gates message sending, platform
+  // dashboard counts, and subscription checks elsewhere in the app.
+  const isFullyConnected = phoneStatus
+    ? phoneStatus === "registered"
+    : true; // manual "Connect WhatsApp" path always supplies a real number
+
   const updateFields = {
-    setupStatus: "READY",
-    "whatsapp.connected": true,
+    // Reuse the existing enum value — "PENDING_PHONE" isn't declared on the
+    // schema and would break validation the next time this doc is .save()'d.
+    setupStatus: isFullyConnected
+      ? "READY"
+      : "WHATSAPP_ONBOARDING_REQUIRED",
+    "whatsapp.connected": isFullyConnected,
     "whatsapp.accessToken": encryptToken(accessToken),
-    "whatsapp.phoneNumberId": phoneNumberId,
+    "whatsapp.phoneNumberId": phoneNumberId || "",
     "whatsapp.wabaId": wabaId,
     "whatsapp.apiVersion": apiVersion || "",
     "whatsapp.tokenType": tokenType,
+    "whatsapp.phoneStatus": phoneStatus || "",
     "whatsapp.connectedAt": new Date(),
   };
 

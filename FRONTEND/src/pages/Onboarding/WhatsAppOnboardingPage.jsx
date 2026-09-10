@@ -185,13 +185,26 @@ export default function WhatsAppOnboardingPage() {
         result,
       );
 
-      useAuthStore.getState().setSetupStatus("READY");
+      const phoneRegistered = result?.phoneStatus === "registered";
+
+      useAuthStore
+        .getState()
+        .setSetupStatus(phoneRegistered ? "READY" : "WHATSAPP_ONBOARDING_REQUIRED");
       setStatusStage("SUCCESS");
-      toast.success("WhatsApp Business Account connected successfully!");
+
+      if (phoneRegistered) {
+        toast.success("WhatsApp Business Account connected successfully!");
+      } else {
+        // WABA is linked but no phone number was added/verified yet —
+        // don't claim the integration is fully ready to send messages.
+        toast(
+          "Business account linked. Add and verify a phone number to start sending messages.",
+        );
+      }
 
       // Wait briefly so user sees the success confirmation before navigation
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate(phoneRegistered ? "/dashboard" : "/onboarding/whatsapp");
       }, 1500);
     } catch (error) {
       console.error(

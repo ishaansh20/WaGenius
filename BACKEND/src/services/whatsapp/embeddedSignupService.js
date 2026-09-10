@@ -455,69 +455,118 @@ async function processEmbeddedSignup(
     throw err;
   }
 
-  // 4. Discover Phone Number ID
+  // 4. Discover Phone Number ID (OPTIONAL as of Meta Embedded Signup v3+ —
+  // a business can finish the flow with no phone number yet and add one later
+  // via WhatsApp Manager or the Phone Number Registration API)
   const phoneNumberId = await getPhoneNumberIdForWaba(
     accessToken,
     wabaId,
     phoneNumberIdHint,
   );
-  if (!phoneNumberId) {
-    console.error(
-      `[EmbeddedSignup] Phone Number ID could not be identified for WABA ${wabaId}, company ${companyId}`,
+
+  let pin = null;
+  let phoneRegistered = false;
+
+  if (phoneNumberId) {
+    // 5. Register phone number for Cloud API (hard fail only if a number IS
+    // present but registration itself fails — a real, actionable error)
+    pin =
+      pinOption && String(pinOption).trim().length === 6
+        ? String(pinOption).trim()
+        : generateSixDigitPin();
+
+    console.log(
+      `[EmbeddedSignup] Registering phone number ${phoneNumberId} with Cloud API for company ${companyId}...`,
     );
-    const err = new Error(
-      "Could not identify WhatsApp Phone Number ID from Meta. Please ensure a phone number was selected during setup.",
+    await registerPhoneNumber(accessToken, phoneNumberId, pin);
+    phoneRegistered = true;
+  } else {
+    console.log(
+      `[EmbeddedSignup] No phone number was added during signup for company ${companyId} — ` +
+        `saving WABA link as pending. Call completePhoneRegistration() later once a number is available.`,
     );
-    err.status = 422;
-    throw err;
   }
 
-  // 5. Register phone number for Cloud API (REQUIRED — hard fail if this breaks)
-  const pin =
-    pinOption && String(pinOption).trim().length === 6
-      ? String(pinOption).trim()
-      : generateSixDigitPin();
-
-  console.log(
-    `[EmbeddedSignup] Registering phone number ${phoneNumberId} with Cloud API for company ${companyId}...`,
-  );
-  await registerPhoneNumber(accessToken, phoneNumberId, pin);
-
-  // 6. Subscribe app to WABA webhooks (REQUIRED — hard fail if this breaks)
-  console.log(
-    `[EmbeddedSignup] Subscribing webhooks for WABA ${wabaId}...`,
-  );
+  // 6. Subscribe app to WABA webhooks (REQUIRED — hard fail if this breaks;
+  // this doesn't depend on a phone number existing)
+  console.log(`[EmbeddedSignup] Subscribing webhooks for WABA ${wabaId}...`);
   await subscribeWabaWebhooks(accessToken, wabaId);
 
-  // 7. Store encrypted credentials (access token and PIN) for this company and update connection status
+  // 7. Store encrypted credentials (access token and PIN, if any) for this
+  // company and update connection status
   const now = new Date();
   await setCompanyWhatsAppCredentials(companyId, {
     accessToken,
     pin,
-    phoneNumberId,
+    phoneNumberId: phoneNumberId || null,
     wabaId,
     apiVersion,
     tokenType: "embedded_signup",
     onboardingCompletedAt: now,
+    phoneStatus: phoneRegistered ? "registered" : "pending",
   });
 
   console.log(
-    `[EmbeddedSignup] Successfully connected WhatsApp for company ${companyId} (WABA: ${wabaId}, Phone: ${phoneNumberId})`,
+    `[EmbeddedSignup] Successfully connected WhatsApp for company ${companyId} ` +
+      `(WABA: ${wabaId}, Phone: ${phoneNumberId || "pending"})`,
   );
 
   return {
     success: true,
     connected: true,
     wabaId,
-    phoneNumberId,
+    phoneNumberId: phoneNumberId || null,
+    phoneStatus: phoneRegistered ? "registered" : "pending",
     tokenType: "embedded_signup",
     connectedAt: now,
     onboardingCompleted: true,
   };
 }
 
+/**
+ * Completes phone registration for a company that finished Embedded Signup
+ * without a phone number (phoneStatus: "pending"). Call this once the
+ * business has a real number to add, either via a fresh Embedded Signup
+ * re-run for the same WABA or a number entered directly in your UI.
+ */
+async function completePhoneRegistration(companyId, { accessToken, wabaId, phoneNumberIdHint, pin: pinOption }) {
+  const phoneNumberId = await getPhoneNumberIdForWaba(
+    accessToken,
+    wabaId,
+    phoneNumberIdHint,
+  );
+  if (!phoneNumberId) {
+    const err = new Error(
+      "Still no phone number found for this WABA. Complete phone addition in WhatsApp Manager or Embedded Signup first.",
+    );
+    err.status = 422;
+    throw err;
+  }
+
+  const pin =
+    pinOption && String(pinOption).trim().length === 6
+      ? String(pinOption).trim()
+      : generateSixDigitPin();
+
+  await registerPhoneNumber(accessToken, phoneNumberId, pin);
+
+  await setCompanyWhatsAppCredentials(companyId, {
+    accessToken,
+    pin,
+    phoneNumberId,
+    wabaId,
+    apiVersion: getApiVersion(),
+    tokenType: "embedded_signup",
+    onboardingCompletedAt: new Date(),
+    phoneStatus: "registered",
+  });
+
+  return { success: true, phoneNumberId, phoneStatus: "registered" };
+}
+
 module.exports = {
   processEmbeddedSignup,
+  completePhoneRegistration,
   exchangeCodeForAccessToken,
   exchangeForLongLivedToken,
   generateSixDigitPin,

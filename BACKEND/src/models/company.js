@@ -56,6 +56,16 @@ const companySchema = new mongoose.Schema(
 
       wabaId: { type: String, default: "", index: true },
 
+      // "pending" = WABA linked via Embedded Signup but no phone number
+      // registered yet (Meta v3+ allows finishing signup without one).
+      // "registered" = phone number is registered with Cloud API and
+      // usable for sending/receiving messages.
+      phoneStatus: {
+        type: String,
+        enum: ["pending", "registered", ""],
+        default: "",
+      },
+
       apiVersion: { type: String, default: "" },
 
       tokenType: {
