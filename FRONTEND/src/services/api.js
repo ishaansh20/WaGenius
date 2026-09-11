@@ -211,6 +211,7 @@ export async function completeEmbeddedSignup(payload) {
   const { data } = await api.post(
     "/api/company/whatsapp/embedded-signup/complete",
     payload,
+    { timeout: 45000 },
   );
   return data;
 }
