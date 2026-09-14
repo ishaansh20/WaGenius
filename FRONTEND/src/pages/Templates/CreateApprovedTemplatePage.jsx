@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   CheckCircle,
@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Copy,
   FileText,
+  Image as ImageIcon,
   Link2,
   Megaphone,
   MessageSquare,
@@ -26,6 +27,7 @@ import api from "../../services/api";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import StepBadge from "../../components/common/StepBadge";
 import WhatsAppPreview from "../../components/templates/WhatsAppPreview";
+import { resolveMediaUrl } from "../../utils/media";
 import {
   LANGUAGES,
   META_CATEGORIES,
@@ -122,6 +124,7 @@ const WIZARD_STEPS = [
 
 export default function CreateApprovedTemplatePage() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const descRef = useRef(null);
   const headerFileInputRef = useRef(null);
 
@@ -143,10 +146,44 @@ export default function CreateApprovedTemplatePage() {
   const [headerText, setHeaderText] = useState("");
   const [headerTextExample, setHeaderTextExample] = useState("");
   const [headerMedia, setHeaderMedia] = useState(null);
+  const [existingHeaderMediaUrl, setExistingHeaderMediaUrl] = useState("");
   const [headerDragActive, setHeaderDragActive] = useState(false);
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
 
   const [buttons, setButtons] = useState([]);
+
+  useEffect(() => {
+    if (!id) return;
+    async function fetchTemplate() {
+      try {
+        const res = await api.get(`/api/templates/${id}`);
+        const t = res.data.template;
+        if (t) {
+          setName(t.name || "");
+          if (t.metaCategory) {
+            setMetaCategory(t.metaCategory);
+          } else if (t.category) {
+            const catEntry = Object.entries(META_CATEGORY_LABELS).find(
+              ([, label]) => label.toLowerCase() === t.category.toLowerCase()
+            );
+            if (catEntry) setMetaCategory(catEntry[0]);
+          }
+          setLanguage(t.language || "en_US");
+          setDescription(t.description || "");
+          setBodyVariableExamples(t.bodyVariableExamples || []);
+          setHeaderType(t.headerType || "NONE");
+          setHeaderText(t.headerText || "");
+          setHeaderTextExample(t.headerTextExample || "");
+          setButtons(t.buttons || []);
+          setExistingHeaderMediaUrl(t.headerMediaUrl || t.mediaUrl || "");
+        }
+      } catch (err) {
+        console.error("Failed to load template", err);
+        setError("Could not load template details — try refreshing.");
+      }
+    }
+    fetchTemplate();
+  }, [id]);
 
   function addButton() {
     if (buttons.length >= MAX_BUTTONS) return;
@@ -244,7 +281,7 @@ export default function CreateApprovedTemplatePage() {
           return setError("Provide an example value for the header's {{1}} placeholder.");
         }
       }
-      if (isMediaHeader && !headerMedia) {
+      if (isMediaHeader && !headerMedia && !existingHeaderMediaUrl) {
         return setError(`Upload a ${headerType.toLowerCase()} for the header, or set Header back to None.`);
       }
       const buttonsError = validateButtonsClient(buttons, metaCategory);
@@ -277,7 +314,7 @@ export default function CreateApprovedTemplatePage() {
         return setError("Provide an example value for the header's {{1}} placeholder.");
       }
     }
-    if (isMediaHeader && !headerMedia) {
+    if (isMediaHeader && !headerMedia && !existingHeaderMediaUrl) {
       return setError(`Upload a ${headerType.toLowerCase()} for the header, or set Header back to None.`);
     }
     const buttonsError = validateButtonsClient(buttons, metaCategory);
@@ -303,8 +340,13 @@ export default function CreateApprovedTemplatePage() {
         createData.append("buttons", JSON.stringify(buttons));
       }
 
-      const createRes = await api.post("/api/templates", createData);
-      const templateId = createRes.data.template._id;
+      let templateId = id;
+      if (id) {
+        await api.put(`/api/templates/${id}`, createData);
+      } else {
+        const createRes = await api.post("/api/templates", createData);
+        templateId = createRes.data.template._id;
+      }
 
       // metaTemplateName is deliberately never collected from the user —
       // the backend auto-generates and de-conflicts it from `name` (see
@@ -316,7 +358,7 @@ export default function CreateApprovedTemplatePage() {
       });
 
       if (submitRes.data.template.metaStatus === "REJECTED") {
-        navigate(`/templates/edit/${templateId}`);
+        navigate(`/templates/approved/edit/${templateId}`);
         return;
       }
 
@@ -329,17 +371,19 @@ export default function CreateApprovedTemplatePage() {
   }
 
   return (
-    <DashboardLayout title="Create Approved Template">
+    <DashboardLayout title={id ? "Edit Approved Template" : "Create Approved Template"}>
       <div className="w-full">
         <div className="mb-6">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
             Approved Templates
           </p>
           <h1 className="text-[17px] font-semibold leading-tight text-slate-900">
-            Create Approved Template
+            {id ? "Edit Approved Template" : "Create Approved Template"}
           </h1>
           <p className="mt-0.5 text-[13px] text-slate-500">
-            Build a Meta-reviewed WhatsApp template and submit it for approval
+            {id
+              ? "Update this template and submit your changes to Meta for review"
+              : "Build a Meta-reviewed WhatsApp template and submit it for approval"}
           </p>
         </div>
 
@@ -648,7 +692,7 @@ export default function CreateApprovedTemplatePage() {
                     )}
 
                     {isMediaHeader && (
-                      !headerMedia ? (
+                      !headerMedia && !existingHeaderMediaUrl ? (
                         <div
                           onDragOver={handleHeaderDragOver}
                           onDragLeave={handleHeaderDragLeave}
@@ -682,12 +726,20 @@ export default function CreateApprovedTemplatePage() {
                             className="hidden"
                           />
                         </div>
-                      ) : (
+                      ) : headerMedia ? (
                         <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                              <FileText className="h-4 w-4 text-emerald-600" />
-                            </div>
+                          <div className="flex min-w-0 items-center gap-3">
+                            {headerType === "IMAGE" ? (
+                              <img
+                                src={URL.createObjectURL(headerMedia)}
+                                alt="Header preview"
+                                className="h-12 w-12 rounded-lg border border-emerald-300 object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
+                                <FileText className="h-5 w-5 text-emerald-600" />
+                              </div>
+                            )}
                             <div className="min-w-0">
                               <p className="truncate text-[13px] font-medium text-slate-800">{headerMedia.name}</p>
                               <p className="text-[11px] text-slate-500">{(headerMedia.size / 1024).toFixed(1)} KB</p>
@@ -698,11 +750,67 @@ export default function CreateApprovedTemplatePage() {
                             <button
                               type="button"
                               onClick={() => { setHeaderMedia(null); if (headerFileInputRef.current) headerFileInputRef.current.value = ""; }}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                             >
-                              <X className="h-3 w-3" />
+                              <X className="h-3.5 w-3.5" />
                             </button>
                           </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-emerald-300 bg-white">
+                              <img
+                                src={resolveMediaUrl(existingHeaderMediaUrl)}
+                                alt="Current header"
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                  if (e.currentTarget.nextElementSibling) {
+                                    e.currentTarget.nextElementSibling.classList.remove("hidden");
+                                  }
+                                }}
+                              />
+                              <div className="hidden flex h-full w-full items-center justify-center bg-emerald-100 text-emerald-600">
+                                <ImageIcon className="h-5 w-5" />
+                              </div>
+                            </div>
+                            <div className="min-w-0">
+                              <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                                Current Header Media
+                              </span>
+                              <p className="mt-0.5 truncate text-[12.5px] font-medium text-slate-800">
+                                {existingHeaderMediaUrl.split("/").pop().split("\\").pop()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => headerFileInputRef.current?.click()}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                            >
+                              Replace
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setExistingHeaderMediaUrl("");
+                                setHeaderMedia(null);
+                                if (headerFileInputRef.current) headerFileInputRef.current.value = "";
+                              }}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <input
+                            ref={headerFileInputRef}
+                            type="file"
+                            accept={HEADER_MEDIA_ACCEPT[headerType]}
+                            onChange={handleHeaderFileChange}
+                            className="hidden"
+                          />
                         </div>
                       )
                     )}
@@ -855,6 +963,7 @@ export default function CreateApprovedTemplatePage() {
                     headerType={headerType}
                     headerText={headerText}
                     headerMediaFile={isMediaHeader ? headerMedia : null}
+                    headerMediaUrl={isMediaHeader ? existingHeaderMediaUrl : ""}
                     body={description}
                     buttons={buttons}
                     size="large"

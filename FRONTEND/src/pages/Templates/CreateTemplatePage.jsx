@@ -4,8 +4,9 @@ import { toast } from "react-hot-toast";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import StepBadge from "../../components/common/StepBadge";
-import { CheckCircle, FileText, Lock, Save, ShieldCheck, Sparkles, UploadCloud, X } from "lucide-react";
+import { CheckCircle, FileText, Image as ImageIcon, Lock, Save, ShieldCheck, Sparkles, UploadCloud, X } from "lucide-react";
 import usePlan from "../../hooks/usePlan";
+import { resolveMediaUrl } from "../../utils/media";
 import {
   LANGUAGES,
   META_CATEGORIES,
@@ -36,6 +37,11 @@ export default function CreateTemplatePage() {
     status: "draft",
   });
   const [media, setMedia] = useState(null);
+  const [existingMediaUrl, setExistingMediaUrl] = useState("");
+  const [removeMediaFlag, setRemoveMediaFlag] = useState(false);
+  const [headerType, setHeaderType] = useState("NONE");
+  const [headerText, setHeaderText] = useState("");
+  const [buttons, setButtons] = useState([]);
   const [categories, setCategories] = useState([]);
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [newCategory, setNewCategory] = useState("");
@@ -55,6 +61,16 @@ export default function CreateTemplatePage() {
   const variableCount = variableTokens.length;
 
   const mergedCategories = mergeCategories(categories);
+
+  const previewMediaUrl = (() => {
+    if (media && media.type?.startsWith("image/")) {
+      return URL.createObjectURL(media);
+    }
+    if (existingMediaUrl && !removeMediaFlag) {
+      return resolveMediaUrl(existingMediaUrl);
+    }
+    return null;
+  })();
 
   async function fetchCategories() {
     try {
@@ -76,6 +92,12 @@ export default function CreateTemplatePage() {
         description: template.description || "",
         status: template.status || "draft",
       });
+      setHeaderType(template.headerType || "NONE");
+      setHeaderText(template.headerText || "");
+      setButtons(template.buttons || []);
+      setExistingMediaUrl(template.headerMediaUrl || template.mediaUrl || "");
+      setRemoveMediaFlag(false);
+
       setMetaForm({
         metaTemplateName: template.metaTemplateName || "",
         metaCategory: template.metaCategory || "",
@@ -118,7 +140,10 @@ export default function CreateTemplatePage() {
 
   function handleFileChange(e) {
     const f = e.target.files?.[0];
-    if (f) setMedia(f);
+    if (f) {
+      setMedia(f);
+      setRemoveMediaFlag(false);
+    }
   }
 
   function handleDragOver(e) { e.preventDefault(); e.stopPropagation(); setDragActive(true); }
@@ -126,7 +151,10 @@ export default function CreateTemplatePage() {
   function handleDrop(e) {
     e.preventDefault(); e.stopPropagation(); setDragActive(false);
     const f = e.dataTransfer.files?.[0];
-    if (f) setMedia(f);
+    if (f) {
+      setMedia(f);
+      setRemoveMediaFlag(false);
+    }
   }
 
   function handleExampleChange(index, value) {
@@ -184,7 +212,14 @@ export default function CreateTemplatePage() {
       data.append("category", formData.category);
       data.append("description", formData.description);
       data.append("status", formData.status);
-      if (media) data.append("media", media);
+      if (media) {
+        data.append("media", media);
+        data.append("headerMedia", media);
+      }
+      if (removeMediaFlag) {
+        data.append("removeMedia", "true");
+        data.append("removeHeaderMedia", "true");
+      }
       if (id) {
         await api.put(`/api/templates/${id}`, data);
       } else {
@@ -380,7 +415,7 @@ export default function CreateTemplatePage() {
               <section className="rounded-xl border border-slate-200 bg-white p-5">
                 <StepBadge n="3" label="Attachment (Optional)" />
 
-                {!media ? (
+                {!media && !existingMediaUrl ? (
                   <div
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
@@ -406,17 +441,25 @@ export default function CreateTemplatePage() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*,.pdf"
+                      accept="image/*,.pdf,video/mp4"
                       onChange={handleFileChange}
                       className="hidden"
                     />
                   </div>
-                ) : (
+                ) : media ? (
                   <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                        <FileText className="h-4 w-4 text-emerald-600" />
-                      </div>
+                    <div className="flex min-w-0 items-center gap-3">
+                      {media.type?.startsWith("image/") ? (
+                        <img
+                          src={URL.createObjectURL(media)}
+                          alt="Attachment preview"
+                          className="h-12 w-12 rounded-lg border border-emerald-300 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
+                          <FileText className="h-5 w-5 text-emerald-600" />
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <p className="truncate text-[13px] font-medium text-slate-800">{media.name}</p>
                         <p className="text-[11px] text-slate-500">{(media.size / 1024).toFixed(1)} KB</p>
@@ -426,16 +469,70 @@ export default function CreateTemplatePage() {
                       <CheckCircle className="h-4 w-4 text-emerald-500" />
                       <button
                         type="button"
-                        onClick={() => { setMedia(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        onClick={() => {
+                          setMedia(null);
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* existingMediaUrl */
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-emerald-300 bg-white">
+                        <img
+                          src={resolveMediaUrl(existingMediaUrl)}
+                          alt="Current media"
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            if (e.currentTarget.nextElementSibling) {
+                              e.currentTarget.nextElementSibling.classList.remove("hidden");
+                            }
+                          }}
+                        />
+                        <div className="hidden flex h-full w-full items-center justify-center bg-emerald-100 text-emerald-600">
+                          <ImageIcon className="h-5 w-5" />
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-800">
+                          Current Attachment
+                        </span>
+                        <p className="mt-0.5 truncate text-[12.5px] font-medium text-slate-800">
+                          {existingMediaUrl.split("/").pop().split("\\").pop()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRemoveMediaFlag(true);
+                          setExistingMediaUrl("");
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-red-50 hover:text-red-600"
+                        title="Remove attachment"
+                      >
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*,.pdf"
+                      accept="image/*,.pdf,video/mp4"
                       onChange={handleFileChange}
                       className="hidden"
                     />
@@ -652,12 +749,53 @@ export default function CreateTemplatePage() {
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    {formData.description.trim() ? (
-                      <div className="max-w-[90%] rounded-xl rounded-br-sm bg-[#d9fdd3] px-3 py-2 shadow-sm">
-                        <p className="whitespace-pre-wrap break-words text-[12.5px] leading-relaxed text-slate-800">
-                          {formData.description}
-                        </p>
-                        <p className="mt-0.5 text-right text-[10px] text-emerald-500">✓✓</p>
+                    {formData.description.trim() || previewMediaUrl || headerType === "IMAGE" ? (
+                      <div className="max-w-[90%] overflow-hidden rounded-xl rounded-br-sm bg-[#d9fdd3] shadow-sm">
+                        {/* Media image preview */}
+                        {(previewMediaUrl || headerType === "IMAGE") && (
+                          <div className="relative flex h-32 w-full items-center justify-center bg-slate-200/70">
+                            {previewMediaUrl ? (
+                              <img
+                                src={previewMediaUrl}
+                                alt="Preview"
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                  if (e.currentTarget.nextElementSibling) {
+                                    e.currentTarget.nextElementSibling.classList.remove("hidden");
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            <div className={`flex flex-col items-center gap-1 text-slate-400 ${previewMediaUrl ? "hidden" : ""}`}>
+                              <ImageIcon className="h-6 w-6 text-emerald-600" />
+                              <span className="text-[11px] font-medium text-slate-700">Header Image</span>
+                              {!previewMediaUrl && (
+                                <span className="text-[9.5px] text-slate-400">(Configured on Meta)</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {headerType === "TEXT" && headerText && (
+                          <div className="px-3 pt-2">
+                            <p className="text-[12.5px] font-bold text-slate-900">{headerText}</p>
+                          </div>
+                        )}
+                        <div className="px-3 py-2">
+                          <p className="whitespace-pre-wrap break-words text-[12.5px] leading-relaxed text-slate-800">
+                            {formData.description || <span className="italic text-slate-400">Message preview will appear here…</span>}
+                          </p>
+                          <p className="mt-0.5 text-right text-[10px] text-emerald-500">✓✓</p>
+                        </div>
+                        {buttons?.length > 0 && (
+                          <div className="divide-y divide-slate-200/70 border-t border-slate-200/70">
+                            {buttons.map((b, idx) => (
+                              <p key={idx} className="px-3 py-1.5 text-center text-[12px] font-medium text-sky-700">
+                                {b.text || "Button"}
+                              </p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="max-w-[90%] rounded-xl rounded-br-sm bg-slate-100 px-3 py-2">

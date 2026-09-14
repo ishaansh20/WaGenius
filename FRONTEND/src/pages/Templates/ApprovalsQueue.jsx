@@ -48,7 +48,7 @@ export default function ApprovalsQueue() {
         onEdit={() => {
           const id = previewTemplate._id;
           setPreviewTemplate(null);
-          navigate(`/templates/edit/${id}`);
+          navigate(`/templates/approved/edit/${id}`);
         }}
         badges={
           previewTemplate

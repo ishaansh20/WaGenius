@@ -1,4 +1,5 @@
 import { FileText, Image as ImageIcon, Video } from "lucide-react";
+import { resolveMediaUrl } from "../../utils/media";
 
 const HEADER_MEDIA_ICON = {
   IMAGE: ImageIcon,
@@ -17,16 +18,27 @@ export default function WhatsAppPreview({
   headerType = "NONE",
   headerText = "",
   headerMediaFile = null,
+  headerMediaUrl = "",
   body = "",
   buttons = [],
   size = "default", // "default" | "large" — large is used on the wizard's Review step
 }) {
   const isMediaHeader = ["IMAGE", "VIDEO", "DOCUMENT"].includes(headerType);
   const MediaIcon = HEADER_MEDIA_ICON[headerType];
-  const mediaPreviewUrl =
-    isMediaHeader && headerType === "IMAGE" && headerMediaFile
-      ? URL.createObjectURL(headerMediaFile)
-      : null;
+
+  const mediaPreviewUrl = (() => {
+    if (!isMediaHeader || headerType !== "IMAGE") return null;
+    if (headerMediaFile instanceof File || headerMediaFile instanceof Blob) {
+      return URL.createObjectURL(headerMediaFile);
+    }
+    if (typeof headerMediaFile === "string" && headerMediaFile) {
+      return resolveMediaUrl(headerMediaFile);
+    }
+    if (headerMediaUrl) {
+      return resolveMediaUrl(headerMediaUrl);
+    }
+    return null;
+  })();
 
   const bubbleTextSize = size === "large" ? "text-[13.5px]" : "text-[12.5px]";
   const containerMinHeight = size === "large" ? "min-h-[220px]" : "min-h-[120px]";
@@ -49,15 +61,27 @@ export default function WhatsAppPreview({
         {body.trim() || headerType !== "NONE" ? (
           <div className="max-w-[90%] overflow-hidden rounded-xl rounded-br-sm bg-[#d9fdd3] shadow-sm">
             {isMediaHeader && (
-              <div className="flex h-28 items-center justify-center bg-slate-200/70">
+              <div className="relative flex h-32 w-full items-center justify-center bg-slate-200/70">
                 {mediaPreviewUrl ? (
-                  <img src={mediaPreviewUrl} alt="Header preview" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex flex-col items-center gap-1 text-slate-400">
-                    <MediaIcon className="h-6 w-6" />
-                    <span className="text-[10px]">{headerType}</span>
-                  </div>
-                )}
+                  <img
+                    src={mediaPreviewUrl}
+                    alt="Header preview"
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      if (e.currentTarget.nextElementSibling) {
+                        e.currentTarget.nextElementSibling.classList.remove("hidden");
+                      }
+                    }}
+                  />
+                ) : null}
+                <div className={`flex flex-col items-center gap-1 text-slate-400 ${mediaPreviewUrl ? "hidden" : ""}`}>
+                  <MediaIcon className="h-6 w-6" />
+                  <span className="text-[11px] font-medium">{headerType === "IMAGE" ? "Header Image" : headerType}</span>
+                  {!mediaPreviewUrl && headerType === "IMAGE" && (
+                    <span className="text-[10px] text-slate-400/80">(Configured on Meta)</span>
+                  )}
+                </div>
               </div>
             )}
 

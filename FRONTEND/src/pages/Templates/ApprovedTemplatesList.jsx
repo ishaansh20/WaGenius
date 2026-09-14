@@ -63,7 +63,7 @@ export default function ApprovedTemplatesList({ category = null }) {
         onEdit={() => {
           const id = previewTemplate._id;
           setPreviewTemplate(null);
-          navigate(`/templates/edit/${id}`);
+          navigate(`/templates/approved/edit/${id}`);
         }}
         badges={
           previewTemplate

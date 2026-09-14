@@ -228,20 +228,37 @@ const updateTemplate = async (req, res) => {
       updatedData.buttons = buttons;
     }
 
+    if (req.body.removeMedia === "true") {
+      updatedData.mediaUrl = "";
+      updatedData.mediaType = "";
+    }
+    if (req.body.removeHeaderMedia === "true") {
+      updatedData.headerMediaUrl = "";
+      updatedData.headerMediaType = "";
+      updatedData.headerHandle = "";
+    }
+
     const mediaFile = req.files?.media?.[0];
     const headerMediaFile = req.files?.headerMedia?.[0];
 
     if (mediaFile) {
       updatedData.mediaUrl = mediaFile.path;
       updatedData.mediaType = mediaFile.mimetype;
+      if (headerType === "IMAGE" || !updatedData.headerMediaUrl) {
+        updatedData.headerMediaUrl = mediaFile.path;
+        updatedData.headerMediaType = mediaFile.mimetype;
+        updatedData.headerHandle = "";
+      }
     }
 
     if (headerMediaFile) {
       updatedData.headerMediaUrl = headerMediaFile.path;
       updatedData.headerMediaType = headerMediaFile.mimetype;
-      // A newly uploaded file invalidates any handle Meta generated for
-      // the previous one — force a fresh Resumable Upload on next submit.
       updatedData.headerHandle = "";
+      if (!updatedData.mediaUrl) {
+        updatedData.mediaUrl = headerMediaFile.path;
+        updatedData.mediaType = headerMediaFile.mimetype;
+      }
     }
 
     const template = await Template.findOneAndUpdate(
@@ -485,6 +502,8 @@ const importTemplatesFromMeta = async (req, res) => {
       let description = "";
       let headerType = "NONE";
       let headerText = "";
+      let headerMediaUrl = "";
+      let headerHandle = "";
       const buttons = [];
 
       for (const comp of components) {
@@ -495,6 +514,8 @@ const importTemplatesFromMeta = async (req, res) => {
           case "HEADER":
             headerType = comp.format || "NONE";
             if (comp.format === "TEXT") headerText = comp.text || "";
+            if (comp.example?.header_url?.[0]) headerMediaUrl = comp.example.header_url[0];
+            if (comp.example?.header_handle?.[0]) headerHandle = comp.example.header_handle[0];
             break;
           case "BUTTONS":
             for (const btn of comp.buttons || []) {
@@ -539,6 +560,9 @@ const importTemplatesFromMeta = async (req, res) => {
             : "",
         headerType,
         headerText,
+        headerMediaUrl,
+        mediaUrl: headerMediaUrl,
+        headerHandle,
         buttons,
       });
 

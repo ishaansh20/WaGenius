@@ -277,6 +277,16 @@ function App() {
           }
         />
         <Route
+          path="/templates/approved/edit/:id"
+          element={
+            <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={["ADMIN", "CAMPAIGN_MANAGER"]}>
+                <CreateApprovedTemplatePage />
+              </RoleProtectedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/campaigns/history"
           element={
             <ProtectedRoute>
