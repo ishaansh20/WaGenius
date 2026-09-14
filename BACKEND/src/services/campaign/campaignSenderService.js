@@ -167,7 +167,23 @@ const executeCampaign = async (campaign) => {
   // atomic updates above — safe to close the campaign out here instead of
   // waiting on Meta's delivery-status webhook, which depends on an
   // externally reachable tunnel that isn't always up.
-  await Campaign.updateOne({ _id: campaign.campaignId }, { $set: { status: "completed" } });
+  //
+  // "completed" should mean the send actually succeeded for at least
+  // someone — if every single contact failed, that's a failed campaign,
+  // not a completed one, even though processing itself finished normally.
+  const sentSoFar = await Campaign.findById(campaign.campaignId).select(
+    "sentCount failedCount totalContacts",
+  );
+  const allFailed =
+    sentSoFar &&
+    sentSoFar.totalContacts > 0 &&
+    sentSoFar.sentCount === 0 &&
+    sentSoFar.failedCount === sentSoFar.totalContacts;
+
+  await Campaign.updateOne(
+    { _id: campaign.campaignId },
+    { $set: { status: allFailed ? "failed" : "completed" } },
+  );
 
   const finalCampaign = await Campaign.findById(campaign.campaignId);
   if (finalCampaign) {

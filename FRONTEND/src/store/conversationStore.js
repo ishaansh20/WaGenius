@@ -14,6 +14,8 @@ export const initialInboxState = {
   hasMoreConversations: false,
   nextConversationsCursor: null,
   isLoadingMoreConversations: false,
+  messagesMetaByConversation: {}, // { [conversationId]: { hasMore, nextCursor } }
+  isLoadingMoreMessages: false,
 };
 
 export function normalizeConversation(conversation) {
@@ -314,6 +316,37 @@ export function inboxReducer(state, action) {
           [action.payload.conversationId]:
             action.payload.messages.map(normalizeMessage),
         },
+        messagesMetaByConversation: {
+          ...state.messagesMetaByConversation,
+          [action.payload.conversationId]: {
+            hasMore: Boolean(action.payload.hasMore),
+            nextCursor: action.payload.nextCursor || null,
+          },
+        },
+      };
+    case "PREPEND_OLDER_MESSAGES":
+      return {
+        ...state,
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [action.payload.conversationId]: [
+            ...action.payload.messages.map(normalizeMessage),
+            ...(state.messagesByConversation[action.payload.conversationId] || []),
+          ],
+        },
+        messagesMetaByConversation: {
+          ...state.messagesMetaByConversation,
+          [action.payload.conversationId]: {
+            hasMore: Boolean(action.payload.hasMore),
+            nextCursor: action.payload.nextCursor || null,
+          },
+        },
+        isLoadingMoreMessages: false,
+      };
+    case "SET_LOADING_MORE_MESSAGES":
+      return {
+        ...state,
+        isLoadingMoreMessages: action.payload,
       };
     case "APPEND_MESSAGE":
       return {

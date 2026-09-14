@@ -3,7 +3,12 @@ const Subscription = require("../models/subscription");
 const { resolveSetupStatus, SETUP_STATUS } = require("../utils/setupStatus");
 const {
   setCompanyWhatsAppCredentials,
+  getCompanyWhatsAppCredentials,
+  updateCompanyMessagingHealth,
 } = require("../services/whatsapp/companyCredentials");
+const {
+  checkWabaHealthStatus,
+} = require("../services/whatsapp/embeddedSignupService");
 
 function hasEnvWhatsAppCredentials() {
   return !!(
@@ -45,6 +50,10 @@ const getWhatsAppStatus = async (req, res) => {
         company.whatsapp?.onboardingCompletedAt || isConnected,
       ),
       onboardingCompletedAt: company.whatsapp?.onboardingCompletedAt || null,
+      messagingBlocked: Boolean(company.whatsapp?.messagingBlocked),
+      messagingStatus: company.whatsapp?.messagingStatus || "",
+      messagingBlockedReason: company.whatsapp?.messagingBlockedReason || "",
+      healthCheckedAt: company.whatsapp?.healthCheckedAt || null,
     };
 
     res.status(200).json({
@@ -149,6 +158,10 @@ const disconnectWhatsApp = async (req, res) => {
           "whatsapp.tokenType": "",
           "whatsapp.connectedAt": null,
           "whatsapp.onboardingCompletedAt": null,
+          "whatsapp.messagingBlocked": false,
+          "whatsapp.messagingStatus": "",
+          "whatsapp.messagingBlockedReason": "",
+          "whatsapp.healthCheckedAt": null,
         },
       },
     );
@@ -181,9 +194,43 @@ const disconnectWhatsApp = async (req, res) => {
   }
 };
 
+const healthCheckWhatsApp = async (req, res) => {
+  try {
+    const credentials = await getCompanyWhatsAppCredentials(req.companyId);
+
+    if (!credentials?.accessToken || !credentials?.wabaId) {
+      return res.status(400).json({
+        success: false,
+        message: "WhatsApp is not connected for this company yet.",
+      });
+    }
+
+    const health = await checkWabaHealthStatus(
+      credentials.accessToken,
+      credentials.wabaId,
+    );
+
+    await updateCompanyMessagingHealth(req.companyId, health);
+
+    return res.status(200).json({
+      success: true,
+      canSendMessage: health.canSendMessage,
+      isBlocked: health.isBlocked,
+      reason: health.reason,
+    });
+  } catch (error) {
+    console.error("[WhatsApp] Health check failed:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Could not check WhatsApp messaging health right now.",
+    });
+  }
+};
+
 module.exports = {
   getWhatsAppStatus,
   getCompanySetupStatus,
   connectWhatsApp,
   disconnectWhatsApp,
+  healthCheckWhatsApp,
 };

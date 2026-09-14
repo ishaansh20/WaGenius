@@ -8,6 +8,7 @@ const { authorize } = require("../middlewares/roleMiddleware");
 const { companyScope } = require("../middlewares/companyScope");
 const PERMISSIONS = require("../constants/permissions");
 const { requireCompanySetup } = require("../middlewares/setupGate");
+const { SETUP_STATUS } = require("../utils/setupStatus");
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.post(
   "/upload",
   verifyToken,
   companyScope,
-  requireCompanySetup(),
+  requireCompanySetup(SETUP_STATUS.READY, { requireMessagingHealth: true }),
   authorize(PERMISSIONS.CAMPAIGNS),
   upload.single("file"),
   uploadCampaign,

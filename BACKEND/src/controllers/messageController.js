@@ -220,13 +220,29 @@ const getConversations = async (req, res) => {
 const getMessagesbyConversation = async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const messages = await Message.find({
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const before = req.query.before; // ISO date string — load messages older than this
+
+    const query = {
       companyId: req.companyId,
       conversation: conversationId,
-    }).sort({
-      createdAt: 1,
-    });
-    res.status(200).json(messages);
+    };
+    if (before) {
+      query.createdAt = { $lt: new Date(before) };
+    }
+
+    // Fetch newest-first (so `limit` gets the most RECENT page), then
+    // reverse in memory so the response is chronological ascending —
+    // that's the order the frontend already expects to render in.
+    const page = await Message.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit + 1); // fetch one extra to detect if there's more
+
+    const hasMore = page.length > limit;
+    const messages = (hasMore ? page.slice(0, limit) : page).reverse();
+    const nextCursor = hasMore ? messages[0].createdAt.toISOString() : null;
+
+    res.status(200).json({ messages, hasMore, nextCursor });
   } catch (error) {
     console.log(error);
     res.status(500).json({

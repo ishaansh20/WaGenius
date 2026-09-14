@@ -5,6 +5,7 @@ const {
   getCompanySetupStatus,
   connectWhatsApp,
   disconnectWhatsApp,
+  healthCheckWhatsApp,
 } = require("../controllers/companyController");
 const {
   completeEmbeddedSignup,
@@ -39,6 +40,14 @@ router.get(
   companyScope,
   authorize(PERMISSIONS.SETTINGS),
   getWhatsAppStatus,
+);
+
+router.get(
+  "/whatsapp/health-check",
+  verifyToken,
+  companyScope,
+  authorize(PERMISSIONS.SETTINGS),
+  healthCheckWhatsApp,
 );
 
 // Meta Embedded Signup completion endpoint

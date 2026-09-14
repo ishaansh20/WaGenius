@@ -62,9 +62,11 @@ export async function fetchConversations({ before, limit } = {}) {
   return data; // { conversations, hasMore, nextCursor }
 }
 
-export async function fetchMessages(conversationId) {
-  const { data } = await api.get(`/api/messages/${conversationId}`);
-  return data;
+export async function fetchMessages(conversationId, { before, limit = 50 } = {}) {
+  const { data } = await api.get(`/api/messages/${conversationId}`, {
+    params: { before, limit },
+  });
+  return data; // { messages, hasMore, nextCursor }
 }
 
 export async function markConversationRead(conversationId) {
@@ -172,6 +174,28 @@ export async function importContacts(file, segmentId) {
 
 export async function fetchCostSummary() {
   const { data } = await api.get("/api/campaigns/cost-summary");
+  return data;
+}
+
+export async function duplicateCampaign(campaignId) {
+  const { data } = await api.post(`/api/campaigns/${campaignId}/duplicate`);
+  return data;
+}
+
+export async function pauseCampaign(campaignId) {
+  const { data } = await api.post(`/api/campaigns/${campaignId}/pause`);
+  return data;
+}
+
+export async function resumeCampaign(campaignId, scheduleAt) {
+  const { data } = await api.post(`/api/campaigns/${campaignId}/resume`, {
+    scheduleAt,
+  });
+  return data;
+}
+
+export async function cancelCampaign(campaignId) {
+  const { data } = await api.post(`/api/campaigns/${campaignId}/cancel`);
   return data;
 }
 
@@ -303,6 +327,13 @@ export async function endTrial() {
 
 export async function fetchCompanySetupStatus() {
   const { data } = await api.get("/api/company/setup-status");
+  return data;
+}
+
+export async function checkWhatsAppHealth() {
+  const { data } = await api.get("/api/company/whatsapp/health-check", {
+    timeout: 15000,
+  });
   return data;
 }
 

@@ -14,6 +14,7 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  Download,
   Eye,
   FileText,
   Pencil,
@@ -40,6 +41,7 @@ export default function TemplatesPage() {
   const [previewTemplate, setPreviewTemplate] = useState(null);
   const [page, setPage] = useState(1);
   const [syncing, setSyncing] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const mergedCategories = [
     ...DEFAULT_CATEGORIES,
@@ -107,6 +109,25 @@ export default function TemplatesPage() {
     }
   }
 
+  async function handleImportFromMeta() {
+    setImporting(true);
+    try {
+      const res = await api.post("/api/templates/import-meta");
+      const count = res.data.imported?.length || 0;
+      window.alert(
+        count > 0
+          ? `Imported ${count} template(s) from Meta.`
+          : "All Meta templates are already present — nothing new to import.",
+      );
+      if (count > 0) await refetch();
+    } catch (error) {
+      console.error(error);
+      window.alert("Failed to import templates from Meta.");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
     <DashboardLayout title="Templates">
       <div className="w-full">
@@ -137,11 +158,26 @@ export default function TemplatesPage() {
             <button
               type="button"
               onClick={handleSyncFromMeta}
-              disabled={syncing}
+              disabled={syncing || importing}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
               <span className="hidden sm:inline">{syncing ? "Syncing…" : "Sync from Meta"}</span>
+            </button>
+            <button
+              type="button"
+              id="import-from-meta-btn"
+              onClick={handleImportFromMeta}
+              disabled={importing || syncing}
+              title="Fetch templates approved in Meta Business Manager that aren't in Wagenius yet"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
+            >
+              {importing ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              <span className="hidden sm:inline">{importing ? "Importing…" : "Import from Meta"}</span>
             </button>
             <button
               type="button"

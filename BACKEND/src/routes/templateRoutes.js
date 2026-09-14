@@ -13,6 +13,7 @@ const {
   updateTemplateStatus,
   submitTemplateForApproval,
   syncTemplatesFromMeta,
+  importTemplatesFromMeta,
 } = require("../controllers/templateController");
 const { draftTemplate } = require("../controllers/templateDraftController");
 
@@ -108,6 +109,15 @@ router.post(
   companyScope,
   authorize(PERMISSIONS.TEMPLATE_MANAGE),
   syncTemplatesFromMeta,
+);
+
+// IMPORT TEMPLATES FROM META (bring in externally-created/approved templates)
+router.post(
+  "/import-meta",
+  verifyToken,
+  companyScope,
+  authorize(PERMISSIONS.TEMPLATE_MANAGE),
+  importTemplatesFromMeta,
 );
 
 // DELETE TEMPLATE

@@ -1,6 +1,9 @@
 const crypto = require("crypto");
 const axios = require("axios");
-const { setCompanyWhatsAppCredentials } = require("./companyCredentials");
+const {
+  setCompanyWhatsAppCredentials,
+  updateCompanyMessagingHealth,
+} = require("./companyCredentials");
 const { withRetry } = require("../../utils/withRetry");
 
 /**
@@ -511,6 +514,18 @@ async function processEmbeddedSignup(
       `(WABA: ${wabaId}, Phone: ${phoneNumberId || "pending"})`,
   );
 
+  // 8. Attempt initial messaging health check so initial status is populated.
+  // Never fail the entire signup if this check fails — it is also checked on-demand.
+  try {
+    const health = await checkWabaHealthStatus(accessToken, wabaId);
+    await updateCompanyMessagingHealth(companyId, health);
+  } catch (healthErr) {
+    console.warn(
+      `[EmbeddedSignup] Initial health status check skipped/failed for WABA ${wabaId}:`,
+      healthErr.message,
+    );
+  }
+
   return {
     success: true,
     connected: true,
@@ -564,9 +579,56 @@ async function completePhoneRegistration(companyId, { accessToken, wabaId, phone
   return { success: true, phoneNumberId, phoneStatus: "registered" };
 }
 
+/**
+ * Queries Meta's official health_status field for a WABA to determine
+ * whether messaging is currently possible. Returns a normalized summary —
+ * this is what a missing payment method (or other blocking issue) looks
+ * like from Meta's side.
+ */
+async function checkWabaHealthStatus(accessToken, wabaId) {
+  const apiVersion = getApiVersion();
+  const url = `https://graph.facebook.com/${apiVersion}/${wabaId}`;
+
+  const response = await withRetry(
+    () =>
+      axios.get(url, {
+        params: { fields: "health_status" },
+        headers: { Authorization: `Bearer ${accessToken}` },
+        timeout: 10000,
+      }),
+    { label: "checkWabaHealthStatus" },
+  );
+
+  const healthStatus = response.data?.health_status;
+  const canSendMessage = healthStatus?.can_send_message || "AVAILABLE";
+  const entities = healthStatus?.entities || [];
+
+  // Collect the most useful human-readable reason, if any entity is
+  // blocked or limited. Prefer BLOCKED reasons over LIMITED ones.
+  let reason = "";
+  const blockedEntity = entities.find((e) => e.can_send_message === "BLOCKED");
+  const limitedEntity = entities.find((e) => e.can_send_message === "LIMITED");
+  const relevantEntity = blockedEntity || limitedEntity;
+
+  if (relevantEntity) {
+    const messages =
+      relevantEntity.errors?.map((e) => e.error_description || e.message) ||
+      relevantEntity.additional_info ||
+      [];
+    reason = messages.join(" ") || "";
+  }
+
+  return {
+    canSendMessage, // "AVAILABLE" | "LIMITED" | "BLOCKED"
+    isBlocked: canSendMessage === "BLOCKED",
+    reason,
+  };
+}
+
 module.exports = {
   processEmbeddedSignup,
   completePhoneRegistration,
+  checkWabaHealthStatus,
   exchangeCodeForAccessToken,
   exchangeForLongLivedToken,
   generateSixDigitPin,

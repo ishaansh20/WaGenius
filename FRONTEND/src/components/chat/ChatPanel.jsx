@@ -136,6 +136,9 @@ export function ChatPanel({
   messages,
   messagesContainerRef,
   endRef,
+  hasMoreMessages,
+  isLoadingMoreMessages,
+  onLoadMoreMessages,
   onBack,
   composerValue,
   onComposerChange,
@@ -386,6 +389,23 @@ export function ChatPanel({
             className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5 sm:py-6"
           >
             <div className="flex w-full flex-col gap-2.5">
+              {!loadingMessages && hasMoreMessages && (
+                <button
+                  type="button"
+                  onClick={onLoadMoreMessages}
+                  disabled={isLoadingMoreMessages}
+                  className="mx-auto mb-2 flex items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-[12.5px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoadingMoreMessages ? (
+                    <>
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+                      Loading…
+                    </>
+                  ) : (
+                    "Load older messages"
+                  )}
+                </button>
+              )}
               {!loadingMessages &&
                 messages.map((message, index) => {
                   const previous = messages[index - 1];

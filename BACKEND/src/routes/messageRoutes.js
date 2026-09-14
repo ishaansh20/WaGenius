@@ -20,10 +20,11 @@ const { verifyToken } = require("../middlewares/authMiddleware");
 const { authorize } = require("../middlewares/roleMiddleware");
 const { companyScope } = require("../middlewares/companyScope");
 const { requireCompanySetup } = require("../middlewares/setupGate");
+const { SETUP_STATUS } = require("../utils/setupStatus");
 const PERMISSIONS = require("../constants/permissions");
 
 router.use(
-  ["/messages", "/conversations", "/send-message"],
+  ["/messages", "/conversations"],
   verifyToken,
   companyScope,
   requireCompanySetup(),
@@ -59,6 +60,7 @@ router.post(
   "/send-message",
   verifyToken,
   companyScope,
+  requireCompanySetup(SETUP_STATUS.READY, { requireMessagingHealth: true }),
   authorize(PERMISSIONS.INBOX),
   sendMessage,
 );

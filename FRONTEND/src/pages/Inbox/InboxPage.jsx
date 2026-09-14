@@ -235,6 +235,37 @@ export function InboxPage() {
     state.nextConversationsCursor,
   ]);
 
+  const loadMoreMessages = useCallback(async () => {
+    const conversationId = state.activeConversationId;
+    if (!conversationId || state.isLoadingMoreMessages) return;
+
+    const meta = state.messagesMetaByConversation[conversationId];
+    if (!meta?.hasMore) return;
+
+    dispatch({ type: "SET_LOADING_MORE_MESSAGES", payload: true });
+    try {
+      const result = await fetchMessages(conversationId, {
+        before: meta.nextCursor,
+        limit: 50,
+      });
+      dispatch({
+        type: "PREPEND_OLDER_MESSAGES",
+        payload: {
+          conversationId,
+          messages: result.messages,
+          hasMore: result.hasMore,
+          nextCursor: result.nextCursor,
+        },
+      });
+    } catch {
+      dispatch({ type: "SET_LOADING_MORE_MESSAGES", payload: false });
+    }
+  }, [
+    state.activeConversationId,
+    state.isLoadingMoreMessages,
+    state.messagesMetaByConversation,
+  ]);
+
   useEffect(() => {
     fetchAgents()
       .then(setAgents)
@@ -288,7 +319,12 @@ export function InboxPage() {
 
         dispatch({
           type: "SET_MESSAGES",
-          payload: { conversationId: state.activeConversationId, messages },
+          payload: {
+            conversationId: state.activeConversationId,
+            messages: messages.messages || messages, // backend now returns { messages, hasMore, nextCursor }
+            hasMore: messages.hasMore,
+            nextCursor: messages.nextCursor,
+          },
         });
       } catch {
         if (!mounted) return;
@@ -637,6 +673,11 @@ export function InboxPage() {
           messagesContainerRef={messagesContainerRef}
           messages={activeMessages}
           endRef={messagesEndRef}
+          hasMoreMessages={
+            state.messagesMetaByConversation[state.activeConversationId]?.hasMore || false
+          }
+          isLoadingMoreMessages={state.isLoadingMoreMessages}
+          onLoadMoreMessages={loadMoreMessages}
           onBack={() => dispatch({ type: "TOGGLE_MOBILE_LIST", payload: true })}
           onToggleAi={handleToggleAi}
           composerValue={composer}

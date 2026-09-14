@@ -1,4 +1,5 @@
 const path = require("path");
+const axios = require("axios");
 const Template = require("../models/template");
 const {
   submitTemplateToMeta,
@@ -432,6 +433,141 @@ const submitTemplateForApproval = async (req, res) => {
   }
 };
 
+// IMPORT TEMPLATES FROM META
+// Fetches ALL templates from the WABA and creates local records for any
+// that don't already exist in this company's DB (identified by
+// metaTemplateId). Safe to call repeatedly — skips already-present ones.
+// This is the fix for templates approved directly in Meta Business Manager
+// that were never submitted through Wagenius.
+const importTemplatesFromMeta = async (req, res) => {
+  try {
+    const credentials = await getCompanyWhatsAppCredentials(req.companyId);
+    if (!credentials) {
+      return res.status(400).json({
+        success: false,
+        message: "Connect a WhatsApp Business Account before importing templates",
+      });
+    }
+
+    // Fetch full component data from Meta so we can reconstruct body/header/buttons.
+    const { accessToken, wabaId, apiVersion } = credentials;
+    const metaRes = await axios.get(
+      `https://graph.facebook.com/${apiVersion}/${wabaId}/message_templates`,
+      {
+        params: {
+          access_token: accessToken,
+          fields: "id,name,status,category,language,components,rejected_reason",
+          limit: 250,
+        },
+      },
+    );
+    const metaTemplates = metaRes.data?.data || [];
+
+    // Build a set of metaTemplateIds already in this company's DB so we
+    // can skip them efficiently.
+    const existing = await Template.find(
+      { companyId: req.companyId, metaTemplateId: { $ne: "" } },
+      { metaTemplateId: 1 },
+    );
+    const existingIds = new Set(existing.map((t) => String(t.metaTemplateId)));
+
+    const imported = [];
+    const skipped = [];
+
+    for (const mt of metaTemplates) {
+      if (existingIds.has(String(mt.id))) {
+        skipped.push(mt.id);
+        continue;
+      }
+
+      // Parse Meta's components array into our schema fields.
+      const components = mt.components || [];
+      let description = "";
+      let headerType = "NONE";
+      let headerText = "";
+      const buttons = [];
+
+      for (const comp of components) {
+        switch (comp.type) {
+          case "BODY":
+            description = comp.text || "";
+            break;
+          case "HEADER":
+            headerType = comp.format || "NONE";
+            if (comp.format === "TEXT") headerText = comp.text || "";
+            break;
+          case "BUTTONS":
+            for (const btn of comp.buttons || []) {
+              if (btn.type === "QUICK_REPLY") {
+                buttons.push({ type: "QUICK_REPLY", text: btn.text || "" });
+              } else if (btn.type === "URL") {
+                buttons.push({ type: "URL", text: btn.text || "", url: btn.url || "", urlExample: "" });
+              } else if (btn.type === "PHONE_NUMBER") {
+                buttons.push({ type: "PHONE_NUMBER", text: btn.text || "", phoneNumber: btn.phone_number || "" });
+              } else if (btn.type === "COPY_CODE") {
+                buttons.push({ type: "COPY_CODE", text: btn.text || "" });
+              }
+            }
+            break;
+          default:
+            break;
+        }
+      }
+
+      // description is required by the schema — fall back to template name
+      // if Meta sent us an empty body (e.g. auth templates with no body text).
+      if (!description) description = mt.name || "(no body)";
+
+      const metaStatus = mt.status || "PENDING";
+      const newTemplate = await Template.create({
+        companyId: req.companyId,
+        name: mt.name,
+        subject: "",
+        // Use MARKETING as local category fallback — close enough for
+        // display; the metaCategory field carries the authoritative value.
+        category: "Marketing",
+        description,
+        status: metaStatus === "APPROVED" ? "active" : "pending",
+        metaTemplateName: mt.name,
+        metaCategory: mt.category || "",
+        language: mt.language || "en_US",
+        metaTemplateId: String(mt.id),
+        metaStatus,
+        rejectionReason:
+          mt.rejected_reason && mt.rejected_reason !== "NONE"
+            ? mt.rejected_reason
+            : "",
+        headerType,
+        headerText,
+        buttons,
+      });
+
+      imported.push({ id: newTemplate._id, name: mt.name, metaStatus });
+    }
+
+    const io = getIO();
+    if (imported.length > 0) {
+      io.to("templates").emit("templates_imported", { count: imported.length });
+    }
+
+    res.status(200).json({
+      success: true,
+      message:
+        imported.length > 0
+          ? `Imported ${imported.length} template(s) from Meta`
+          : "All Meta templates are already present — nothing to import",
+      imported,
+      skipped: skipped.length,
+    });
+  } catch (error) {
+    console.error("Meta Template Import Error:", error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to import templates from Meta",
+    });
+  }
+};
+
 // SYNC TEMPLATE STATUSES FROM META
 // Safety net for missed webhooks (e.g. a rotated tunnel URL) — polls Meta
 // directly and reconciles any local template whose status has drifted.
@@ -498,4 +634,5 @@ module.exports = {
   updateTemplateStatus,
   submitTemplateForApproval,
   syncTemplatesFromMeta,
+  importTemplatesFromMeta,
 };

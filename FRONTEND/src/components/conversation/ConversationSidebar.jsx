@@ -1,4 +1,5 @@
 import { MessageSquareText, Search, X, Menu } from "lucide-react";
+import { Virtuoso } from "react-virtuoso";
 import { cn } from "../../utils/cn";
 import { formatPhone } from "../../utils/formatPhone";
 
@@ -368,10 +369,10 @@ export function ConversationSidebar({
           </div>
 
           {/* Conversation list */}
-          <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-            <div className="space-y-px">
-              {loading ? (
-                Array.from({ length: 7 }).map((_, i) => (
+          <div className="min-h-0 flex-1 px-2 py-2">
+            {loading ? (
+              <div className="space-y-px">
+                {Array.from({ length: 7 }).map((_, i) => (
                   <div key={i} className="flex items-start gap-3 px-3 py-2.5">
                     <div className="mt-0.5 h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-100" />
                     <div className="flex-1 space-y-2 pt-1">
@@ -385,50 +386,48 @@ export function ConversationSidebar({
                       />
                     </div>
                   </div>
-                ))
-              ) : conversations.length ? (
-                <>
-                  {conversations.map((conversation) => (
-                    <ConversationCard
-                      key={conversation.id}
-                      conversation={conversation}
-                      active={activeConversationId === conversation.id}
-                      onClick={() => onConversationSelect(conversation.id)}
-                    />
-                  ))}
-
-                  {hasMoreConversations && (
-                    <button
-                      type="button"
-                      onClick={onLoadMoreConversations}
-                      disabled={isLoadingMoreConversations}
-                      className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[12.5px] font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isLoadingMoreConversations ? (
-                        <>
-                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
-                          Loading…
-                        </>
-                      ) : (
-                        "Load older conversations"
-                      )}
-                    </button>
-                  )}
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
-                    <Search className="h-4 w-4 text-slate-400" />
-                  </div>
-                  <p className="text-[13.5px] font-medium text-slate-800">
-                    No conversations found
-                  </p>
-                  <p className="mt-1 text-[12.5px] text-slate-400">
-                    Try a different keyword or filter.
-                  </p>
+                ))}
+              </div>
+            ) : conversations.length ? (
+              <Virtuoso
+                style={{ height: "100%" }}
+                data={conversations}
+                endReached={() => {
+                  if (hasMoreConversations && !isLoadingMoreConversations) {
+                    onLoadMoreConversations();
+                  }
+                }}
+                itemContent={(index, conversation) => (
+                  <ConversationCard
+                    key={conversation.id}
+                    conversation={conversation}
+                    active={activeConversationId === conversation.id}
+                    onClick={() => onConversationSelect(conversation.id)}
+                  />
+                )}
+                components={{
+                  Footer: () =>
+                    isLoadingMoreConversations ? (
+                      <div className="flex items-center justify-center gap-2 py-2.5 text-[12.5px] font-medium text-slate-500">
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+                        Loading…
+                      </div>
+                    ) : null,
+                }}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
+                  <Search className="h-4 w-4 text-slate-400" />
                 </div>
-              )}
-            </div>
+                <p className="text-[13.5px] font-medium text-slate-800">
+                  No conversations found
+                </p>
+                <p className="mt-1 text-[12.5px] text-slate-400">
+                  Try a different keyword or filter.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </aside>

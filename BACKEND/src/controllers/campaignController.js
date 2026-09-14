@@ -62,6 +62,123 @@ const getSingleCampaign = async (req, res) => {
   }
 };
 
+const duplicateCampaign = async (req, res) => {
+  try {
+    const original = await Campaign.findOne({
+      _id: req.params.id,
+      companyId: req.companyId,
+    });
+
+    if (!original) {
+      return res.status(404).json({
+        success: false,
+        message: "Campaign not found",
+      });
+    }
+
+    // No new Campaign document is created here — this app has no
+    // "edit/send a draft" flow anywhere, so a persisted draft would just
+    // sit unreachable in the history table. Instead, return the reusable
+    // fields so the frontend can pre-fill the existing campaign-creation
+    // form (CampaignUpload.jsx), which already knows how to create + send
+    // a campaign from scratch.
+    return res.status(200).json({
+      success: true,
+      campaignName: `${original.campaignName} (Copy)`,
+      campaignType: original.campaignType,
+      message: original.message,
+      contacts: original.contacts.map((c) => ({
+        name: c.name,
+        phone: c.phone,
+      })),
+      templateId: original.templateId,
+    });
+  } catch (error) {
+    console.error("Duplicate Campaign Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load campaign for duplication",
+    });
+  }
+};
+
+const pauseCampaign = async (req, res) => {
+  try {
+    const result = await Campaign.findOneAndUpdate(
+      { _id: req.params.id, companyId: req.companyId, status: "scheduled" },
+      { $set: { status: "paused" } },
+      { new: true },
+    );
+
+    if (!result) {
+      return res.status(409).json({
+        success: false,
+        message: "Campaign can only be paused while it's still scheduled (not yet sent).",
+      });
+    }
+
+    return res.status(200).json({ success: true, campaign: result });
+  } catch (error) {
+    console.error("Pause Campaign Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to pause campaign" });
+  }
+};
+
+const resumeCampaign = async (req, res) => {
+  try {
+    // Optional: allow the caller to push the schedule time forward when
+    // resuming (e.g. if it was paused past its original send time).
+    const { scheduleAt } = req.body || {};
+
+    const update = { status: "scheduled" };
+    if (scheduleAt) update.scheduleAt = new Date(scheduleAt);
+
+    const result = await Campaign.findOneAndUpdate(
+      { _id: req.params.id, companyId: req.companyId, status: "paused" },
+      { $set: update },
+      { new: true },
+    );
+
+    if (!result) {
+      return res.status(409).json({
+        success: false,
+        message: "Campaign can only be resumed from a paused state.",
+      });
+    }
+
+    return res.status(200).json({ success: true, campaign: result });
+  } catch (error) {
+    console.error("Resume Campaign Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to resume campaign" });
+  }
+};
+
+const cancelCampaign = async (req, res) => {
+  try {
+    const result = await Campaign.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        companyId: req.companyId,
+        status: { $in: ["scheduled", "paused"] },
+      },
+      { $set: { status: "cancelled" } },
+      { new: true },
+    );
+
+    if (!result) {
+      return res.status(409).json({
+        success: false,
+        message: "Campaign can only be cancelled while scheduled or paused.",
+      });
+    }
+
+    return res.status(200).json({ success: true, campaign: result });
+  } catch (error) {
+    console.error("Cancel Campaign Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to cancel campaign" });
+  }
+};
+
 const recalculateCampaignStats = async (campaignId) => {
   const campaign = await Campaign.findById(campaignId);
 
@@ -542,6 +659,10 @@ const sendCampaignTestMessage = async (req, res) => {
 module.exports = {
   getCampaigns,
   getSingleCampaign,
+  duplicateCampaign,
+  pauseCampaign,
+  resumeCampaign,
+  cancelCampaign,
   getAllCampaigns,
   updateCampaignStatus,
   downloadCampaignReport,

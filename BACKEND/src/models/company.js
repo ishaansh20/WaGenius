@@ -66,6 +66,17 @@ const companySchema = new mongoose.Schema(
         default: "",
       },
 
+      // Cached result of Meta's health_status check — refreshed via the
+      // /api/company/whatsapp/health-check endpoint, not on every request.
+      messagingBlocked: { type: Boolean, default: false },
+      messagingStatus: {
+        type: String,
+        enum: ["AVAILABLE", "LIMITED", "BLOCKED", ""],
+        default: "",
+      },
+      messagingBlockedReason: { type: String, default: "" },
+      healthCheckedAt: { type: Date, default: null },
+
       apiVersion: { type: String, default: "" },
 
       tokenType: {

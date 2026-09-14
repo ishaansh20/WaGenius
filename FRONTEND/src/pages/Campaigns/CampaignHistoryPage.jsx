@@ -2,11 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BarChart3, ChevronLeft, ChevronRight, Download, LayoutList, Search, X } from "lucide-react";
 import { toast } from "react-hot-toast";
-import api, { fetchCostSummary, fetchTemplateCategories } from "../../services/api";
+import api, {
+  fetchCostSummary,
+  fetchTemplateCategories,
+  duplicateCampaign,
+  pauseCampaign,
+  resumeCampaign,
+  cancelCampaign,
+} from "../../services/api";
+import { contactsToCsvFile } from "../../utils/segmentToCsv";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { mergeCategories } from "../../constants/templates";
 
-const STATUS_OPTIONS = ["All", "Scheduled", "Processing", "Completed", "Failed"];
+const STATUS_OPTIONS = ["All", "Scheduled", "Paused", "Cancelled", "Processing", "Completed", "Failed"];
 const DATE_OPTIONS = ["All", "Today", "Last 7 Days", "Last 30 Days"];
 const ITEMS_PER_PAGE = 15;
 
@@ -14,7 +22,10 @@ const STATUS_CONFIG = {
   completed: { label: "Completed", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
   processing: { label: "Processing", className: "bg-amber-50 text-amber-700 border border-amber-200" },
   scheduled: { label: "Scheduled", className: "bg-blue-50 text-blue-700 border border-blue-200" },
+  paused: { label: "Paused", className: "bg-slate-100 text-slate-600 border border-slate-300" },
+  cancelled: { label: "Cancelled", className: "bg-slate-100 text-slate-500 border border-slate-300 line-through" },
   failed: { label: "Failed", className: "bg-red-50 text-red-700 border border-red-200" },
+  draft: { label: "Draft", className: "bg-slate-50 text-slate-600 border border-slate-200" },
 };
 
 function formatDate(value) {
@@ -273,6 +284,7 @@ export default function CampaignHistoryPage() {
                       { label: "Est. Cost", widthCls: "", align: "text-left" },
                       { label: "Created", widthCls: "", align: "text-left" },
                       { label: "Analytics", widthCls: "", align: "text-center" },
+                      { label: "Actions", widthCls: "", align: "text-center" },
                     ].map(({ label, widthCls, align }) => (
                       <th
                         key={label}
@@ -388,6 +400,115 @@ export default function CampaignHistoryPage() {
                             >
                               <Download className="h-4 w-4" />
                             </button>
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-3.5">
+                          <div
+                            className="flex items-center justify-center gap-1.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {(statusKey === "completed" || statusKey === "failed") && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    const data = await duplicateCampaign(campaign._id);
+                                    const csvFile = contactsToCsvFile(
+                                      data.contacts,
+                                      "broadcast-again.csv",
+                                    );
+                                    navigate("/campaigns/upload", {
+                                      state: {
+                                        prefilledFile: csvFile,
+                                        prefilledCount: data.contacts.length,
+                                        prefilledCampaignName: data.campaignName,
+                                        prefilledCampaignType: data.campaignType,
+                                        prefilledMessage: data.message,
+                                      },
+                                    });
+                                  } catch {
+                                    toast.error("Failed to load campaign for broadcast");
+                                  }
+                                }}
+                                className="rounded-md bg-slate-100 px-2.5 py-1 text-[11.5px] font-medium text-slate-700 transition hover:bg-slate-200"
+                              >
+                                Broadcast Again
+                              </button>
+                            )}
+
+                            {statusKey === "scheduled" && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      await pauseCampaign(campaign._id);
+                                      toast.success("Campaign paused");
+                                      fetchCampaigns();
+                                    } catch {
+                                      toast.error("Failed to pause campaign");
+                                    }
+                                  }}
+                                  className="rounded-md bg-slate-100 px-2.5 py-1 text-[11.5px] font-medium text-slate-700 transition hover:bg-slate-200"
+                                >
+                                  Pause
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (!confirm("Cancel this scheduled campaign?")) return;
+                                    try {
+                                      await cancelCampaign(campaign._id);
+                                      toast.success("Campaign cancelled");
+                                      fetchCampaigns();
+                                    } catch {
+                                      toast.error("Failed to cancel campaign");
+                                    }
+                                  }}
+                                  className="rounded-md bg-red-50 px-2.5 py-1 text-[11.5px] font-medium text-red-600 transition hover:bg-red-100"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+
+                            {statusKey === "paused" && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      await resumeCampaign(campaign._id);
+                                      toast.success("Campaign resumed");
+                                      fetchCampaigns();
+                                    } catch {
+                                      toast.error("Failed to resume campaign");
+                                    }
+                                  }}
+                                  className="rounded-md bg-emerald-50 px-2.5 py-1 text-[11.5px] font-medium text-emerald-700 transition hover:bg-emerald-100"
+                                >
+                                  Resume
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (!confirm("Cancel this paused campaign?")) return;
+                                    try {
+                                      await cancelCampaign(campaign._id);
+                                      toast.success("Campaign cancelled");
+                                      fetchCampaigns();
+                                    } catch {
+                                      toast.error("Failed to cancel campaign");
+                                    }
+                                  }}
+                                  className="rounded-md bg-red-50 px-2.5 py-1 text-[11.5px] font-medium text-red-600 transition hover:bg-red-100"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>

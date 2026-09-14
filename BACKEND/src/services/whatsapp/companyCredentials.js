@@ -144,9 +144,28 @@ async function setCompanyWhatsAppCredentials(
   );
 }
 
+/**
+ * Updates the cached messaging health status on a company document.
+ * Call this after running checkWabaHealthStatus() from embeddedSignupService.
+ */
+async function updateCompanyMessagingHealth(companyId, { canSendMessage, isBlocked, reason }) {
+  await Company.updateOne(
+    { _id: companyId },
+    {
+      $set: {
+        "whatsapp.messagingBlocked": isBlocked,
+        "whatsapp.messagingStatus": canSendMessage,
+        "whatsapp.messagingBlockedReason": reason || "",
+        "whatsapp.healthCheckedAt": new Date(),
+      },
+    },
+  );
+}
+
 module.exports = {
   encryptToken,
   decryptToken,
   getCompanyWhatsAppCredentials,
   setCompanyWhatsAppCredentials,
+  updateCompanyMessagingHealth,
 };

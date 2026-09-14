@@ -59,8 +59,12 @@ export default function CampaignUpload() {
   const [segmentAudienceCount, setSegmentAudienceCount] = useState(null);
   const [testPhone, setTestPhone] = useState(() => localStorage.getItem("campaignTestPhone") || "");
   const [testSending, setTestSending] = useState(false);
-  const [campaignName, setCampaignName] = useState("");
-  const [campaignType, setCampaignType] = useState("");
+  const [campaignName, setCampaignName] = useState(
+    location.state?.prefilledCampaignName || "",
+  );
+  const [campaignType, setCampaignType] = useState(
+    location.state?.prefilledCampaignType || "",
+  );
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -293,7 +297,17 @@ export default function CampaignUpload() {
   }, [file]);
 
   useEffect(() => {
-    (async () => { await fetchCategories(); await fetchTemplates(); setMessage(""); })();
+    (async () => {
+      await fetchCategories();
+      await fetchTemplates();
+      // Normally resets the message when campaignType changes (e.g. user
+      // manually switches campaign type mid-form). On initial mount with a
+      // "Broadcast Again" prefill, use that message instead of wiping it —
+      // this effect also runs once on mount, which would otherwise erase a
+      // message set via the initial useState value before the user ever
+      // sees it.
+      setMessage(location.state?.prefilledMessage || "");
+    })();
   }, [campaignType]);
 
   useEffect(() => {

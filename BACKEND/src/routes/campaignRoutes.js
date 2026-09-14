@@ -5,6 +5,7 @@ const { companyScope } = require("../middlewares/companyScope");
 const PERMISSIONS = require("../constants/permissions");
 const { checkFeature } = require("../middlewares/planGate");
 const { requireCompanySetup } = require("../middlewares/setupGate");
+const { SETUP_STATUS } = require("../utils/setupStatus");
 
 const router = express.Router();
 
@@ -14,6 +15,10 @@ router.use(verifyToken, companyScope, requireCompanySetup());
 const {
   getCampaigns,
   getSingleCampaign,
+  duplicateCampaign,
+  pauseCampaign,
+  resumeCampaign,
+  cancelCampaign,
   updateCampaignStatus,
   retryFailedCampaignMessages,
   getAllCampaigns,
@@ -60,6 +65,7 @@ router.post(
   verifyToken,
   companyScope,
   authorize(PERMISSIONS.CAMPAIGNS),
+  requireCompanySetup(SETUP_STATUS.READY, { requireMessagingHealth: true }),
   sendCampaignTestMessage,
 );
 router.post(
@@ -67,7 +73,36 @@ router.post(
   verifyToken,
   companyScope,
   authorize(PERMISSIONS.CAMPAIGNS),
+  requireCompanySetup(SETUP_STATUS.READY, { requireMessagingHealth: true }),
   retryFailedCampaignMessages,
+);
+router.post(
+  "/:id/duplicate",
+  verifyToken,
+  companyScope,
+  authorize(PERMISSIONS.CAMPAIGNS),
+  duplicateCampaign,
+);
+router.post(
+  "/:id/pause",
+  verifyToken,
+  companyScope,
+  authorize(PERMISSIONS.CAMPAIGNS),
+  pauseCampaign,
+);
+router.post(
+  "/:id/resume",
+  verifyToken,
+  companyScope,
+  authorize(PERMISSIONS.CAMPAIGNS),
+  resumeCampaign,
+);
+router.post(
+  "/:id/cancel",
+  verifyToken,
+  companyScope,
+  authorize(PERMISSIONS.CAMPAIGNS),
+  cancelCampaign,
 );
 
 router.get(
