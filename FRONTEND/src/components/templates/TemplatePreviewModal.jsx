@@ -49,11 +49,12 @@ export default function TemplatePreviewModal({ template, badges = [], onClose, o
               {template.description ? (
                 <div className="max-w-[90%] overflow-hidden rounded-xl rounded-br-sm bg-[#d9fdd3] shadow-sm">
                   {/* Header: IMAGE */}
-                  {template.headerType === "IMAGE" && (
-                    (template.headerMediaUrl || template.mediaUrl) ? (
+                  {template.headerType === "IMAGE" && (() => {
+                    const imgUrl = template.headerMediaUrl || template.mediaUrl || (/^https?:\/\//i.test(template.headerHandle) ? template.headerHandle : "");
+                    return imgUrl ? (
                       <div className="relative">
                         <img
-                          src={resolveMediaUrl(template.headerMediaUrl || template.mediaUrl)}
+                          src={resolveMediaUrl(imgUrl)}
                           alt=""
                           className="max-h-56 w-full object-cover"
                           onError={(e) => {
@@ -76,14 +77,15 @@ export default function TemplatePreviewModal({ template, badges = [], onClose, o
                         <p className="text-[12px] font-semibold text-emerald-900">Header Image</p>
                         <p className="text-[10.5px] text-emerald-700/80">Approved and hosted on Meta</p>
                       </div>
-                    )
-                  )}
+                    );
+                  })()}
 
                   {/* Header: VIDEO */}
-                  {template.headerType === "VIDEO" && (
-                    (template.headerMediaUrl || template.mediaUrl) ? (
+                  {template.headerType === "VIDEO" && (() => {
+                    const videoUrl = template.headerMediaUrl || template.mediaUrl || (/^https?:\/\//i.test(template.headerHandle) ? template.headerHandle : "");
+                    return videoUrl ? (
                       <video
-                        src={resolveMediaUrl(template.headerMediaUrl || template.mediaUrl)}
+                        src={resolveMediaUrl(videoUrl)}
                         controls
                         className="max-h-56 w-full object-cover"
                       />
@@ -92,8 +94,8 @@ export default function TemplatePreviewModal({ template, badges = [], onClose, o
                         <Video className="mb-1 h-6 w-6 text-emerald-600" />
                         <p className="text-[12px] font-semibold text-emerald-900">Header Video</p>
                       </div>
-                    )
-                  )}
+                    );
+                  })()}
 
                   {/* Header: DOCUMENT */}
                   {template.headerType === "DOCUMENT" && (

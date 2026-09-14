@@ -175,7 +175,8 @@ export default function CreateApprovedTemplatePage() {
           setHeaderText(t.headerText || "");
           setHeaderTextExample(t.headerTextExample || "");
           setButtons(t.buttons || []);
-          setExistingHeaderMediaUrl(t.headerMediaUrl || t.mediaUrl || "");
+          const initialMediaUrl = t.headerMediaUrl || t.mediaUrl || (/^https?:\/\//i.test(t.headerHandle) ? t.headerHandle : "");
+          setExistingHeaderMediaUrl(initialMediaUrl);
         }
       } catch (err) {
         console.error("Failed to load template", err);
@@ -592,7 +593,16 @@ export default function CreateApprovedTemplatePage() {
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
                     Preview
                   </p>
-                  <WhatsAppPreview name={name} body={description} size="large" />
+                  <WhatsAppPreview
+                    name={name}
+                    headerType={headerType}
+                    headerText={headerText}
+                    headerMediaFile={isMediaHeader ? headerMedia : null}
+                    headerMediaUrl={isMediaHeader ? existingHeaderMediaUrl : ""}
+                    body={description}
+                    buttons={buttons}
+                    size="large"
+                  />
                 </div>
               </div>
             </section>
@@ -780,7 +790,7 @@ export default function CreateApprovedTemplatePage() {
                                 Current Header Media
                               </span>
                               <p className="mt-0.5 truncate text-[12.5px] font-medium text-slate-800">
-                                {existingHeaderMediaUrl.split("/").pop().split("\\").pop()}
+                                {existingHeaderMediaUrl.split("?")[0].split("/").pop().split("\\").pop() || "Template Header Image"}
                               </p>
                             </div>
                           </div>

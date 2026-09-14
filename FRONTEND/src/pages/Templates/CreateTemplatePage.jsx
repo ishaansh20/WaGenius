@@ -95,7 +95,11 @@ export default function CreateTemplatePage() {
       setHeaderType(template.headerType || "NONE");
       setHeaderText(template.headerText || "");
       setButtons(template.buttons || []);
-      setExistingMediaUrl(template.headerMediaUrl || template.mediaUrl || "");
+      const initialMediaUrl =
+        template.headerMediaUrl ||
+        template.mediaUrl ||
+        (/^https?:\/\//i.test(template.headerHandle) ? template.headerHandle : "");
+      setExistingMediaUrl(initialMediaUrl);
       setRemoveMediaFlag(false);
 
       setMetaForm({

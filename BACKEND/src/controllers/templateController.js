@@ -480,23 +480,23 @@ const importTemplatesFromMeta = async (req, res) => {
     );
     const metaTemplates = metaRes.data?.data || [];
 
-    // Build a set of metaTemplateIds already in this company's DB so we
-    // can skip them efficiently.
+    // Build maps of metaTemplateIds and names already in this company's DB so we
+    // can skip/update them efficiently.
     const existing = await Template.find(
-      { companyId: req.companyId, metaTemplateId: { $ne: "" } },
-      { metaTemplateId: 1 },
+      { companyId: req.companyId },
+      { metaTemplateId: 1, name: 1 },
     );
-    const existingIds = new Set(existing.map((t) => String(t.metaTemplateId)));
+    const existingById = new Map();
+    const existingByName = new Map();
+    for (const t of existing) {
+      if (t.metaTemplateId) existingById.set(String(t.metaTemplateId), t);
+      if (t.name) existingByName.set(t.name, t);
+    }
 
     const imported = [];
     const skipped = [];
 
     for (const mt of metaTemplates) {
-      if (existingIds.has(String(mt.id))) {
-        skipped.push(mt.id);
-        continue;
-      }
-
       // Parse Meta's components array into our schema fields.
       const components = mt.components || [];
       let description = "";
@@ -511,12 +511,27 @@ const importTemplatesFromMeta = async (req, res) => {
           case "BODY":
             description = comp.text || "";
             break;
-          case "HEADER":
+          case "HEADER": {
             headerType = comp.format || "NONE";
             if (comp.format === "TEXT") headerText = comp.text || "";
-            if (comp.example?.header_url?.[0]) headerMediaUrl = comp.example.header_url[0];
-            if (comp.example?.header_handle?.[0]) headerHandle = comp.example.header_handle[0];
+            const rawUrl = comp.example?.header_url;
+            const exampleUrl = Array.isArray(rawUrl) ? rawUrl[0] : (typeof rawUrl === "string" ? rawUrl : "");
+
+            const rawHandle = comp.example?.header_handle;
+            const exampleHandle = Array.isArray(rawHandle) ? rawHandle[0] : (typeof rawHandle === "string" ? rawHandle : "");
+
+            if (exampleUrl) {
+              headerMediaUrl = exampleUrl;
+            }
+            if (exampleHandle) {
+              headerHandle = exampleHandle;
+              // Meta Graph API puts direct WhatsApp CDN URLs inside header_handle (e.g. https://scontent.whatsapp.net/...)
+              if (/^https?:\/\//i.test(exampleHandle)) {
+                headerMediaUrl = exampleHandle;
+              }
+            }
             break;
+          }
           case "BUTTONS":
             for (const btn of comp.buttons || []) {
               if (btn.type === "QUICK_REPLY") {
@@ -533,6 +548,34 @@ const importTemplatesFromMeta = async (req, res) => {
           default:
             break;
         }
+      }
+
+      const existingTemplate = existingById.get(String(mt.id)) || existingByName.get(mt.name);
+      if (existingTemplate) {
+        // Update headerMediaUrl and components on already-imported template
+        const updateFields = {
+          metaTemplateId: String(mt.id),
+        };
+        if (headerMediaUrl) {
+          updateFields.headerMediaUrl = headerMediaUrl;
+          updateFields.mediaUrl = headerMediaUrl;
+        }
+        if (headerHandle) updateFields.headerHandle = headerHandle;
+        if (headerType && headerType !== "NONE") updateFields.headerType = headerType;
+        if (headerText) updateFields.headerText = headerText;
+        if (buttons.length > 0) updateFields.buttons = buttons;
+        if (mt.status) {
+          updateFields.metaStatus = mt.status;
+          updateFields.status = mt.status === "APPROVED" ? "active" : "draft";
+        }
+
+        await Template.updateOne(
+          { _id: existingTemplate._id },
+          { $set: updateFields },
+        );
+
+        skipped.push(mt.id);
+        continue;
       }
 
       // description is required by the schema — fall back to template name
@@ -579,7 +622,7 @@ const importTemplatesFromMeta = async (req, res) => {
       message:
         imported.length > 0
           ? `Imported ${imported.length} template(s) from Meta`
-          : "All Meta templates are already present — nothing to import",
+          : "All Meta templates are synced and updated",
       imported,
       skipped: skipped.length,
     });
@@ -607,23 +650,62 @@ const syncTemplatesFromMeta = async (req, res) => {
 
     const [metaTemplates, localTemplates] = await Promise.all([
       fetchMetaTemplates(credentials),
-      Template.find({ companyId: req.companyId, metaTemplateId: { $ne: "" } }),
+      Template.find({ companyId: req.companyId }),
     ]);
 
     const metaById = new Map(metaTemplates.map((t) => [String(t.id), t]));
+    const metaByName = new Map(metaTemplates.map((t) => [t.name, t]));
     const io = getIO();
     const updated = [];
 
     for (const template of localTemplates) {
-      const metaTemplate = metaById.get(String(template.metaTemplateId));
+      const metaTemplate =
+        (template.metaTemplateId && metaById.get(String(template.metaTemplateId))) ||
+        metaByName.get(template.name) ||
+        (template.metaTemplateName && metaByName.get(template.metaTemplateName));
+
       if (!metaTemplate) continue;
+
+      if (!template.metaTemplateId && metaTemplate.id) {
+        template.metaTemplateId = String(metaTemplate.id);
+      }
 
       const changed = applyMetaTemplateStatus(
         template,
         metaTemplate.status,
         metaTemplate.rejected_reason,
       );
-      if (changed) {
+
+      // Reconcile header media and handle from Meta's components
+      let mediaChanged = false;
+      for (const comp of metaTemplate.components || []) {
+        if (comp.type === "HEADER") {
+          const rawUrl = comp.example?.header_url;
+          const exampleUrl = Array.isArray(rawUrl) ? rawUrl[0] : (typeof rawUrl === "string" ? rawUrl : "");
+
+          const rawHandle = comp.example?.header_handle;
+          const exampleHandle = Array.isArray(rawHandle) ? rawHandle[0] : (typeof rawHandle === "string" ? rawHandle : "");
+
+          let incomingUrl = exampleUrl || "";
+          if (exampleHandle) {
+            template.headerHandle = exampleHandle;
+            if (/^https?:\/\//i.test(exampleHandle)) {
+              incomingUrl = exampleHandle;
+            }
+          }
+          if (incomingUrl && incomingUrl !== template.headerMediaUrl) {
+            template.headerMediaUrl = incomingUrl;
+            template.mediaUrl = incomingUrl;
+            mediaChanged = true;
+          }
+          if (comp.format && template.headerType !== comp.format) {
+            template.headerType = comp.format;
+            mediaChanged = true;
+          }
+        }
+      }
+
+      if (changed || mediaChanged) {
         await template.save();
         io.to("templates").emit("template_status_updated", template);
         updated.push({

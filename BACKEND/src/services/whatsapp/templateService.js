@@ -89,12 +89,19 @@ const buildHeaderParamsForSend = (template) => {
   }
 
   const mediaKey = template.headerType.toLowerCase(); // image | video | document
+  const rawUrl =
+    template.headerMediaUrl ||
+    template.mediaUrl ||
+    (/^https?:\/\//i.test(template.headerHandle) ? template.headerHandle : "");
+
+  if (!rawUrl) return null;
+
   return {
     type: "header",
     parameters: [
       {
         type: mediaKey,
-        [mediaKey]: { link: resolvePublicMediaUrl(template.headerMediaUrl) },
+        [mediaKey]: { link: resolvePublicMediaUrl(rawUrl) },
       },
     ],
   };
@@ -248,7 +255,7 @@ const fetchMetaTemplates = async (credentials) => {
     {
       params: {
         access_token: accessToken,
-        fields: "id,name,status,category,quality_score,rejected_reason",
+        fields: "id,name,status,category,quality_score,rejected_reason,components",
         limit: 250,
       },
     },

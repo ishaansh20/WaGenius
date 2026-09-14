@@ -871,6 +871,21 @@ export default function CampaignUpload() {
                             className="mb-2 max-h-40 w-full rounded-lg object-cover"
                           />
                         )}
+                        {useMetaTemplate && selectedMetaTemplate?.headerType === "IMAGE" && (() => {
+                          const metaImg =
+                            selectedMetaTemplate.headerMediaUrl ||
+                            selectedMetaTemplate.mediaUrl ||
+                            (/^https?:\/\//i.test(selectedMetaTemplate.headerHandle)
+                              ? selectedMetaTemplate.headerHandle
+                              : "");
+                          return metaImg ? (
+                            <img
+                              src={resolveMediaUrl(metaImg)}
+                              alt=""
+                              className="mb-2 max-h-40 w-full rounded-lg object-cover"
+                            />
+                          ) : null;
+                        })()}
                         <p className="whitespace-pre-wrap break-words text-[12.5px] leading-relaxed text-slate-800">
                           {message}
                         </p>

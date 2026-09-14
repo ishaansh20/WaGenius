@@ -70,38 +70,50 @@ export default function ApprovedTemplateTable({
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       {/* Media thumbnail / indicator */}
-                      {(template.headerType === "IMAGE" || template.mediaUrl || template.headerMediaUrl) ? (
-                        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-                          {(template.headerMediaUrl || template.mediaUrl) ? (
-                            <img
-                              src={resolveMediaUrl(template.headerMediaUrl || template.mediaUrl)}
-                              alt=""
-                              className="h-full w-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                                if (e.currentTarget.nextElementSibling) {
-                                  e.currentTarget.nextElementSibling.classList.remove("hidden");
-                                }
-                              }}
-                            />
-                          ) : null}
-                          <div className={`flex flex-col items-center justify-center text-slate-400 ${(template.headerMediaUrl || template.mediaUrl) ? "hidden" : ""}`}>
-                            <Image className="h-4 w-4 text-emerald-600" />
+                      {(() => {
+                        const imgUrl = template.headerMediaUrl || template.mediaUrl || (/^https?:\/\//i.test(template.headerHandle) ? template.headerHandle : "");
+                        if (template.headerType === "IMAGE" || imgUrl) {
+                          return (
+                            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                              {imgUrl ? (
+                                <img
+                                  src={resolveMediaUrl(imgUrl)}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                    if (e.currentTarget.nextElementSibling) {
+                                      e.currentTarget.nextElementSibling.classList.remove("hidden");
+                                    }
+                                  }}
+                                />
+                              ) : null}
+                              <div className={`flex flex-col items-center justify-center text-slate-400 ${imgUrl ? "hidden" : ""}`}>
+                                <Image className="h-4 w-4 text-emerald-600" />
+                              </div>
+                            </div>
+                          );
+                        }
+                        if (template.headerType === "VIDEO") {
+                          return (
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-purple-200 bg-purple-50 text-purple-600">
+                              <Video className="h-4 w-4" />
+                            </div>
+                          );
+                        }
+                        if (template.headerType === "DOCUMENT") {
+                          return (
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-600">
+                              <FileText className="h-4 w-4" />
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400">
+                            <Type className="h-4 w-4" />
                           </div>
-                        </div>
-                      ) : template.headerType === "VIDEO" ? (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-purple-200 bg-purple-50 text-purple-600">
-                          <Video className="h-4 w-4" />
-                        </div>
-                      ) : template.headerType === "DOCUMENT" ? (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-600">
-                          <FileText className="h-4 w-4" />
-                        </div>
-                      ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400">
-                          <Type className="h-4 w-4" />
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
