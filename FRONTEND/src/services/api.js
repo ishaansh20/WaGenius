@@ -1,4 +1,5 @@
 import axios from "axios";
+import toast from "react-hot-toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -24,10 +25,25 @@ api.interceptors.response.use(
   (response) => response,
 
   (error) => {
-    if (error.response?.status === 401) {
+    const isAuthRequest = /\/api\/auth\/(login|register-company)/.test(
+      error.config?.url || "",
+    );
+
+    // A 401 from login/register itself is just "wrong credentials" or a
+    // validation failure — the calling page's own catch block handles that
+    // with a toast. It must never trigger the session-expiry hard reload
+    // below (that reload is only for an ALREADY-logged-in session's token
+    // expiring mid-use). LoginPage.jsx currently uses raw axios and isn't
+    // affected by this, but this guard makes the interceptor itself safe
+    // regardless of which axios instance a future auth call goes through.
+    if (error.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("setupStatus");
+
+      if (!window.location.pathname.startsWith("/login")) {
+        toast.error("Your session has expired. Please log in again.");
+      }
 
       window.location.href = "/login";
     } else if (error.response?.status === 403) {

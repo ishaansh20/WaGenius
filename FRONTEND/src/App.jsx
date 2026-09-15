@@ -39,6 +39,15 @@ import BillingPage from "./pages/Billing/BillingPage";
 import NotFoundPage from "./pages/NotFound/NotFoundPage";
 import useAuthStore from "./store/authStore";
 import useSubscriptionStore from "./store/subscriptionStore";
+import { useSessionExpiry } from "./hooks/useSessionExpiry";
+
+// Rendered inside <BrowserRouter> (below) purely so useSessionExpiry can
+// call useNavigate — it renders nothing, it just watches token expiry
+// for the lifetime of the app.
+function SessionWatcher() {
+  useSessionExpiry();
+  return null;
+}
 
 function App() {
   const user = useAuthStore((s) => s.user);
@@ -57,6 +66,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <SessionWatcher />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/pricing" element={<BillingPage />} />

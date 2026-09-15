@@ -40,7 +40,7 @@ const login = async (req, res) => {
       });
     }
 
-    // Find user
+    // Find user (email is globally unique, so this alone identifies them)
     const user = await User.findOne({
       email: email.toLowerCase(),
     });
@@ -165,7 +165,11 @@ const registerCompany = async (req, res) => {
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: "An account with this email already exists",
+        // Specific and actionable: tells the person what happened and
+        // exactly what to do next, instead of a bare "already exists".
+        message:
+          "An account already exists with this email. If this is your account, sign in instead — otherwise, use a different email address to register a new company.",
+        code: "EMAIL_ALREADY_REGISTERED",
       });
     }
 

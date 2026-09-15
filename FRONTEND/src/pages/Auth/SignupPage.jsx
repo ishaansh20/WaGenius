@@ -60,7 +60,36 @@ export default function SignupPage() {
       toast.success(`Welcome, ${data.company.name}! Please select your plan.`);
       navigate("/pricing");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Signup failed");
+      const errorCode = error.response?.data?.code;
+      const errorMessage = error.response?.data?.message || "Signup failed";
+
+      if (errorCode === "EMAIL_ALREADY_REGISTERED") {
+        // Custom toast with a clickable "Sign in" action — this is the one
+        // signup error that has a clear, immediate next step for the user.
+        toast(
+          (t) => (
+            <span>
+              {errorMessage}{" "}
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  navigate("/login");
+                }}
+                style={{
+                  textDecoration: "underline",
+                  fontWeight: 600,
+                  marginLeft: 4,
+                }}
+              >
+                Sign in
+              </button>
+            </span>
+          ),
+          { duration: 6000, icon: "⚠️" },
+        );
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

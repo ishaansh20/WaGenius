@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { resetInboxSocket } from "../services/socket";
+import usePlatformAuthStore from "./platformAuthStore";
 
 const useAuthStore = create((set, get) => ({
   token: localStorage.getItem("token") || null,
@@ -14,6 +15,12 @@ const useAuthStore = create((set, get) => ({
     if (setupStatus) {
       localStorage.setItem("setupStatus", setupStatus);
     }
+
+    // A browser must never look logged in as both a company user and a
+    // platform admin at once — this is what actually fixes the bug, not
+    // just the redirect-order patch above. Without this, the very next
+    // platform login on this machine would silently re-trigger the issue.
+    usePlatformAuthStore.getState().logout();
 
     set({
       token,

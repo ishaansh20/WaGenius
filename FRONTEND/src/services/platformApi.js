@@ -1,4 +1,5 @@
 import axios from "axios";
+import toast from "react-hot-toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 // Separate axios instance from services/api.js — reads platformToken, never
@@ -26,6 +27,29 @@ platformApi.interceptors.response.use(
   (response) => response,
 
   (error) => {
+    const isLoginRequest = error.config?.url?.includes(
+      "/api/platform/auth/login",
+    );
+
+    // A 401 from the LOGIN endpoint itself just means "wrong credentials" —
+    // that's an ordinary failed-login response the form's own catch block
+    // already handles with a toast (see PlatformLoginPage.jsx). It is NOT
+    // a session expiring, so it must never trigger the hard reload below —
+    // doing so was forcing a full page reload on every failed login
+    // attempt, which is also what was triggering Chrome's "password found
+    // in a data breach" dialog to reappear on every retry.
+    if (error.response?.status === 401 && !isLoginRequest) {
+      localStorage.removeItem("platformToken");
+      localStorage.removeItem("platformUser");
+
+      if (!window.location.pathname.startsWith("/platform/login")) {
+        toast.error("Your session has expired. Please log in again.");
+      }
+
+      window.location.href = "/platform/login";
+      return Promise.reject(error);
+    }
+
     console.error("PLATFORM API ERROR:", {
       status: error.response?.status,
       data: error.response?.data,

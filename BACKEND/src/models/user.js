@@ -68,4 +68,5 @@ userSchema.pre("validate", function enforceCompanyPlatformExclusivity() {
   }
 });
 
+
 module.exports = mongoose.model("User", userSchema);
