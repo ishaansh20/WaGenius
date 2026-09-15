@@ -16,7 +16,7 @@ router.post(
   "/upload",
   verifyToken,
   companyScope,
-  requireCompanySetup(SETUP_STATUS.READY, { requireMessagingHealth: true }),
+  requireCompanySetup(SETUP_STATUS.READY),
   authorize(PERMISSIONS.CAMPAIGNS),
   upload.single("file"),
   uploadCampaign,

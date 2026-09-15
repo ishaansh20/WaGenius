@@ -15,6 +15,8 @@ import {
 import {
   completeEmbeddedSignup,
   fetchWhatsAppConnectionStatus,
+  checkWhatsAppHealth,
+  fetchCompanySetupStatus,
 } from "../../services/api";
 import useAuthStore from "../../store/authStore";
 
@@ -31,6 +33,23 @@ export default function WhatsAppOnboardingPage() {
   const [alreadyConnected, setAlreadyConnected] = useState(false);
   const [connectedDetails, setConnectedDetails] = useState(null);
   const [checkingInitialStatus, setCheckingInitialStatus] = useState(true);
+  const [paymentBlocked, setPaymentBlocked] = useState(false);
+  const [paymentReason, setPaymentReason] = useState("");
+  const [checkingPayment, setCheckingPayment] = useState(false);
+
+  const runPaymentCheck = async () => {
+    setCheckingPayment(true);
+    try {
+      const result = await checkWhatsAppHealth();
+      setPaymentBlocked(Boolean(result.isBlocked));
+      setPaymentReason(result.reason || "");
+    } catch {
+      // If the check itself fails, don't falsely claim payment is fine —
+      // but also don't hard-fail the page. Leave paymentBlocked as-is.
+    } finally {
+      setCheckingPayment(false);
+    }
+  };
 
   // Stashes WABA ID / Phone Number ID from WA_EMBEDDED_SIGNUP postMessage
   const metaSessionRef = useRef({ wabaId: "", phoneNumberId: "" });
@@ -43,6 +62,7 @@ export default function WhatsAppOnboardingPage() {
         if (data?.connected || data?.whatsapp?.connected) {
           setAlreadyConnected(true);
           setConnectedDetails(data.whatsapp || data);
+          runPaymentCheck();
         }
       } catch (err) {
         console.warn(
@@ -333,7 +353,13 @@ export default function WhatsAppOnboardingPage() {
             {/* Status: Already Connected */}
             {alreadyConnected ? (
               <div className="space-y-4 py-2">
-                <div className="mx-auto h-16 w-16 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/20 text-white">
+                <div
+                  className={`mx-auto h-16 w-16 rounded-2xl flex items-center justify-center shadow-lg text-white ${
+                    paymentBlocked
+                      ? "bg-amber-500 shadow-amber-500/20"
+                      : "bg-emerald-600 shadow-emerald-600/20"
+                  }`}
+                >
                   <CheckCircle2 className="h-9 w-9" />
                 </div>
                 <div className="space-y-1.5">
@@ -350,26 +376,73 @@ export default function WhatsAppOnboardingPage() {
                     )}
                   </p>
                 </div>
-                <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      useAuthStore.getState().setSetupStatus("READY");
-                      navigate("/dashboard");
-                    }}
-                    className="w-full sm:w-auto min-w-[200px] py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2"
-                  >
-                    <span>Go to Dashboard</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAlreadyConnected(false)}
-                    className="w-full sm:w-auto py-3 px-5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition text-center"
-                  >
-                    Reconnect Number
-                  </button>
-                </div>
+
+                {paymentBlocked ? (
+                  <div className="mx-auto max-w-md space-y-3">
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-left">
+                      <p className="text-xs font-bold uppercase tracking-wider text-amber-800">
+                        Payment Method Required
+                      </p>
+                      <p className="mt-1 text-xs sm:text-sm text-amber-900/90">
+                        {paymentReason ||
+                          "Add a payment method to your WhatsApp Business Account before you can start sending messages."}
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <a
+                        href="https://business.facebook.com/billing_hub/payment_methods"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full sm:w-auto min-w-[200px] py-3 px-6 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2"
+                      >
+                        <span>Add Payment Method</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={runPaymentCheck}
+                        disabled={checkingPayment}
+                        className="w-full sm:w-auto py-3 px-5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition text-center disabled:opacity-60"
+                      >
+                        {checkingPayment ? "Checking…" : "I've added it — Recheck"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        // Always re-verify with the server instead of
+                        // trusting a hardcoded "READY" — the server is the
+                        // only source of truth for whether payment is
+                        // actually set up, and this button must not be able
+                        // to bypass that check.
+                        try {
+                          const data = await fetchCompanySetupStatus();
+                          if (data?.setupStatus) {
+                            useAuthStore.getState().setSetupStatus(data.setupStatus);
+                          }
+                        } catch {
+                          // fall through — ProtectedRoute will re-verify on
+                          // navigation anyway if this fetch fails
+                        }
+                        navigate("/dashboard");
+                      }}
+                      className="w-full sm:w-auto min-w-[200px] py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2"
+                    >
+                      <span>Go to Dashboard</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAlreadyConnected(false)}
+                      className="w-full sm:w-auto py-3 px-5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition text-center"
+                    >
+                      Reconnect Number
+                    </button>
+                  </div>
+                )}
               </div>
             ) : statusStage && statusStage !== "ERROR" ? (
               /* Status: Active In-Progress Stages */

@@ -1,6 +1,6 @@
 const express = require("express");
 
-const { platformLogin } = require("../controllers/authController");
+const { platformLogin, refreshPlatformToken } = require("../controllers/authController");
 const {
   getPlatformDashboard,
   listCompanies,
@@ -36,6 +36,7 @@ const {
 } = require("../controllers/subscriptionController");
 const {
   verifyPlatformToken,
+  verifyPlatformTokenWithGrace,
 } = require("../middlewares/platformAuthMiddleware");
 const { requirePlatformRole } = require("../middlewares/requirePlatformRole");
 
@@ -44,6 +45,11 @@ const router = express.Router();
 // Separate login surface from /api/auth/login — see authController.js's
 // platformLogin for the strict-separation reasoning.
 router.post("/auth/login", platformLogin);
+router.post(
+  "/auth/refresh",
+  verifyPlatformTokenWithGrace,
+  refreshPlatformToken,
+);
 
 router.get(
   "/dashboard",

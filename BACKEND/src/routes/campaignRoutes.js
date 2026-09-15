@@ -65,7 +65,7 @@ router.post(
   verifyToken,
   companyScope,
   authorize(PERMISSIONS.CAMPAIGNS),
-  requireCompanySetup(SETUP_STATUS.READY, { requireMessagingHealth: true }),
+  requireCompanySetup(SETUP_STATUS.READY),
   sendCampaignTestMessage,
 );
 router.post(
@@ -73,7 +73,7 @@ router.post(
   verifyToken,
   companyScope,
   authorize(PERMISSIONS.CAMPAIGNS),
-  requireCompanySetup(SETUP_STATUS.READY, { requireMessagingHealth: true }),
+  requireCompanySetup(SETUP_STATUS.READY),
   retryFailedCampaignMessages,
 );
 router.post(

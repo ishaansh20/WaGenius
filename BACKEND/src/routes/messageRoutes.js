@@ -60,7 +60,7 @@ router.post(
   "/send-message",
   verifyToken,
   companyScope,
-  requireCompanySetup(SETUP_STATUS.READY, { requireMessagingHealth: true }),
+  requireCompanySetup(SETUP_STATUS.READY),
   authorize(PERMISSIONS.INBOX),
   sendMessage,
 );

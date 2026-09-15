@@ -9,10 +9,7 @@ const { resolveSetupStatus, SETUP_STATUS } = require("../utils/setupStatus");
  * State hierarchy:
  *   PLAN_SELECTION_REQUIRED -> WHATSAPP_ONBOARDING_REQUIRED -> READY
  */
-const requireCompanySetup = (
-  requiredState = SETUP_STATUS.READY,
-  { requireMessagingHealth = false } = {},
-) => {
+const requireCompanySetup = (requiredState = SETUP_STATUS.READY) => {
   return async (req, res, next) => {
     try {
       // Super Admins / Platform staff have overall platform access
@@ -64,6 +61,16 @@ const requireCompanySetup = (
             message: "Connect your WhatsApp Business account to complete setup.",
           });
         }
+
+        if (currentStatus === SETUP_STATUS.PAYMENT_REQUIRED) {
+          return res.status(403).json({
+            success: false,
+            code: "PAYMENT_METHOD_REQUIRED",
+            message:
+              company.whatsapp?.messagingBlockedReason ||
+              "Add a payment method to your WhatsApp Business Account to continue.",
+          });
+        }
       }
 
       if (
@@ -74,22 +81,6 @@ const requireCompanySetup = (
           success: false,
           code: "PLAN_SELECTION_REQUIRED",
           message: "Please select a subscription plan before continuing.",
-        });
-      }
-
-      // Gate message-sending routes on cached payment/health status too —
-      // a company can be fully "READY" (WABA + phone registered) but still
-      // unable to send messages if they haven't attached a payment method.
-      // Only enforce this for routes that actually explicitly opt in via
-      // requireMessagingHealth (see below) — it should NOT block routes
-      // like settings or dashboard viewing.
-      if (requireMessagingHealth && company.whatsapp?.messagingBlocked) {
-        return res.status(403).json({
-          success: false,
-          code: "PAYMENT_METHOD_REQUIRED",
-          message:
-            company.whatsapp?.messagingBlockedReason ||
-            "Add a payment method to your WhatsApp Business Account to start sending messages.",
         });
       }
 

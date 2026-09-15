@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Activity,
-  AlertTriangle,
   ArrowRight,
   Bot,
   CheckCircle2,
@@ -32,7 +31,6 @@ import api, {
   API_BASE_URL,
   fetchMetaPricing,
   fetchContactSegmentationStats,
-  checkWhatsAppHealth,
 } from "../../services/api";
 import { cn } from "../../utils/cn";
 
@@ -106,23 +104,6 @@ function DashboardPage() {
   const [metaPricing, setMetaPricing] = useState(null);
   const [metaPricingLoading, setMetaPricingLoading] = useState(false);
   const [segmentationStats, setSegmentationStats] = useState(null);
-  const [paymentWarning, setPaymentWarning] = useState(null);
-
-  const fetchMessagingHealth = async () => {
-    try {
-      const result = await checkWhatsAppHealth();
-      if (result.isBlocked) {
-        setPaymentWarning(
-          result.reason ||
-            "Add a payment method to your WhatsApp Business Account to start sending messages.",
-        );
-      } else {
-        setPaymentWarning(null);
-      }
-    } catch {
-      // Silently ignore — don't block dashboard render on this check failing
-    }
-  };
 
   const fetchDashboard = async () => {
     try {
@@ -156,7 +137,6 @@ function DashboardPage() {
   useEffect(() => {
     fetchDashboard();
     fetchAccountHealth();
-    fetchMessagingHealth();
     fetchContactSegmentationStats().then(setSegmentationStats).catch(() => setSegmentationStats(null));
   }, []);
 
@@ -335,34 +315,6 @@ function DashboardPage() {
     <DashboardLayout title="Dashboard">
       <div className="space-y-4 sm:space-y-5">
 
-        {/* ── WhatsApp Messaging Blocked Warning Banner ── */}
-        {paymentWarning && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3.5 shadow-sm text-amber-900 transition-all">
-            <div className="flex items-start sm:items-center gap-3 min-w-0">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-                <AlertTriangle className="h-4 w-4" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                  WhatsApp Messaging Blocked
-                </p>
-                <p className="text-xs sm:text-sm text-amber-900/90 break-words font-medium">
-                  {paymentWarning}
-                </p>
-              </div>
-            </div>
-            <a
-              href="https://business.facebook.com/billing_hub/payment_methods"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:shadow focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1"
-            >
-              <span>Add payment method</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </a>
-          </div>
-        )}
-
         {/* ── Hero ── */}
         <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]">
@@ -396,7 +348,7 @@ function DashboardPage() {
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => Promise.all([fetchAccountHealth(true), fetchDashboard(), fetchMessagingHealth()])}
+                      onClick={() => Promise.all([fetchAccountHealth(true), fetchDashboard()])}
                       disabled={healthLoading || loading}
                       className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50"
                       aria-label="Refresh dashboard"

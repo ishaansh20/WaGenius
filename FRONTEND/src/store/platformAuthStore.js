@@ -37,6 +37,11 @@ const usePlatformAuthStore = create((set) => ({
     });
   },
 
+  setPlatformToken: (token) => {
+    localStorage.setItem("platformToken", token);
+    set({ platformToken: token });
+  },
+
   logout: () => {
     localStorage.removeItem("platformToken");
     localStorage.removeItem("platformUser");

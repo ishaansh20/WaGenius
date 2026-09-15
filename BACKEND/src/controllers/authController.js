@@ -301,8 +301,56 @@ const platformLogin = async (req, res) => {
     });
   }
 };
+
+const refreshToken = async (req, res) => {
+  try {
+    // req.user comes from verifyTokenWithGrace — already validated
+    // (allowing a short post-expiry grace window)
+    const token = jwt.sign(
+      {
+        userId: req.user.userId,
+        role: req.user.role,
+        companyId: req.user.companyId,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN },
+    );
+
+    return res.status(200).json({ success: true, token });
+  } catch (error) {
+    console.error("Refresh Token Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to refresh token",
+    });
+  }
+};
+
+const refreshPlatformToken = async (req, res) => {
+  try {
+    const token = jwt.sign(
+      {
+        platformUserId: req.platformUser.platformUserId,
+        platformRole: req.platformUser.platformRole,
+      },
+      process.env.PLATFORM_JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN },
+    );
+
+    return res.status(200).json({ success: true, token });
+  } catch (error) {
+    console.error("Refresh Platform Token Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to refresh platform token",
+    });
+  }
+};
+
 module.exports = {
   login,
   registerCompany,
   platformLogin,
+  refreshToken,
+  refreshPlatformToken,
 };

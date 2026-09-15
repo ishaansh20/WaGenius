@@ -1,12 +1,13 @@
 const express = require("express");
-const { login, registerCompany } = require("../controllers/authController");
-const { verifyToken } = require("../middlewares/authMiddleware");
+const { login, registerCompany, refreshToken } = require("../controllers/authController");
+const { verifyToken, verifyTokenWithGrace } = require("../middlewares/authMiddleware");
 const { authorize } = require("../middlewares/roleMiddleware");
 
 const router = express.Router();
 
 router.post("/login", login);
 router.post("/register-company", registerCompany);
+router.post("/refresh", verifyTokenWithGrace, refreshToken);
 router.get("/me", verifyToken, (req, res) => {
   res.json({
     success: true,

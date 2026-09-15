@@ -1,6 +1,7 @@
 const SETUP_STATUS = Object.freeze({
   PLAN_SELECTION_REQUIRED: "PLAN_SELECTION_REQUIRED",
   WHATSAPP_ONBOARDING_REQUIRED: "WHATSAPP_ONBOARDING_REQUIRED",
+  PAYMENT_REQUIRED: "PAYMENT_REQUIRED",
   READY: "READY",
 });
 
@@ -15,8 +16,20 @@ function resolveSetupStatus(company, subscription) {
   const hasWhatsApp = company.whatsapp?.connected === true;
   const hasPlan = Boolean(subscription && subscription.planId);
 
-  // If already marked READY or both requirements are satisfied
-  if (company.setupStatus === SETUP_STATUS.READY || (hasWhatsApp && hasPlan)) {
+  const wouldOtherwiseBeReady =
+    company.setupStatus === SETUP_STATUS.READY ||
+    company.setupStatus === SETUP_STATUS.PAYMENT_REQUIRED ||
+    (hasWhatsApp && hasPlan);
+
+  if (wouldOtherwiseBeReady) {
+    // WABA is connected and a plan is active — but messaging itself can
+    // still be blocked, most commonly because no payment method is
+    // attached to the WhatsApp Business Account yet. Treat that as its
+    // own gated state, exactly as serious as any other incomplete-setup
+    // state, instead of letting the company into the rest of the app.
+    if (company.whatsapp?.messagingBlocked === true) {
+      return SETUP_STATUS.PAYMENT_REQUIRED;
+    }
     return SETUP_STATUS.READY;
   }
 

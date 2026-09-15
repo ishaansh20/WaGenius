@@ -38,6 +38,14 @@ const useAuthStore = create((set, get) => ({
     set({ setupStatus: status });
   },
 
+  // Silently swaps in a fresh token without touching user/setupStatus or
+  // triggering any cross-store clearing — used only by the sliding-session
+  // refresh flow, which is a background token renewal, not a new login.
+  setToken: (token) => {
+    localStorage.setItem("token", token);
+    set({ token });
+  },
+
   logout: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");

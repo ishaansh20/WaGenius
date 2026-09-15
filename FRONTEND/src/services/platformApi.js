@@ -66,6 +66,12 @@ export async function platformLogin(payload) {
 
   return data;
 }
+
+export async function refreshPlatformAuthToken() {
+  const { data } = await platformApi.post("/api/platform/auth/refresh");
+  return data.token;
+}
+
 export async function fetchPlatformDashboard() {
   const { data } = await platformApi.get("/api/platform/dashboard");
   return data;

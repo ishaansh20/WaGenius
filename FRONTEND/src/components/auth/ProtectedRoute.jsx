@@ -80,6 +80,26 @@ function ProtectedRoute({ children }) {
     }
   }
 
+  // State 3: PAYMENT_REQUIRED -> Same allowed paths as WhatsApp onboarding —
+  // the payment-method prompt lives on that same page (see
+  // WhatsAppOnboardingPage.jsx), since that's the natural place a company
+  // that already connected WhatsApp lands to finish the rest of setup.
+  if (setupStatus === "PAYMENT_REQUIRED") {
+    const isAllowed =
+      path.startsWith("/billing") ||
+      path.startsWith("/pricing") ||
+      path.startsWith("/onboarding") ||
+      path.startsWith("/whatsapp-onboarding");
+
+    if (!isAllowed) {
+      toast(
+        "Add a payment method to your WhatsApp Business Account to continue.",
+        { id: "payment-required-toast", icon: "💳" },
+      );
+      return <Navigate to="/onboarding/whatsapp" replace />;
+    }
+  }
+
   return children;
 }
 

@@ -57,7 +57,8 @@ api.interceptors.response.use(
       ) {
         window.location.href = "/billing";
       } else if (
-        code === "WHATSAPP_ONBOARDING_REQUIRED" &&
+        (code === "WHATSAPP_ONBOARDING_REQUIRED" ||
+          code === "PAYMENT_METHOD_REQUIRED") &&
         !currentPath.startsWith("/onboarding") &&
         !currentPath.startsWith("/whatsapp-onboarding") &&
         !currentPath.startsWith("/billing") &&
@@ -70,6 +71,11 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+export async function refreshAuthToken() {
+  const { data } = await api.post("/api/auth/refresh");
+  return data.token;
+}
 
 export async function fetchConversations({ before, limit } = {}) {
   const { data } = await api.get("/api/conversations", {
