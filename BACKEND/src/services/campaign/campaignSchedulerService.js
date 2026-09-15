@@ -52,6 +52,20 @@ const claimAndExecute = async (campaignDoc) => {
       `Scheduled campaign execution failed for ${claimed._id}:`,
       error.response?.data || error.message,
     );
+    // Without this, a campaign that hits an unexpected error here (as
+    // opposed to a per-contact send failure, which executeCampaign already
+    // handles internally) stays stuck at "processing" forever — invisible
+    // to the user, and immune to Pause/Resume/Cancel since those only
+    // operate on "scheduled"/"paused" campaigns.
+    await Campaign.updateOne(
+      { _id: claimed._id },
+      { $set: { status: "failed" } },
+    ).catch((updateError) => {
+      console.error(
+        `Also failed to mark campaign ${claimed._id} as failed:`,
+        updateError.message,
+      );
+    });
   }
 };
 
