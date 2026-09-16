@@ -440,7 +440,11 @@ export default function WhatsAppOnboardingPage() {
                     </div>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                       <a
-                        href="https://business.facebook.com/billing_hub/payment_methods"
+                        href={
+                          connectedDetails?.wabaId
+                            ? `https://business.facebook.com/wa/manage/payment-methods/?waba_id=${connectedDetails.wabaId}`
+                            : "https://business.facebook.com/billing_hub/payment_methods"
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full sm:w-auto min-w-[200px] py-3 px-6 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2"
