@@ -57,6 +57,11 @@ const completeEmbeddedSignup = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "WhatsApp Business Account connected successfully via Embedded Signup",
+      setupStatus: result.setupStatus,
+      phoneStatus: result.phoneStatus,
+      paymentMethodSetup: result.paymentMethodSetup,
+      messagingBlocked: result.messagingBlocked,
+      messagingBlockedReason: result.messagingBlockedReason,
       whatsapp: {
         connected: true,
         tokenType: "embedded_signup",
@@ -64,6 +69,10 @@ const completeEmbeddedSignup = async (req, res) => {
         phoneNumberId: result.phoneNumberId,
         connectedAt: result.connectedAt,
         onboardingCompleted: true,
+        setupStatus: result.setupStatus,
+        paymentMethodSetup: result.paymentMethodSetup,
+        messagingBlocked: result.messagingBlocked,
+        messagingBlockedReason: result.messagingBlockedReason,
       },
     });
   } catch (error) {

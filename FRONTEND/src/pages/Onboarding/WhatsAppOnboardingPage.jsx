@@ -32,8 +32,11 @@ export default function WhatsAppOnboardingPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [alreadyConnected, setAlreadyConnected] = useState(false);
   const [connectedDetails, setConnectedDetails] = useState(null);
+  const authSetupStatus = useAuthStore((state) => state.setupStatus);
   const [checkingInitialStatus, setCheckingInitialStatus] = useState(true);
-  const [paymentBlocked, setPaymentBlocked] = useState(false);
+  const [paymentBlocked, setPaymentBlocked] = useState(
+    authSetupStatus === "PAYMENT_REQUIRED",
+  );
   const [paymentReason, setPaymentReason] = useState("");
   const [checkingPayment, setCheckingPayment] = useState(false);
 
@@ -41,11 +44,30 @@ export default function WhatsAppOnboardingPage() {
     setCheckingPayment(true);
     try {
       const result = await checkWhatsAppHealth();
-      setPaymentBlocked(Boolean(result.isBlocked));
+      const isBlocked = Boolean(
+        result.isBlocked || !result.hasPaymentMethod || result.setupStatus === "PAYMENT_REQUIRED",
+      );
+      setPaymentBlocked(isBlocked);
       setPaymentReason(result.reason || "");
+      if (result.setupStatus) {
+        useAuthStore.getState().setSetupStatus(result.setupStatus);
+      }
+      if (!isBlocked && result.setupStatus === "READY") {
+        toast.success("Payment method verified on Meta! Full access unlocked.", {
+          id: "payment-verified-toast",
+        });
+      } else if (isBlocked) {
+        toast.error(
+          result.reason ||
+            "Payment method not found on Meta. Please add a credit/debit card in Meta Business Suite and retry.",
+          { id: "payment-not-verified-toast" },
+        );
+      }
     } catch {
-      // If the check itself fails, don't falsely claim payment is fine —
-      // but also don't hard-fail the page. Leave paymentBlocked as-is.
+      toast.error(
+        "Could not verify payment method with Meta right now. Please try again.",
+        { id: "payment-error-toast" },
+      );
     } finally {
       setCheckingPayment(false);
     }
@@ -59,9 +81,19 @@ export default function WhatsAppOnboardingPage() {
     async function checkCurrentStatus() {
       try {
         const data = await fetchWhatsAppConnectionStatus();
-        if (data?.connected || data?.whatsapp?.connected) {
+        const wa = data?.whatsapp || data;
+        if (data?.connected || wa?.connected) {
           setAlreadyConnected(true);
-          setConnectedDetails(data.whatsapp || data);
+          setConnectedDetails(wa);
+          const isBlocked = Boolean(
+            wa.messagingBlocked ||
+              data.setupStatus === "PAYMENT_REQUIRED" ||
+              wa.paymentMethodSetup === false,
+          );
+          setPaymentBlocked(isBlocked);
+          if (wa.messagingBlockedReason) {
+            setPaymentReason(wa.messagingBlockedReason);
+          }
           runPaymentCheck();
         }
       } catch (err) {
@@ -206,26 +238,44 @@ export default function WhatsAppOnboardingPage() {
       );
 
       const phoneRegistered = result?.phoneStatus === "registered";
+      const isReady =
+        result?.setupStatus === "READY" && !result?.messagingBlocked;
 
-      useAuthStore
-        .getState()
-        .setSetupStatus(phoneRegistered ? "READY" : "WHATSAPP_ONBOARDING_REQUIRED");
-      setStatusStage("SUCCESS");
+      const newSetupStatus = result?.setupStatus || (phoneRegistered && isReady ? "READY" : "PAYMENT_REQUIRED");
+      useAuthStore.getState().setSetupStatus(newSetupStatus);
 
-      if (phoneRegistered) {
-        toast.success("WhatsApp Business Account connected successfully!");
+      if (isReady && phoneRegistered) {
+        setStatusStage("SUCCESS");
+        toast.success("WhatsApp Business Account connected and verified!");
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 1500);
+      } else if (phoneRegistered) {
+        // WhatsApp is connected, but Meta payment method is pending
+        setStatusStage("");
+        setAlreadyConnected(true);
+        setConnectedDetails({
+          phoneNumberId: result?.phoneNumberId,
+          wabaId: result?.wabaId,
+          connected: true,
+        });
+        setPaymentBlocked(true);
+        setPaymentReason(
+          result?.messagingBlockedReason ||
+            "Add a credit/debit card to your WhatsApp Business Account on Meta before sending messages.",
+        );
+        toast(
+          "WhatsApp connected! Please add a payment method in Meta Business Suite to complete setup.",
+          { icon: "💳", duration: 6000 },
+        );
       } else {
-        // WABA is linked but no phone number was added/verified yet —
-        // don't claim the integration is fully ready to send messages.
+        // WABA is linked but phone is not registered
+        setStatusStage("");
+        setAlreadyConnected(true);
         toast(
           "Business account linked. Add and verify a phone number to start sending messages.",
         );
       }
-
-      // Wait briefly so user sees the success confirmation before navigation
-      setTimeout(() => {
-        navigate(phoneRegistered ? "/dashboard" : "/onboarding/whatsapp");
-      }, 1500);
     } catch (error) {
       console.error(
         "[EmbeddedSignup] Error during backend exchange:",
@@ -413,19 +463,20 @@ export default function WhatsAppOnboardingPage() {
                     <button
                       type="button"
                       onClick={async () => {
-                        // Always re-verify with the server instead of
-                        // trusting a hardcoded "READY" — the server is the
-                        // only source of truth for whether payment is
-                        // actually set up, and this button must not be able
-                        // to bypass that check.
                         try {
                           const data = await fetchCompanySetupStatus();
                           if (data?.setupStatus) {
                             useAuthStore.getState().setSetupStatus(data.setupStatus);
+                            if (data.setupStatus === "PAYMENT_REQUIRED") {
+                              setPaymentBlocked(true);
+                              toast.error(
+                                "Payment method required on Meta before accessing dashboard.",
+                              );
+                              return;
+                            }
                           }
                         } catch {
-                          // fall through — ProtectedRoute will re-verify on
-                          // navigation anyway if this fetch fails
+                          // fall through
                         }
                         navigate("/dashboard");
                       }}

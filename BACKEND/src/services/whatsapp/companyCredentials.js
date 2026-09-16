@@ -1,5 +1,7 @@
 const crypto = require("crypto");
 const Company = require("../../models/company");
+const Subscription = require("../../models/subscription");
+const { resolveSetupStatus, SETUP_STATUS } = require("../../utils/setupStatus");
 
 // A company's WhatsApp access token is stored encrypted at rest — it's a
 // real production secret (equivalent to what used to live in this app's own
@@ -111,12 +113,12 @@ async function setCompanyWhatsAppCredentials(
     : true; // manual "Connect WhatsApp" path always supplies a real number
 
   const updateFields = {
-    // Reuse the existing enum value — "PENDING_PHONE" isn't declared on the
-    // schema and would break validation the next time this doc is .save()'d.
+    // When fully connected, require payment verification before moving to READY
     setupStatus: isFullyConnected
-      ? "READY"
-      : "WHATSAPP_ONBOARDING_REQUIRED",
+      ? SETUP_STATUS.PAYMENT_REQUIRED
+      : SETUP_STATUS.WHATSAPP_ONBOARDING_REQUIRED,
     "whatsapp.connected": isFullyConnected,
+    "whatsapp.paymentMethodSetup": false,
     "whatsapp.accessToken": encryptToken(accessToken),
     "whatsapp.phoneNumberId": phoneNumberId || "",
     "whatsapp.wabaId": wabaId,
@@ -145,21 +147,56 @@ async function setCompanyWhatsAppCredentials(
 }
 
 /**
- * Updates the cached messaging health status on a company document.
+ * Updates the cached messaging health status and payment verification on a company document.
  * Call this after running checkWabaHealthStatus() from embeddedSignupService.
  */
-async function updateCompanyMessagingHealth(companyId, { canSendMessage, isBlocked, reason }) {
-  await Company.updateOne(
-    { _id: companyId },
-    {
-      $set: {
-        "whatsapp.messagingBlocked": isBlocked,
-        "whatsapp.messagingStatus": canSendMessage,
-        "whatsapp.messagingBlockedReason": reason || "",
-        "whatsapp.healthCheckedAt": new Date(),
-      },
-    },
-  );
+async function updateCompanyMessagingHealth(
+  companyId,
+  { canSendMessage, isBlocked, reason, hasPaymentMethod, primaryFundingId },
+) {
+  const isPaymentSetup = hasPaymentMethod === true && !isBlocked;
+
+  const updateFields = {
+    "whatsapp.messagingBlocked": Boolean(isBlocked),
+    "whatsapp.messagingStatus": canSendMessage || "",
+    "whatsapp.messagingBlockedReason": reason || "",
+    "whatsapp.healthCheckedAt": new Date(),
+  };
+
+  if (typeof hasPaymentMethod === "boolean") {
+    updateFields["whatsapp.paymentMethodSetup"] = isPaymentSetup;
+  }
+  if (primaryFundingId !== undefined) {
+    updateFields["whatsapp.primaryFundingId"] = primaryFundingId || "";
+  }
+
+  const [company, subscription] = await Promise.all([
+    Company.findById(companyId),
+    Subscription.findOne({ companyId }),
+  ]);
+
+  if (company) {
+    if (!company.whatsapp) company.whatsapp = {};
+    company.whatsapp.messagingBlocked = Boolean(isBlocked);
+    company.whatsapp.messagingStatus = canSendMessage || "";
+    company.whatsapp.messagingBlockedReason = reason || "";
+    company.whatsapp.healthCheckedAt = updateFields["whatsapp.healthCheckedAt"];
+    if (typeof hasPaymentMethod === "boolean") {
+      company.whatsapp.paymentMethodSetup = isPaymentSetup;
+    }
+    if (primaryFundingId !== undefined) {
+      company.whatsapp.primaryFundingId = primaryFundingId || "";
+    }
+
+    const calculatedStatus = resolveSetupStatus(company, subscription);
+    updateFields["setupStatus"] = calculatedStatus;
+
+    await Company.updateOne({ _id: companyId }, { $set: updateFields });
+    return calculatedStatus;
+  }
+
+  await Company.updateOne({ _id: companyId }, { $set: updateFields });
+  return isPaymentSetup ? SETUP_STATUS.READY : SETUP_STATUS.PAYMENT_REQUIRED;
 }
 
 module.exports = {

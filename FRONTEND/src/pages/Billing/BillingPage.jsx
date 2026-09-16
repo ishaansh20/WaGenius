@@ -343,6 +343,8 @@ export default function BillingPage() {
                 <h2 className="text-base font-bold text-slate-900">
                   {setupStatus === "READY"
                     ? "Setup Complete • Full Platform Access Active"
+                    : setupStatus === "PAYMENT_REQUIRED"
+                    ? "Step 2: Add Payment Method in Meta"
                     : setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || currentPlan || justActivatedPlan
                     ? "Step 2: Connect WhatsApp Business Account"
                     : "Step 1: Select a Subscription Plan"}
@@ -398,7 +400,7 @@ export default function BillingPage() {
                 className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all ${
                   setupStatus === "READY"
                     ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
-                    : currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED"
+                    : currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "PAYMENT_REQUIRED"
                     ? "bg-amber-50/70 border-amber-300 text-amber-950 ring-2 ring-amber-500/20"
                     : "bg-slate-50 border-slate-200 text-slate-400"
                 }`}
@@ -407,7 +409,7 @@ export default function BillingPage() {
                   className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
                     setupStatus === "READY"
                       ? "bg-emerald-600 text-white"
-                      : currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED"
+                      : currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "PAYMENT_REQUIRED"
                       ? "bg-amber-500 text-white"
                       : "bg-slate-200 text-slate-500"
                   }`}
@@ -421,7 +423,11 @@ export default function BillingPage() {
                 <div className="min-w-0">
                   <p className="text-xs font-bold leading-tight">2. WhatsApp Setup</p>
                   <p className="text-[11px] text-slate-500 truncate">
-                    {setupStatus === "READY" ? "Connected" : "Required to proceed"}
+                    {setupStatus === "READY"
+                      ? "Connected & Active"
+                      : setupStatus === "PAYMENT_REQUIRED"
+                      ? "Meta Payment Required"
+                      : "Required to proceed"}
                   </p>
                 </div>
               </div>
@@ -457,7 +463,7 @@ export default function BillingPage() {
             </div>
 
             {/* Plan Activated Notice */}
-            {(currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED") && setupStatus !== "READY" && (
+            {(currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "PAYMENT_REQUIRED") && setupStatus !== "READY" && (
               <div className="mt-3 p-4 rounded-xl border border-emerald-300 bg-emerald-50/70 shadow-sm flex items-center gap-3">
                 <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 ring-4 ring-emerald-200" />
                 <div>

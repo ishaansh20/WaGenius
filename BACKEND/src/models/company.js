@@ -37,6 +37,7 @@ const companySchema = new mongoose.Schema(
       enum: [
         "PLAN_SELECTION_REQUIRED",
         "WHATSAPP_ONBOARDING_REQUIRED",
+        "PAYMENT_REQUIRED",
         "READY",
       ],
       default: "PLAN_SELECTION_REQUIRED",
@@ -65,6 +66,10 @@ const companySchema = new mongoose.Schema(
         enum: ["pending", "registered", ""],
         default: "",
       },
+
+      // Tracks whether a valid payment method / credit card is configured in Meta
+      paymentMethodSetup: { type: Boolean, default: false },
+      primaryFundingId: { type: String, default: "" },
 
       // Cached result of Meta's health_status check — refreshed via the
       // /api/company/whatsapp/health-check endpoint, not on every request.

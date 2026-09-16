@@ -19,7 +19,10 @@ export default function HomeRedirect() {
       return <Navigate to="/billing" replace />;
     }
 
-    if (setupStatus === "WHATSAPP_ONBOARDING_REQUIRED") {
+    if (
+      setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" ||
+      setupStatus === "PAYMENT_REQUIRED"
+    ) {
       return <Navigate to="/onboarding/whatsapp" replace />;
     }
 

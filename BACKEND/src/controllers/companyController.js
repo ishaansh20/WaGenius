@@ -50,6 +50,8 @@ const getWhatsAppStatus = async (req, res) => {
         company.whatsapp?.onboardingCompletedAt || isConnected,
       ),
       onboardingCompletedAt: company.whatsapp?.onboardingCompletedAt || null,
+      paymentMethodSetup: Boolean(company.whatsapp?.paymentMethodSetup),
+      primaryFundingId: company.whatsapp?.primaryFundingId || "",
       messagingBlocked: Boolean(company.whatsapp?.messagingBlocked),
       messagingStatus: company.whatsapp?.messagingStatus || "",
       messagingBlockedReason: company.whatsapp?.messagingBlockedReason || "",
@@ -96,6 +98,8 @@ const getCompanySetupStatus = async (req, res) => {
       setupStatus,
       hasPlan: Boolean(subscription?.planId),
       hasWhatsApp: company?.whatsapp?.connected === true,
+      paymentMethodSetup: Boolean(company?.whatsapp?.paymentMethodSetup),
+      messagingBlocked: Boolean(company?.whatsapp?.messagingBlocked),
     });
   } catch (error) {
     console.error("[Company] Failed to fetch setup status:", error);
@@ -210,13 +214,16 @@ const healthCheckWhatsApp = async (req, res) => {
       credentials.wabaId,
     );
 
-    await updateCompanyMessagingHealth(req.companyId, health);
+    const setupStatus = await updateCompanyMessagingHealth(req.companyId, health);
 
     return res.status(200).json({
       success: true,
       canSendMessage: health.canSendMessage,
       isBlocked: health.isBlocked,
+      hasPaymentMethod: health.hasPaymentMethod,
+      primaryFundingId: health.primaryFundingId,
       reason: health.reason,
+      setupStatus,
     });
   } catch (error) {
     console.error("[WhatsApp] Health check failed:", error);

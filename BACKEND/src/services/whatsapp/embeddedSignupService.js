@@ -516,9 +516,11 @@ async function processEmbeddedSignup(
 
   // 8. Attempt initial messaging health check so initial status is populated.
   // Never fail the entire signup if this check fails — it is also checked on-demand.
+  let initialSetupStatus = "PAYMENT_REQUIRED";
+  let health = null;
   try {
-    const health = await checkWabaHealthStatus(accessToken, wabaId);
-    await updateCompanyMessagingHealth(companyId, health);
+    health = await checkWabaHealthStatus(accessToken, wabaId);
+    initialSetupStatus = await updateCompanyMessagingHealth(companyId, health);
   } catch (healthErr) {
     console.warn(
       `[EmbeddedSignup] Initial health status check skipped/failed for WABA ${wabaId}:`,
@@ -535,6 +537,10 @@ async function processEmbeddedSignup(
     tokenType: "embedded_signup",
     connectedAt: now,
     onboardingCompleted: true,
+    setupStatus: initialSetupStatus,
+    paymentMethodSetup: Boolean(health?.hasPaymentMethod),
+    messagingBlocked: Boolean(health?.isBlocked),
+    messagingBlockedReason: health?.reason || "",
   };
 }
 
@@ -580,10 +586,9 @@ async function completePhoneRegistration(companyId, { accessToken, wabaId, phone
 }
 
 /**
- * Queries Meta's official health_status field for a WABA to determine
- * whether messaging is currently possible. Returns a normalized summary —
- * this is what a missing payment method (or other blocking issue) looks
- * like from Meta's side.
+ * Queries Meta's official health_status, primary_funding_id, and payment_configurations
+ * for a WABA to determine whether messaging is possible and whether a valid payment method
+ * (credit/debit card) is attached in Meta Business Suite.
  */
 async function checkWabaHealthStatus(accessToken, wabaId) {
   const apiVersion = getApiVersion();
@@ -592,19 +597,36 @@ async function checkWabaHealthStatus(accessToken, wabaId) {
   const response = await withRetry(
     () =>
       axios.get(url, {
-        params: { fields: "health_status" },
+        params: {
+          fields: "health_status,primary_funding_id,status,account_review_status",
+        },
         headers: { Authorization: `Bearer ${accessToken}` },
         timeout: 10000,
       }),
     { label: "checkWabaHealthStatus" },
   );
 
-  const healthStatus = response.data?.health_status;
+  const wabaData = response.data || {};
+  const healthStatus = wabaData.health_status;
   const canSendMessage = healthStatus?.can_send_message || "AVAILABLE";
   const entities = healthStatus?.entities || [];
+  const primaryFundingId = wabaData.primary_funding_id || "";
+  const wabaStatus = wabaData.status || "";
 
-  // Collect the most useful human-readable reason, if any entity is
-  // blocked or limited. Prefer BLOCKED reasons over LIMITED ones.
+  // Also query the payment_configurations edge if possible
+  let paymentConfigs = [];
+  try {
+    const configUrl = `https://graph.facebook.com/${apiVersion}/${wabaId}/payment_configurations`;
+    const configRes = await axios.get(configUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      timeout: 8000,
+    });
+    paymentConfigs = configRes.data?.data || [];
+  } catch (configErr) {
+    // Non-fatal if edge is restricted or returns empty
+  }
+
+  // Collect the most useful human-readable reason, if any entity is blocked or limited
   let reason = "";
   const blockedEntity = entities.find((e) => e.can_send_message === "BLOCKED");
   const limitedEntity = entities.find((e) => e.can_send_message === "LIMITED");
@@ -615,12 +637,53 @@ async function checkWabaHealthStatus(accessToken, wabaId) {
       relevantEntity.errors?.map((e) => e.error_description || e.message) ||
       relevantEntity.additional_info ||
       [];
-    reason = messages.join(" ") || "";
+    reason = Array.isArray(messages) ? messages.join(" ") : String(messages);
+  }
+
+  // Determine if a payment method is attached in Meta
+  const hasConfiguredPayment =
+    Boolean(primaryFundingId) || paymentConfigs.length > 0;
+
+  const isPendingPaymentStatus =
+    wabaStatus === "PENDING_VALID_PAYMENT_METHOD" ||
+    reason.toLowerCase().includes("payment") ||
+    reason.toLowerCase().includes("card") ||
+    reason.toLowerCase().includes("billing");
+
+  let hasPaymentMethod = false;
+  let isBlocked = false;
+
+  if (isPendingPaymentStatus || (!hasConfiguredPayment && canSendMessage === "BLOCKED")) {
+    hasPaymentMethod = false;
+    isBlocked = true;
+    if (!reason) {
+      reason =
+        "No payment method attached to this WhatsApp Business Account. Please add a payment method in Meta Business Suite.";
+    }
+  } else if (!hasConfiguredPayment) {
+    // Meta requires an active payment method for cloud messaging
+    hasPaymentMethod = false;
+    isBlocked = true;
+    if (!reason) {
+      reason =
+        "Payment method missing on Meta. Add a credit or debit card in Meta Business Suite Payment Settings.";
+    }
+  } else if (canSendMessage === "BLOCKED") {
+    hasPaymentMethod = !isPendingPaymentStatus;
+    isBlocked = true;
+    if (!reason) {
+      reason = "WhatsApp messaging is currently blocked by Meta.";
+    }
+  } else {
+    hasPaymentMethod = true;
+    isBlocked = false;
   }
 
   return {
     canSendMessage, // "AVAILABLE" | "LIMITED" | "BLOCKED"
-    isBlocked: canSendMessage === "BLOCKED",
+    isBlocked,
+    hasPaymentMethod,
+    primaryFundingId,
     reason,
   };
 }
