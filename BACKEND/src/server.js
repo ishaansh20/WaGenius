@@ -16,6 +16,12 @@ const { startCampaignPoller } = require("./services/campaign/campaignSchedulerSe
 // takes down every company's access at once, with nothing beyond a stack
 // trace dumped to stdout. Log loudly instead of dying silently.
 process.on("unhandledRejection", (reason) => {
+  if (reason?.response?.data) {
+    console.error(
+      "Unhandled Promise Rejection (API response):",
+      JSON.stringify(reason.response.data, null, 2),
+    );
+  }
   console.error("Unhandled Promise Rejection:", reason);
 });
 

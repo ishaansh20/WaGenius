@@ -152,7 +152,7 @@ async function setCompanyWhatsAppCredentials(
  */
 async function updateCompanyMessagingHealth(
   companyId,
-  { canSendMessage, isBlocked, reason, hasPaymentMethod, primaryFundingId },
+  { canSendMessage, isBlocked, reason, hasPaymentMethod, hasVerificationError },
 ) {
   const isPaymentSetup = hasPaymentMethod === true && !isBlocked;
 
@@ -166,8 +166,8 @@ async function updateCompanyMessagingHealth(
   if (typeof hasPaymentMethod === "boolean") {
     updateFields["whatsapp.paymentMethodSetup"] = isPaymentSetup;
   }
-  if (primaryFundingId !== undefined) {
-    updateFields["whatsapp.primaryFundingId"] = primaryFundingId || "";
+  if (typeof hasVerificationError === "boolean") {
+    updateFields["whatsapp.businessVerificationPending"] = hasVerificationError;
   }
 
   const [company, subscription] = await Promise.all([
@@ -184,8 +184,8 @@ async function updateCompanyMessagingHealth(
     if (typeof hasPaymentMethod === "boolean") {
       company.whatsapp.paymentMethodSetup = isPaymentSetup;
     }
-    if (primaryFundingId !== undefined) {
-      company.whatsapp.primaryFundingId = primaryFundingId || "";
+    if (typeof hasVerificationError === "boolean") {
+      company.whatsapp.businessVerificationPending = hasVerificationError;
     }
 
     const calculatedStatus = resolveSetupStatus(company, subscription);

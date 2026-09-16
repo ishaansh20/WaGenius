@@ -39,6 +39,7 @@ export default function WhatsAppOnboardingPage() {
   );
   const [paymentReason, setPaymentReason] = useState("");
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const [businessVerificationPending, setBusinessVerificationPending] = useState(false);
 
   const runPaymentCheck = async () => {
     setCheckingPayment(true);
@@ -49,6 +50,9 @@ export default function WhatsAppOnboardingPage() {
       );
       setPaymentBlocked(isBlocked);
       setPaymentReason(result.reason || "");
+      if (typeof result.hasVerificationError === "boolean") {
+        setBusinessVerificationPending(result.hasVerificationError);
+      }
       if (result.setupStatus) {
         useAuthStore.getState().setSetupStatus(result.setupStatus);
       }
@@ -93,6 +97,9 @@ export default function WhatsAppOnboardingPage() {
           setPaymentBlocked(isBlocked);
           if (wa.messagingBlockedReason) {
             setPaymentReason(wa.messagingBlockedReason);
+          }
+          if (typeof wa.businessVerificationPending === "boolean") {
+            setBusinessVerificationPending(wa.businessVerificationPending);
           }
           runPaymentCheck();
         }
@@ -260,6 +267,9 @@ export default function WhatsAppOnboardingPage() {
           connected: true,
         });
         setPaymentBlocked(true);
+        if (typeof result?.businessVerificationPending === "boolean") {
+          setBusinessVerificationPending(result.businessVerificationPending);
+        }
         setPaymentReason(
           result?.messagingBlockedReason ||
             "Add a credit/debit card to your WhatsApp Business Account on Meta before sending messages.",
@@ -438,6 +448,17 @@ export default function WhatsAppOnboardingPage() {
                           "Add a payment method to your WhatsApp Business Account before you can start sending messages."}
                       </p>
                     </div>
+
+                    {businessVerificationPending && (
+                      <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left">
+                        <p className="text-xs font-semibold text-sky-900">
+                          Meta Business Verification Pending
+                        </p>
+                        <p className="mt-0.5 text-xs text-sky-800/80 leading-relaxed">
+                          Your Meta Business Portfolio verification is in progress. Messaging volume may be limited by Meta until verification is completed.
+                        </p>
+                      </div>
+                    )}
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                       <a
                         href={

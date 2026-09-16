@@ -539,6 +539,7 @@ async function processEmbeddedSignup(
     onboardingCompleted: true,
     setupStatus: initialSetupStatus,
     paymentMethodSetup: Boolean(health?.hasPaymentMethod),
+    businessVerificationPending: Boolean(health?.hasVerificationError),
     messagingBlocked: Boolean(health?.isBlocked),
     messagingBlockedReason: health?.reason || "",
   };
@@ -585,10 +586,25 @@ async function completePhoneRegistration(companyId, { accessToken, wabaId, phone
   return { success: true, phoneNumberId, phoneStatus: "registered" };
 }
 
+// Meta error codes returned inside health_status entities that are relevant
+// to payment and account state. These are stable, documented codes — using
+// them directly is far more reliable than string-matching error descriptions.
+// Source: Meta WhatsApp Cloud API error code reference.
+const META_ERROR_PAYMENT_REQUIRED = 141006; // "There is an error with the payment method..."
+const META_ERROR_BUSINESS_VERIFICATION = 141010; // Business not verified (causes LIMITED)
+
 /**
- * Queries Meta's official health_status, primary_funding_id, and payment_configurations
- * for a WABA to determine whether messaging is possible and whether a valid payment method
- * (credit/debit card) is attached in Meta Business Suite.
+ * Queries Meta's health_status for a WABA to determine whether messaging
+ * is possible and whether a valid payment method is configured.
+ *
+ * NOTE: Only `health_status` is requested here. Fields like
+ * `primary_funding_id`, `account_review_status`, and the
+ * `payment_configurations` edge all require Business Solution Provider (BSP)
+ * status on the owning app — which a Tech Provider app does NOT have.
+ * Attempting to fetch them causes a 400 "BSP required" error that silently
+ * breaks the entire health-check flow. We detect payment issues via Meta's
+ * own error codes inside `health_status.entities` instead, which is both
+ * more accurate and always available to Tech Providers.
  */
 async function checkWabaHealthStatus(accessToken, wabaId) {
   const apiVersion = getApiVersion();
@@ -597,102 +613,79 @@ async function checkWabaHealthStatus(accessToken, wabaId) {
   const response = await withRetry(
     () =>
       axios.get(url, {
-        params: {
-          fields:
-            "health_status,primary_funding_id,status,account_review_status,owner_business_info",
-        },
+        params: { fields: "health_status" },
         headers: { Authorization: `Bearer ${accessToken}` },
         timeout: 10000,
       }),
     { label: "checkWabaHealthStatus" },
   );
 
-  const wabaData = response.data || {};
-  const healthStatus = wabaData.health_status;
-  const canSendMessage = healthStatus?.can_send_message || "AVAILABLE";
-  const entities = healthStatus?.entities || [];
-  const primaryFundingId = wabaData.primary_funding_id || "";
-  const wabaStatus = wabaData.status || "";
+  const healthStatus = response.data?.health_status || {};
+  const canSendMessage = healthStatus.can_send_message || "AVAILABLE";
+  const entities = healthStatus.entities || [];
 
-  // TEMPORARY — log the raw shape once so we know exactly how to extract
-  // the owning Business Manager ID (needed to build a working deep-link to
-  // the correct payment page). Remove this line once confirmed.
-  console.log(
-    "[checkWabaHealthStatus] owner_business_info raw:",
-    JSON.stringify(wabaData.owner_business_info),
-  );
+  // Collect all error codes present in any blocked/limited entity so we can
+  // do precise, code-based detection rather than fragile string matching.
+  const allErrors = entities.flatMap((e) => e.errors || []);
+  const errorCodes = new Set(allErrors.map((e) => e.error_code));
 
-  // Also query the payment_configurations edge if possible
-  let paymentConfigs = [];
-  try {
-    const configUrl = `https://graph.facebook.com/${apiVersion}/${wabaId}/payment_configurations`;
-    const configRes = await axios.get(configUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      timeout: 8000,
-    });
-    paymentConfigs = configRes.data?.data || [];
-  } catch (configErr) {
-    // Non-fatal if edge is restricted or returns empty
-  }
-
-  // Collect the most useful human-readable reason, if any entity is blocked or limited
+  // Build a human-readable reason from the most relevant entity's errors.
+  // Prefer BLOCKED entities over LIMITED ones.
   let reason = "";
   const blockedEntity = entities.find((e) => e.can_send_message === "BLOCKED");
   const limitedEntity = entities.find((e) => e.can_send_message === "LIMITED");
   const relevantEntity = blockedEntity || limitedEntity;
 
   if (relevantEntity) {
-    const messages =
-      relevantEntity.errors?.map((e) => e.error_description || e.message) ||
-      relevantEntity.additional_info ||
-      [];
-    reason = Array.isArray(messages) ? messages.join(" ") : String(messages);
+    const messages = relevantEntity.errors
+      ?.map((e) => e.error_description || e.message)
+      .filter(Boolean);
+    reason = messages?.length ? messages.join(" ") : "";
   }
 
-  // Determine if a payment method is attached in Meta
-  const hasConfiguredPayment =
-    Boolean(primaryFundingId) || paymentConfigs.length > 0;
+  // --- Payment method detection (error code 141006) ---
+  // This is the only reliable, BSP-free signal that a payment method is
+  // missing on Meta. String-matching reason text is fragile and locale-
+  // dependent; error codes are stable across API versions.
+  const hasPaymentError = errorCodes.has(META_ERROR_PAYMENT_REQUIRED);
 
-  const isPendingPaymentStatus =
-    wabaStatus === "PENDING_VALID_PAYMENT_METHOD" ||
-    reason.toLowerCase().includes("payment") ||
-    reason.toLowerCase().includes("card") ||
-    reason.toLowerCase().includes("billing");
+  // --- Business verification detection (error code 141010) ---
+  // This causes LIMITED (not BLOCKED) messaging — worth surfacing so the
+  // user knows what else to fix, but does NOT block payment verification.
+  const hasVerificationError = errorCodes.has(META_ERROR_BUSINESS_VERIFICATION);
 
-  let hasPaymentMethod = false;
-  let isBlocked = false;
+  let hasPaymentMethod;
+  let isBlocked;
 
-  if (isPendingPaymentStatus || (!hasConfiguredPayment && canSendMessage === "BLOCKED")) {
+  if (hasPaymentError) {
+    // Meta explicitly says the payment method is missing or invalid.
     hasPaymentMethod = false;
     isBlocked = true;
     if (!reason) {
       reason =
-        "No payment method attached to this WhatsApp Business Account. Please add a payment method in Meta Business Suite.";
-    }
-  } else if (!hasConfiguredPayment) {
-    // Meta requires an active payment method for cloud messaging
-    hasPaymentMethod = false;
-    isBlocked = true;
-    if (!reason) {
-      reason =
-        "Payment method missing on Meta. Add a credit or debit card in Meta Business Suite Payment Settings.";
+        "No payment method attached to this WhatsApp Business Account. " +
+        "Please add a payment method in Meta Business Suite.";
     }
   } else if (canSendMessage === "BLOCKED") {
-    hasPaymentMethod = !isPendingPaymentStatus;
+    // Blocked for a non-payment reason (e.g. policy violation).
+    hasPaymentMethod = true;
     isBlocked = true;
     if (!reason) {
       reason = "WhatsApp messaging is currently blocked by Meta.";
     }
   } else {
+    // AVAILABLE or LIMITED — messaging is possible.
+    // LIMITED may mean business verification is pending (141010) but that
+    // does not stop messages from being sent entirely.
     hasPaymentMethod = true;
     isBlocked = false;
   }
 
   return {
-    canSendMessage, // "AVAILABLE" | "LIMITED" | "BLOCKED"
+    canSendMessage,       // "AVAILABLE" | "LIMITED" | "BLOCKED"
     isBlocked,
     hasPaymentMethod,
-    primaryFundingId,
+    hasVerificationError, // true if business verification is pending (141010)
     reason,
   };
 }

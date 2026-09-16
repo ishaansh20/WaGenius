@@ -51,7 +51,7 @@ const getWhatsAppStatus = async (req, res) => {
       ),
       onboardingCompletedAt: company.whatsapp?.onboardingCompletedAt || null,
       paymentMethodSetup: Boolean(company.whatsapp?.paymentMethodSetup),
-      primaryFundingId: company.whatsapp?.primaryFundingId || "",
+      businessVerificationPending: Boolean(company.whatsapp?.businessVerificationPending),
       messagingBlocked: Boolean(company.whatsapp?.messagingBlocked),
       messagingStatus: company.whatsapp?.messagingStatus || "",
       messagingBlockedReason: company.whatsapp?.messagingBlockedReason || "",
@@ -221,12 +221,17 @@ const healthCheckWhatsApp = async (req, res) => {
       canSendMessage: health.canSendMessage,
       isBlocked: health.isBlocked,
       hasPaymentMethod: health.hasPaymentMethod,
-      primaryFundingId: health.primaryFundingId,
+      hasVerificationError: health.hasVerificationError,
       reason: health.reason,
       setupStatus,
     });
   } catch (error) {
-    console.error("[WhatsApp] Health check failed:", error);
+    console.error(
+      "[WhatsApp] Health check failed:",
+      error.response?.data
+        ? JSON.stringify(error.response.data, null, 2)
+        : error.message,
+    );
     return res.status(500).json({
       success: false,
       message: "Could not check WhatsApp messaging health right now.",

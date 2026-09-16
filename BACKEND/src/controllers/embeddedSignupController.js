@@ -60,6 +60,7 @@ const completeEmbeddedSignup = async (req, res) => {
       setupStatus: result.setupStatus,
       phoneStatus: result.phoneStatus,
       paymentMethodSetup: result.paymentMethodSetup,
+      businessVerificationPending: result.businessVerificationPending,
       messagingBlocked: result.messagingBlocked,
       messagingBlockedReason: result.messagingBlockedReason,
       whatsapp: {
@@ -71,6 +72,7 @@ const completeEmbeddedSignup = async (req, res) => {
         onboardingCompleted: true,
         setupStatus: result.setupStatus,
         paymentMethodSetup: result.paymentMethodSetup,
+        businessVerificationPending: result.businessVerificationPending,
         messagingBlocked: result.messagingBlocked,
         messagingBlockedReason: result.messagingBlockedReason,
       },
