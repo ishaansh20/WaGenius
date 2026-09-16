@@ -29,9 +29,8 @@ function resolveSetupStatus(company, subscription) {
     // state, keeping the company on the onboarding page.
     const isPaymentBlocked =
       company.whatsapp?.messagingBlocked === true ||
-      company.whatsapp?.paymentMethodSetup === false ||
       (company.setupStatus === SETUP_STATUS.PAYMENT_REQUIRED &&
-        company.whatsapp?.paymentMethodSetup !== true);
+        company.whatsapp?.messagingBlocked !== false);
 
     if (isPaymentBlocked) {
       return SETUP_STATUS.PAYMENT_REQUIRED;

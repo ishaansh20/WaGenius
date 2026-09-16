@@ -67,10 +67,12 @@ const companySchema = new mongoose.Schema(
         default: "",
       },
 
-      // Tracks whether a valid payment method / credit card is configured in Meta.
-      // Detected via Meta error code 141006 in health_status — the only BSP-free
-      // signal available to Tech Provider apps.
-      paymentMethodSetup: { type: Boolean, default: false },
+      // The Business Manager that owns this WABA (from owner_business_info)
+      // — needed to deep-link correctly to that business's payment page,
+      // since a Meta account can have several businesses and an unscoped
+      // link can land on the wrong one.
+      businessId: { type: String, default: "" },
+      businessName: { type: String, default: "" },
 
       // Cached result of Meta's health_status check — refreshed via the
       // /api/company/whatsapp/health-check endpoint, not on every request.
@@ -81,9 +83,11 @@ const companySchema = new mongoose.Schema(
         default: "",
       },
       messagingBlockedReason: { type: String, default: "" },
-      // True when Meta error code 141010 is present — business verification
-      // is pending, causing LIMITED messaging. Does not block payment setup.
-      businessVerificationPending: { type: Boolean, default: false },
+      // Distinct from messagingBlocked/messagingBlockedReason — Meta's
+      // error code 141010 specifically means the Business hasn't passed
+      // verification, a different fix (Business Settings) than adding a
+      // payment method.
+      needsBusinessVerification: { type: Boolean, default: false },
       healthCheckedAt: { type: Date, default: null },
 
       apiVersion: { type: String, default: "" },

@@ -46,12 +46,23 @@ export default function WhatsAppOnboardingPage() {
     try {
       const result = await checkWhatsAppHealth();
       const isBlocked = Boolean(
-        result.isBlocked || !result.hasPaymentMethod || result.setupStatus === "PAYMENT_REQUIRED",
+        result.isBlocked || result.setupStatus === "PAYMENT_REQUIRED",
       );
       setPaymentBlocked(isBlocked);
       setPaymentReason(result.reason || "");
-      if (typeof result.hasVerificationError === "boolean") {
-        setBusinessVerificationPending(result.hasVerificationError);
+      if (typeof result.needsBusinessVerification === "boolean") {
+        setBusinessVerificationPending(result.needsBusinessVerification);
+      }
+      // Merge in businessId/businessName from the health check — these
+      // aren't available right after embedded signup completes, only
+      // after this check runs, and the "Add Payment Method" link needs
+      // businessId to deep-link to the correct business's payment page.
+      if (result.businessId) {
+        setConnectedDetails((prev) => ({
+          ...prev,
+          businessId: result.businessId,
+          businessName: result.businessName,
+        }));
       }
       if (result.setupStatus) {
         useAuthStore.getState().setSetupStatus(result.setupStatus);
@@ -90,9 +101,7 @@ export default function WhatsAppOnboardingPage() {
           setAlreadyConnected(true);
           setConnectedDetails(wa);
           const isBlocked = Boolean(
-            wa.messagingBlocked ||
-              data.setupStatus === "PAYMENT_REQUIRED" ||
-              wa.paymentMethodSetup === false,
+            wa.messagingBlocked || data.setupStatus === "PAYMENT_REQUIRED",
           );
           setPaymentBlocked(isBlocked);
           if (wa.messagingBlockedReason) {
@@ -264,6 +273,8 @@ export default function WhatsAppOnboardingPage() {
         setConnectedDetails({
           phoneNumberId: result?.phoneNumberId,
           wabaId: result?.wabaId,
+          businessId: result?.businessId,
+          businessName: result?.businessName,
           connected: true,
         });
         setPaymentBlocked(true);
@@ -462,8 +473,8 @@ export default function WhatsAppOnboardingPage() {
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                       <a
                         href={
-                          connectedDetails?.wabaId
-                            ? `https://business.facebook.com/wa/manage/payment-methods/?waba_id=${connectedDetails.wabaId}`
+                          connectedDetails?.wabaId && connectedDetails?.businessId
+                            ? `https://business.facebook.com/latest/billing_hub/accounts/details/?asset_id=${connectedDetails.wabaId}&business_id=${connectedDetails.businessId}&placement=BILLING_HUB`
                             : "https://business.facebook.com/billing_hub/payment_methods"
                         }
                         target="_blank"

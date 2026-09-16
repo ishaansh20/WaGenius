@@ -50,11 +50,12 @@ const getWhatsAppStatus = async (req, res) => {
         company.whatsapp?.onboardingCompletedAt || isConnected,
       ),
       onboardingCompletedAt: company.whatsapp?.onboardingCompletedAt || null,
-      paymentMethodSetup: Boolean(company.whatsapp?.paymentMethodSetup),
-      businessVerificationPending: Boolean(company.whatsapp?.businessVerificationPending),
+      businessId: company.whatsapp?.businessId || "",
+      businessName: company.whatsapp?.businessName || "",
       messagingBlocked: Boolean(company.whatsapp?.messagingBlocked),
       messagingStatus: company.whatsapp?.messagingStatus || "",
       messagingBlockedReason: company.whatsapp?.messagingBlockedReason || "",
+      needsBusinessVerification: Boolean(company.whatsapp?.needsBusinessVerification),
       healthCheckedAt: company.whatsapp?.healthCheckedAt || null,
     };
 
@@ -220,8 +221,11 @@ const healthCheckWhatsApp = async (req, res) => {
       success: true,
       canSendMessage: health.canSendMessage,
       isBlocked: health.isBlocked,
-      hasPaymentMethod: health.hasPaymentMethod,
-      hasVerificationError: health.hasVerificationError,
+      hasPaymentIssue: health.hasPaymentIssue,
+      hasPaymentMethod: !health.hasPaymentIssue,
+      needsBusinessVerification: health.needsBusinessVerification,
+      businessId: health.businessId,
+      businessName: health.businessName,
       reason: health.reason,
       setupStatus,
     });

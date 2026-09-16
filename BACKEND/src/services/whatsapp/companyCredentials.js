@@ -152,22 +152,28 @@ async function setCompanyWhatsAppCredentials(
  */
 async function updateCompanyMessagingHealth(
   companyId,
-  { canSendMessage, isBlocked, reason, hasPaymentMethod, hasVerificationError },
+  {
+    canSendMessage,
+    isBlocked,
+    reason,
+    businessId,
+    businessName,
+    needsBusinessVerification,
+  },
 ) {
-  const isPaymentSetup = hasPaymentMethod === true && !isBlocked;
-
   const updateFields = {
     "whatsapp.messagingBlocked": Boolean(isBlocked),
     "whatsapp.messagingStatus": canSendMessage || "",
     "whatsapp.messagingBlockedReason": reason || "",
+    "whatsapp.needsBusinessVerification": Boolean(needsBusinessVerification),
     "whatsapp.healthCheckedAt": new Date(),
   };
 
-  if (typeof hasPaymentMethod === "boolean") {
-    updateFields["whatsapp.paymentMethodSetup"] = isPaymentSetup;
+  if (businessId) {
+    updateFields["whatsapp.businessId"] = businessId;
   }
-  if (typeof hasVerificationError === "boolean") {
-    updateFields["whatsapp.businessVerificationPending"] = hasVerificationError;
+  if (businessName) {
+    updateFields["whatsapp.businessName"] = businessName;
   }
 
   const [company, subscription] = await Promise.all([
@@ -180,13 +186,10 @@ async function updateCompanyMessagingHealth(
     company.whatsapp.messagingBlocked = Boolean(isBlocked);
     company.whatsapp.messagingStatus = canSendMessage || "";
     company.whatsapp.messagingBlockedReason = reason || "";
+    company.whatsapp.needsBusinessVerification = Boolean(needsBusinessVerification);
     company.whatsapp.healthCheckedAt = updateFields["whatsapp.healthCheckedAt"];
-    if (typeof hasPaymentMethod === "boolean") {
-      company.whatsapp.paymentMethodSetup = isPaymentSetup;
-    }
-    if (typeof hasVerificationError === "boolean") {
-      company.whatsapp.businessVerificationPending = hasVerificationError;
-    }
+    if (businessId) company.whatsapp.businessId = businessId;
+    if (businessName) company.whatsapp.businessName = businessName;
 
     const calculatedStatus = resolveSetupStatus(company, subscription);
     updateFields["setupStatus"] = calculatedStatus;
@@ -196,7 +199,7 @@ async function updateCompanyMessagingHealth(
   }
 
   await Company.updateOne({ _id: companyId }, { $set: updateFields });
-  return isPaymentSetup ? SETUP_STATUS.READY : SETUP_STATUS.PAYMENT_REQUIRED;
+  return isBlocked ? SETUP_STATUS.PAYMENT_REQUIRED : SETUP_STATUS.READY;
 }
 
 module.exports = {
