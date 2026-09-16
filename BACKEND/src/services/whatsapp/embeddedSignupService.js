@@ -598,7 +598,8 @@ async function checkWabaHealthStatus(accessToken, wabaId) {
     () =>
       axios.get(url, {
         params: {
-          fields: "health_status,primary_funding_id,status,account_review_status",
+          fields:
+            "health_status,primary_funding_id,status,account_review_status,owner_business_info",
         },
         headers: { Authorization: `Bearer ${accessToken}` },
         timeout: 10000,
@@ -612,6 +613,14 @@ async function checkWabaHealthStatus(accessToken, wabaId) {
   const entities = healthStatus?.entities || [];
   const primaryFundingId = wabaData.primary_funding_id || "";
   const wabaStatus = wabaData.status || "";
+
+  // TEMPORARY — log the raw shape once so we know exactly how to extract
+  // the owning Business Manager ID (needed to build a working deep-link to
+  // the correct payment page). Remove this line once confirmed.
+  console.log(
+    "[checkWabaHealthStatus] owner_business_info raw:",
+    JSON.stringify(wabaData.owner_business_info),
+  );
 
   // Also query the payment_configurations edge if possible
   let paymentConfigs = [];
