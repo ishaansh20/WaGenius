@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { MiniSidebar } from "../../components/layout/MiniSidebar";
+import { useSidebarOffset } from "../../store/uiStore";
 import { ConversationSidebar } from "../../components/conversation/ConversationSidebar";
 import { ChatPanel } from "../../components/chat/ChatPanel";
 import {
@@ -61,36 +62,30 @@ const DEFAULT_TAGS = [
   "Complaint",
 ];
 
-function getTagStyles(tag = "") {
-  const normalized = tag.toLowerCase();
+// Tags use one calm brand tint (no rainbow colours).
+const TAG_SELECTED = "border border-brand-200 bg-brand-50 text-brand-800";
 
-  const preset = {
-    "hot lead": "bg-red-50 text-red-700 border border-red-100",
-    complaint: "bg-amber-50 text-amber-700 border border-amber-100",
-    vip: "bg-purple-50 text-purple-700 border border-purple-100",
-    interested: "bg-blue-50 text-blue-700 border border-blue-100",
-    "follow up": "bg-orange-50 text-orange-700 border border-orange-100",
-    "existing customer":
-      "bg-emerald-50 text-emerald-700 border border-emerald-100",
-  };
+function DrawerSection({ title, action, children }) {
+  return (
+    <section className="rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-[var(--shadow-card)]">
+      {(title || action) && (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          {title && <h3 className="text-[15px] font-semibold text-ink">{title}</h3>}
+          {action}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
 
-  if (preset[normalized]) {
-    return preset[normalized];
-  }
-
-  const palettes = [
-    "bg-pink-50 text-pink-700 border border-pink-100",
-    "bg-cyan-50 text-cyan-700 border border-cyan-100",
-    "bg-indigo-50 text-indigo-700 border border-indigo-100",
-    "bg-lime-50 text-lime-700 border border-lime-100",
-    "bg-teal-50 text-teal-700 border border-teal-100",
-  ];
-
-  const index =
-    tag.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0) %
-    palettes.length;
-
-  return palettes[index];
+function DetailRow({ label, children }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+      <dt className="text-[13px] text-ink-muted">{label}</dt>
+      <dd className="min-w-0 truncate text-right text-[14px] font-medium text-ink">{children}</dd>
+    </div>
+  );
 }
 
 function getAvailableTags(contactTags = []) {
@@ -102,6 +97,7 @@ export function InboxPage() {
   const [composer, setComposer] = useState("");
   const [contactDrawerOpen, setContactDrawerOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarOffset = useSidebarOffset();
   const [showTagMenu, setShowTagMenu] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [editingName, setEditingName] = useState(false);
@@ -630,12 +626,12 @@ export function InboxPage() {
   };
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-[#f5f6f8] text-slate-900 lg:pl-[80px]">
+    <div className={`h-[100dvh] overflow-hidden bg-canvas text-ink transition-[padding] duration-200 ${sidebarOffset}`}>
       <MobileSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <aside className="hidden lg:block">
         <MiniSidebar />
       </aside>
-      <div className="mx-auto flex h-full w-full  overflow-hidden">
+      <div className="mx-auto flex h-full w-full overflow-hidden">
         <ConversationSidebar
           onOpenDashboard={() => setSidebarOpen(true)}
           mobileOpen={state.mobileListOpen}
@@ -702,34 +698,34 @@ export function InboxPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-slate-950/25 backdrop-blur-[2px]"
+              className="fixed inset-0 z-40 bg-ink/25 lg:hidden"
               onClick={handleCloseContactDrawer}
             />
 
-            <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[340px] flex-col border-l border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
-              <div className="flex items-center justify-between border-b border-slate-200 bg-[#f0f2f5] px-5 py-4">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
-                    Contact info
+            <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[360px] flex-col border-l border-line bg-canvas shadow-[var(--shadow-pop)] lg:shadow-none">
+              <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-5 py-4">
+                <div className="min-w-0">
+                  <h2 className="text-[17px] font-semibold text-ink">Contact details</h2>
+                  <p className="mt-0.5 text-[13px] text-ink-muted">
+                    Who you are chatting with
                   </p>
-                  <h2 className="text-[20px] font-semibold tracking-[-0.03em] text-slate-950">
-                    Details
-                  </h2>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleCloseContactDrawer}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200 hover:text-slate-900"
+                  aria-label="Close contact details"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto p-5">
-                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+                {/* Identity */}
+                <DrawerSection>
                   <div className="flex items-center gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-base font-semibold text-slate-700 shadow-sm">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-50 text-[17px] font-semibold text-brand-800 ring-1 ring-brand-100">
                       {activeConversation.contact.profilePic ? (
                         <img
                           src={activeConversation.contact.profilePic}
@@ -745,7 +741,7 @@ export function InboxPage() {
 
                     <div className="min-w-0 flex-1">
                       {editingName ? (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           <input
                             autoFocus
                             type="text"
@@ -755,20 +751,23 @@ export function InboxPage() {
                               if (e.key === "Enter") handleSaveName();
                               if (e.key === "Escape") handleCancelEditName();
                             }}
-                            className="h-8 w-full rounded-md border border-emerald-300 bg-white px-2 text-[15px] outline-none focus:ring-1 focus:ring-emerald-200"
+                            aria-label="Contact name"
+                            className="h-10 w-full min-w-0 rounded-lg border border-line-strong bg-surface px-3 text-[15px] text-ink outline-none transition-colors focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12"
                           />
                           <button
                             type="button"
                             disabled={savingName}
                             onClick={handleSaveName}
-                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-emerald-600 hover:bg-emerald-50"
+                            aria-label="Save name"
+                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-900 text-white transition-colors hover:bg-brand-800 disabled:opacity-55"
                           >
                             <Check className="h-4 w-4" />
                           </button>
                           <button
                             type="button"
                             onClick={handleCancelEditName}
-                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100"
+                            aria-label="Cancel editing name"
+                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -777,238 +776,243 @@ export function InboxPage() {
                         <button
                           type="button"
                           onClick={handleStartEditName}
-                          className="group flex items-center gap-1.5 text-left"
+                          className="group flex max-w-full items-center gap-1.5 text-left"
                           title="Click to edit name"
                         >
-                          <h3 className="truncate text-[18px] font-semibold tracking-[-0.02em] text-slate-950">
+                          <h3 className="truncate text-[17px] font-semibold text-ink">
                             {activeConversation.contact.name}
                           </h3>
-                          <Pencil className="h-3.5 w-3.5 shrink-0 text-slate-300 opacity-0 transition group-hover:opacity-100" />
+                          <Pencil className="h-4 w-4 shrink-0 text-ink-muted transition-colors group-hover:text-brand-700" />
                         </button>
                       )}
-                      <p className="mt-1 truncate text-sm text-slate-500">
+                      <p className="mt-1 truncate text-[14px] tabular-nums text-ink-muted">
                         {activeConversation.contact.phone}
                       </p>
                     </div>
                   </div>
+                </DrawerSection>
 
-                  <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                        Status
-                      </p>
-                      <p className="mt-1 font-medium text-slate-950">
-                        {activeConversation.online ? "Online" : "Offline"}
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                        Unread
-                      </p>
-                      <p className="mt-1 font-medium text-slate-950">
-                        {activeUnreadCount}
-                      </p>
-                    </div>
-
-                    <div className="col-span-2 rounded-2xl bg-slate-50 px-4 py-3">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                        Agent status
-                      </p>
-                      <p className="mt-1 font-medium text-slate-950">
-                        {activeConversation.assignedAgent?.name || "Unassigned"}
-                      </p>
-                    </div>
-
-                    <div className="col-span-2 rounded-2xl bg-slate-50 px-4 py-3">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                        AI
-                      </p>
-                      <p className="mt-1 font-medium text-slate-950">
-                        {activeConversation.aiEnabled
-                          ? "AI enabled"
-                          : "Human mode"}
-                      </p>
-                    </div>
-
-                    <div className="col-span-2 flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                          Consent
-                        </p>
-                        <p
-                          className={`mt-1 font-medium ${
-                            activeConversation.contact.optedOut
-                              ? "text-rose-600"
-                              : "text-slate-950"
+                {/* Conversation facts */}
+                <DrawerSection title="Conversation">
+                  <dl className="divide-y divide-line">
+                    <DetailRow label="Status">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            activeConversation.online ? "bg-brand-500" : "bg-line-strong"
                           }`}
-                        >
-                          {activeConversation.contact.optedOut
-                            ? "Opted out"
-                            : "Opted in"}
-                        </p>
-                      </div>
+                        />
+                        {activeConversation.online ? "Online" : "Offline"}
+                      </span>
+                    </DetailRow>
+                    <DetailRow label="Unread messages">
+                      <span className="tabular-nums">{activeUnreadCount}</span>
+                    </DetailRow>
+                    <DetailRow label="Assigned to">
+                      {activeConversation.assignedAgent?.name || "Unassigned"}
+                    </DetailRow>
+                    <DetailRow label="Replies by">
+                      {activeConversation.aiEnabled ? "AI enabled" : "Human mode"}
+                    </DetailRow>
+                  </dl>
+                </DrawerSection>
 
-                      <button
-                        type="button"
-                        onClick={handleToggleConsent}
-                        className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
+                {/* Consent */}
+                <DrawerSection title="Marketing consent">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p
+                        className={`text-[14px] font-medium ${
+                          activeConversation.contact.optedOut
+                            ? "text-danger"
+                            : "text-ink"
+                        }`}
                       >
                         {activeConversation.contact.optedOut
-                          ? "Opt back in"
-                          : "Opt out"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-5">
-                    <div className="mb-3 flex items-center justify-between">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                        Labels / Tags
+                          ? "Opted out"
+                          : "Opted in"}
                       </p>
-
-                      <button
-                        type="button"
-                        onClick={() => setShowTagMenu((prev) => !prev)}
-                        className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
-                      >
-                        + Add Tag
-                      </button>
+                      <p className="mt-0.5 text-[13px] text-ink-muted">
+                        {activeConversation.contact.optedOut
+                          ? "Won't receive campaign messages"
+                          : "Can receive campaign messages"}
+                      </p>
                     </div>
 
-                    {showTagMenu && (
-                      <div className="mb-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                        <div className="mb-3 flex flex-col gap-2 sm:flex-row">
-                          <input
-                            value={newTag}
-                            onChange={(e) => setNewTag(e.target.value)}
-                            placeholder="Create custom tag"
-                            className="w-full min-w-0 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:border-emerald-300"
-                          />
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const value = newTag.trim();
-
-                              if (!value) return;
-
-                              const current =
-                                activeConversation.contact.tags || [];
-
-                              if (current.includes(value)) {
-                                setNewTag("");
-                                return;
-                              }
-
-                              const updatedTags = [...current, value];
-
-                              dispatch({
-                                type: "UPSERT_CONVERSATION",
-                                payload: {
-                                  ...activeConversation,
-                                  contact: {
-                                    ...activeConversation.contact,
-                                    tags: updatedTags,
-                                  },
-                                },
-                              });
-
-                              updateContactTags(
-                                activeConversation.contact.id ||
-                                  activeConversation.contact._id,
-                                updatedTags,
-                              ).catch(() => undefined);
-
-                              setNewTag("");
-                            }}
-                            className="w-full shrink-0 rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600 sm:w-auto"
-                          >
-                            Add
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {getAvailableTags(
-                            activeConversation.contact.tags,
-                          ).map((tag) => {
-                            const selected =
-                              activeConversation.contact.tags?.includes(tag);
-
-                            return (
-                              <button
-                                key={tag}
-                                type="button"
-                                onClick={() => {
-                                  const current =
-                                    activeConversation.contact.tags || [];
-
-                                  const updatedTags = selected
-                                    ? current.filter((item) => item !== tag)
-                                    : [...current, tag];
-
-                                  dispatch({
-                                    type: "UPSERT_CONVERSATION",
-                                    payload: {
-                                      ...activeConversation,
-                                      contact: {
-                                        ...activeConversation.contact,
-                                        tags: updatedTags,
-                                      },
-                                    },
-                                  });
-                                  updateContactTags(
-                                    activeConversation.contact.id ||
-                                      activeConversation.contact._id,
-                                    updatedTags,
-                                  ).catch(() => undefined);
-                                }}
-                                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                                  selected
-                                    ? getTagStyles(tag)
-                                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                                }`}
-                              >
-                                {tag}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-2">
-                      {(activeConversation.contact.tags || []).length > 0 ? (
-                        activeConversation.contact.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${getTagStyles(tag)}`}
-                          >
-                            {tag}
-                          </span>
-                        ))
-                      ) : (
-                        <p className="text-sm text-slate-500">
-                          No labels added
-                        </p>
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleConsent}
+                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-line-strong bg-surface px-3 text-[14px] font-medium text-ink transition-colors hover:bg-canvas"
+                    >
+                      {activeConversation.contact.optedOut
+                        ? "Opt back in"
+                        : "Opt out"}
+                    </button>
                   </div>
+                </DrawerSection>
 
-                  <div className="mt-5 space-y-3">
+                {/* Tags */}
+                <DrawerSection
+                  title="Tags"
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => setShowTagMenu((prev) => !prev)}
+                      aria-expanded={showTagMenu}
+                      className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[13px] font-medium text-brand-700 transition-colors hover:bg-brand-50"
+                    >
+                      {showTagMenu ? "Done" : "+ Add tag"}
+                    </button>
+                  }
+                >
+                  {showTagMenu && (
+                    <div className="mb-4 rounded-xl border border-line bg-canvas p-3">
+                      <div className="mb-3 flex flex-col gap-2 sm:flex-row">
+                        <input
+                          value={newTag}
+                          onChange={(e) => setNewTag(e.target.value)}
+                          placeholder="New tag name"
+                          aria-label="New tag name"
+                          className="h-10 w-full min-w-0 rounded-lg border border-line-strong bg-surface px-3 text-[14px] text-ink outline-none transition-colors placeholder:text-ink-subtle focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const value = newTag.trim();
+
+                            if (!value) return;
+
+                            const current =
+                              activeConversation.contact.tags || [];
+
+                            if (current.includes(value)) {
+                              setNewTag("");
+                              return;
+                            }
+
+                            const updatedTags = [...current, value];
+
+                            dispatch({
+                              type: "UPSERT_CONVERSATION",
+                              payload: {
+                                ...activeConversation,
+                                contact: {
+                                  ...activeConversation.contact,
+                                  tags: updatedTags,
+                                },
+                              },
+                            });
+
+                            updateContactTags(
+                              activeConversation.contact.id ||
+                                activeConversation.contact._id,
+                              updatedTags,
+                            ).catch(() => undefined);
+
+                            setNewTag("");
+                          }}
+                          className="inline-flex h-10 w-full shrink-0 items-center justify-center rounded-lg bg-brand-900 px-4 text-[14px] font-medium text-white transition-colors hover:bg-brand-800 sm:w-auto"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <p className="mb-2 text-[13px] text-ink-muted">
+                        Tap a tag to add or remove it
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {getAvailableTags(
+                          activeConversation.contact.tags,
+                        ).map((tag) => {
+                          const selected =
+                            activeConversation.contact.tags?.includes(tag);
+
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              aria-pressed={Boolean(selected)}
+                              onClick={() => {
+                                const current =
+                                  activeConversation.contact.tags || [];
+
+                                const updatedTags = selected
+                                  ? current.filter((item) => item !== tag)
+                                  : [...current, tag];
+
+                                dispatch({
+                                  type: "UPSERT_CONVERSATION",
+                                  payload: {
+                                    ...activeConversation,
+                                    contact: {
+                                      ...activeConversation.contact,
+                                      tags: updatedTags,
+                                    },
+                                  },
+                                });
+                                updateContactTags(
+                                  activeConversation.contact.id ||
+                                    activeConversation.contact._id,
+                                  updatedTags,
+                                ).catch(() => undefined);
+                              }}
+                              className={`inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] font-medium transition-colors ${
+                                selected
+                                  ? TAG_SELECTED
+                                  : "border border-line-strong bg-surface text-ink-muted hover:text-ink"
+                              }`}
+                            >
+                              {selected && <Check className="h-3.5 w-3.5" />}
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    {(activeConversation.contact.tags || []).length > 0 ? (
+                      activeConversation.contact.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className={`inline-flex items-center rounded-full px-3 py-1 text-[13px] font-medium ${TAG_SELECTED}`}
+                        >
+                          {tag}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-[14px] text-ink-muted">
+                        No tags added yet
+                      </p>
+                    )}
+                  </div>
+                </DrawerSection>
+
+                {/* AI */}
+                <DrawerSection title="AI replies">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 text-[14px] text-ink-muted">
+                      {activeConversation.aiEnabled
+                        ? "AI is answering this customer for you."
+                        : "You and your team are replying."}
+                    </p>
                     <button
                       type="button"
                       onClick={handleToggleAi}
-                      className="flex w-full items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 transition hover:bg-emerald-100"
+                      className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-[14px] font-medium transition-colors ${
+                        activeConversation.aiEnabled
+                          ? "border border-line-strong bg-surface text-ink hover:bg-canvas"
+                          : "bg-brand-900 text-white hover:bg-brand-800"
+                      }`}
                     >
-                      <span>
-                        {activeConversation.aiEnabled
-                          ? "Disable AI"
-                          : "Enable AI"}
-                      </span>
                       <Sparkles className="h-4 w-4" />
+                      {activeConversation.aiEnabled
+                        ? "Disable AI"
+                        : "Enable AI"}
                     </button>
                   </div>
-                </div>
+                </DrawerSection>
               </div>
             </aside>
           </>

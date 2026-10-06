@@ -1,43 +1,22 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getCompanyHomePath } from "../../utils/sessionHome";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { motion } from "framer-motion";
-import {
-  Eye,
-  EyeOff,
-  MessageSquare,
-  Zap,
-  Users,
-  BarChart3,
-} from "lucide-react";
+import { CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 import useAuthStore from "../../store/authStore";
 import { API_BASE_URL } from "../../services/api";
-import "./LoginPage.css";
+import { Button, Field, Input, Logo } from "../../components/ui";
 
-const FEATURES = [
-  {
-    icon: MessageSquare,
-    title: "Shared Inbox",
-    desc: "Unified inbox for all WhatsApp conversations across your team.",
-  },
-  {
-    icon: Zap,
-    title: "Automation Workflows",
-    desc: "Build powerful no-code flows to respond and route messages instantly.",
-  },
-  {
-    icon: Users,
-    title: "Campaign Management",
-    desc: "Broadcast targeted campaigns to thousands of contacts at once.",
-  },
-  {
-    icon: BarChart3,
-    title: "Analytics & Insights",
-    desc: "Real-time dashboards to track engagement and agent performance.",
-  },
+const BENEFITS = [
+  "Answer every customer chat from one shared inbox",
+  "Send offers to your contact lists in a few clicks",
+  "See who read your messages and who replied",
 ];
+
+const PASSWORD_INPUT =
+  "h-11 w-full rounded-xl border border-line-strong bg-surface pl-3.5 pr-11 text-[15px] text-ink placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-600/12";
 
 /* ── Defined OUTSIDE LoginPage so React never unmounts it on re-render ── */
 function LoginForm({
@@ -50,93 +29,89 @@ function LoginForm({
   onTogglePassword,
 }) {
   return (
-    <div className="login-card">
-      <div className="login-card-header">
-        <div className="login-card-label">Wagenius</div>
-        <h2 className="login-card-title">Sign in to your account</h2>
-        <p className="login-card-subtitle">
-          Enter your credentials to access the platform.
-        </p>
-      </div>
+    <div>
+      <h1 className="text-[28px] font-semibold tracking-[-0.025em] text-ink sm:text-[30px]">
+        Sign in to your account
+      </h1>
+      <p className="mt-1.5 text-[15px] text-ink-muted">
+        Enter your email and password to continue.
+      </p>
 
-      <form onSubmit={onSubmit} className="login-card-body">
-        <div className="form-group">
-          <label htmlFor={`email${idSuffix}`} className="form-label">
-            Email Address
-          </label>
-          <input
-            id={`email${idSuffix}`}
-            type="email"
-            name="email"
-            placeholder="you@company.com"
-            value={formData.email}
-            onChange={onChange}
-            required
-            className="form-input"
-          />
-        </div>
+      <form onSubmit={onSubmit} className="mt-8 space-y-5">
+        <Input
+          id={`email${idSuffix}`}
+          label="Email address"
+          type="email"
+          name="email"
+          placeholder="you@company.com"
+          autoComplete="email"
+          value={formData.email}
+          onChange={onChange}
+          required
+          inputClassName="text-[15px]"
+        />
 
-        <div className="form-group">
-          <label htmlFor={`password${idSuffix}`} className="form-label">
-            Password
-          </label>
-          <div className="password-field">
+        <Field label="Password" htmlFor={`password${idSuffix}`}>
+          <div className="relative">
             <input
               id={`password${idSuffix}`}
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="••••••••"
+              placeholder="Your password"
+              autoComplete="current-password"
               value={formData.password}
               onChange={onChange}
               required
-              className="form-input"
+              className={PASSWORD_INPUT}
             />
             <button
               type="button"
               onClick={onTogglePassword}
-              className="password-toggle"
+              className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-        </div>
+        </Field>
 
-        <motion.button
-          whileHover={{ scale: 1.015 }}
-          whileTap={{ scale: 0.985 }}
+        <Button
           type="submit"
-          disabled={loading}
-          className="login-button"
+          size="lg"
+          loading={loading}
+          className="w-full"
         >
-          {loading ? (
-            <>
-              <span className="login-button-spinner" />
-              Signing in…
-            </>
-          ) : (
-            "Sign In"
-          )}
-        </motion.button>
+          {loading ? "Signing in…" : "Sign in"}
+        </Button>
       </form>
 
-      <div className="login-card-footer">
-        <p className="login-card-footer-text">
-          New company? <Link to="/signup">Create an account</Link>
-        </p>
-        <p className="login-card-footer-text">
-          <Link to="/privacy-policy">Privacy Policy</Link> ·{" "}
-          <Link to="/data-deletion">Data Deletion</Link>
-        </p>
-        <p className="login-card-footer-text">
-          © {new Date().getFullYear()} Wagenius. All rights reserved.
-        </p>
-      </div>
+      <p className="mt-6 text-center text-[14px] text-ink-muted">
+        New to Wagenius?{" "}
+        <Link to="/signup" className="font-medium text-brand-700 hover:underline">
+          Create an account
+        </Link>
+      </p>
     </div>
+  );
+}
+
+function BrandPanel() {
+  return (
+    <aside className="hidden bg-brand-900 lg:flex lg:flex-col lg:justify-center lg:px-14 xl:px-20">
+      <div className="max-w-[440px]">
+        <h2 className="text-[32px] font-semibold leading-[1.2] tracking-[-0.025em] text-white">
+          Talk to every customer on WhatsApp, from one place.
+        </h2>
+        <ul className="mt-8 space-y-4">
+          {BENEFITS.map((text) => (
+            <li key={text} className="flex items-start gap-3 text-[15px] leading-relaxed text-white/85">
+              <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-brand-300" />
+              <span>{text}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </aside>
   );
 }
 
@@ -165,13 +140,7 @@ function LoginPage() {
 
       toast.success("Login successful");
 
-      if (status === "PLAN_SELECTION_REQUIRED") {
-        navigate("/billing");
-      } else if (status === "WHATSAPP_ONBOARDING_REQUIRED") {
-        navigate("/onboarding/whatsapp");
-      } else {
-        navigate("/");
-      }
+      navigate(getCompanyHomePath(data.user, status), { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.message || "Login failed");
     } finally {
@@ -189,117 +158,35 @@ function LoginPage() {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        {/* ── Desktop layout ── */}
-        <div className="login-grid-desktop">
-          {/* Left — brand + features */}
-          <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.65, ease: "easeOut" }}
-            className="product-showcase"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.4 }}
-              className="brand-label"
-            >
-              WhatsApp Automation Platform
-            </motion.div>
+    <div className="min-h-screen bg-surface lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <main className="flex min-h-screen flex-col px-4 py-6 sm:px-8 lg:px-12">
+        <header className="flex items-center justify-between gap-4">
+          <Link to="/" aria-label="Wagenius home">
+            <Logo />
+          </Link>
+          <Link to="/" className="text-[14px] font-medium text-ink-muted hover:text-ink">
+            Back to home
+          </Link>
+        </header>
 
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, duration: 0.4 }}
-              className="brand-name"
-            >
-              Wagenius
-            </motion.div>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              className="hero-title"
-            >
-              Scale Customer Conversations with{" "}
-              <span className="hero-title-accent">Intelligent Automation</span>
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25, duration: 0.5 }}
-              className="hero-description"
-            >
-              Manage campaigns, shared inboxes, automation workflows and
-              customer engagement from one unified platform.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className="feature-grid"
-            >
-              {FEATURES.map(({ icon: Icon, title, desc }, i) => (
-                <motion.div
-                  key={title}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 + i * 0.07, duration: 0.4 }}
-                  className="feature-card"
-                >
-                  <div className="feature-icon-wrap">
-                    <Icon className="feature-icon" />
-                  </div>
-                  <div>
-                    <div className="feature-title">{title}</div>
-                    <div className="feature-desc">{desc}</div>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </motion.div>
-
-          {/* Right — login card */}
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.65, ease: "easeOut" }}
-            className="login-card-section"
-          >
-            <LoginForm idSuffix="-desktop" {...sharedFormProps} />
-          </motion.div>
+        <div className="flex flex-1 items-center justify-center py-10">
+          <div className="w-full max-w-[420px]">
+            <LoginForm idSuffix="" {...sharedFormProps} />
+          </div>
         </div>
 
-        {/* ── Mobile layout ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="login-mobile"
-        >
-          <div className="product-showcase">
-            <div className="brand-label">WhatsApp Automation Platform</div>
-            <div className="brand-name">Wagenius</div>
-            <h1 className="hero-title">
-              Scale Customer Conversations with{" "}
-              <span className="hero-title-accent">Intelligent Automation</span>
-            </h1>
-            <p className="hero-description">
-              Manage campaigns, shared inboxes, automation workflows and
-              customer engagement from one unified platform.
-            </p>
-          </div>
+        <footer className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[13px] text-ink-muted">
+          <Link to="/privacy-policy" className="hover:text-ink hover:underline">
+            Privacy policy
+          </Link>
+          <Link to="/data-deletion" className="hover:text-ink hover:underline">
+            Data deletion
+          </Link>
+          <span>© {new Date().getFullYear()} Wagenius. All rights reserved.</span>
+        </footer>
+      </main>
 
-          <div className="login-card-section">
-            <LoginForm idSuffix="-mobile" {...sharedFormProps} />
-          </div>
-        </motion.div>
-      </div>
+      <BrandPanel />
     </div>
   );
 }

@@ -42,8 +42,12 @@ function ProtectedRoute({ children }) {
 
   if (verifying) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600" />
+      <div
+        className="flex min-h-screen items-center justify-center bg-canvas"
+        role="status"
+        aria-label="Loading"
+      >
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-brand-600" />
       </div>
     );
   }

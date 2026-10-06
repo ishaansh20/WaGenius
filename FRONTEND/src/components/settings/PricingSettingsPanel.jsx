@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { fetchPricingConfig, updatePricingConfig } from "../../services/api";
-
-const FIELD_CLASS =
-  "h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100";
-
-const LABEL_CLASS = "mb-1.5 block text-[12px] font-medium text-slate-700";
+import { Button, Card, Input, Skeleton } from "../ui";
 
 const RATE_FIELDS = [
   { key: "marketing", label: "Marketing", hint: "Promotions, offers, announcements" },
@@ -50,17 +46,24 @@ export default function PricingSettingsPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />
-      </div>
+      <Card aria-busy="true">
+        <Skeleton className="h-6 w-56 max-w-full" />
+        <Skeleton className="mt-2.5 h-4 w-full max-w-lg" />
+        <Skeleton className="mt-6 h-11 w-32" />
+        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {RATE_FIELDS.map(({ key }) => (
+            <Skeleton key={key} className="h-11 w-full" />
+          ))}
+        </div>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-5">
-      <div>
-        <h2 className="text-[14px] font-semibold text-slate-900">Fallback / Manual Override Rates</h2>
-        <p className="mt-1 text-[12.5px] leading-relaxed text-slate-500">
+    <Card>
+      <div className="mb-6">
+        <h2 className="text-[17px] font-semibold text-ink">Fallback message rates</h2>
+        <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
           Campaign costs are calculated from WhatsApp's own real recent billing data whenever
           it's available. These rates are only used as a fallback for a category Meta has no
           recent activity for yet — e.g. a new number that hasn't sent an Authentication message
@@ -68,45 +71,45 @@ export default function PricingSettingsPanel() {
         </p>
       </div>
 
-      <div>
-        <label className={LABEL_CLASS}>Currency</label>
-        <input
+      <div className="space-y-6">
+        <Input
+          label="Currency"
           type="text"
           value={currency}
           onChange={(e) => setCurrency(e.target.value.toUpperCase())}
           placeholder="INR"
-          className={`${FIELD_CLASS} max-w-[120px] font-mono`}
+          className="max-w-[160px]"
+          inputClassName="font-mono uppercase text-[14px]"
+          help="3-letter code, e.g. INR"
         />
-      </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {RATE_FIELDS.map(({ key, label, hint }) => (
-          <div key={key}>
-            <label className={LABEL_CLASS}>
-              {label} <span className="font-normal text-slate-400">({hint})</span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={rates[key]}
-              onChange={(e) => setRates((prev) => ({ ...prev, [key]: e.target.value }))}
-              className={FIELD_CLASS}
-            />
+        <div>
+          <h3 className="text-[15px] font-semibold text-ink">Rate per message</h3>
+          <p className="mt-0.5 text-[13px] text-ink-muted">Price in {currency || "your currency"} for one message of each type.</p>
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
+            {RATE_FIELDS.map(({ key, label, hint }) => (
+              <Input
+                key={key}
+                label={label}
+                help={hint}
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                value={rates[key]}
+                onChange={(e) => setRates((prev) => ({ ...prev, [key]: e.target.value }))}
+                inputClassName="tabular-nums text-[14px]"
+              />
+            ))}
           </div>
-        ))}
+        </div>
       </div>
 
-      <div className="flex justify-end pt-1">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {saving ? "Saving…" : "Save Pricing"}
-        </button>
+      <div className="mt-6 flex justify-end border-t border-line pt-5">
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Saving…" : "Save rates"}
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }

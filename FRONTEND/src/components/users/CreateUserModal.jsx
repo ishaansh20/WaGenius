@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { createUser } from "../../services/userService";
-
-const FIELD_CLASS =
-  "h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100";
-
-const LABEL_CLASS = "mb-1.5 block text-[12px] font-medium text-slate-700";
+import { Button, Input, Select } from "../ui";
 
 export default function CreateUserModal({ isOpen, onClose, onUserCreated }) {
   const [formData, setFormData] = useState({
@@ -49,117 +45,98 @@ export default function CreateUserModal({ isOpen, onClose, onUserCreated }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-brand-950/40 sm:items-center sm:px-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-user-title"
+        className="flex max-h-[92dvh] w-full max-w-md flex-col rounded-t-2xl bg-surface shadow-[var(--shadow-pop)] sm:rounded-2xl"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <div>
-            <h2 className="text-[15px] font-semibold text-slate-900">Create User</h2>
-            <p className="mt-0.5 text-[12px] text-slate-400">
-              Add a new member to your workspace.
+        <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
+          <div className="min-w-0">
+            <h2 id="create-user-title" className="text-[18px] font-semibold text-ink">Add team member</h2>
+            <p className="mt-0.5 text-[14px] text-ink-muted">
+              They can sign in with this email and password.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="-mr-2 flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition hover:bg-canvas hover:text-ink"
             aria-label="Close"
           >
-            <X className="h-4 w-4" />
+            <X size={18} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-          <div>
-            <label htmlFor="create-name" className={LABEL_CLASS}>
-              Full Name
-            </label>
-            <input
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+            <Input
               id="create-name"
+              label="Full name"
               type="text"
               name="name"
               placeholder="Jane Smith"
               value={formData.name}
               onChange={handleChange}
               required
-              className={FIELD_CLASS}
             />
-          </div>
 
-          <div>
-            <label htmlFor="create-email" className={LABEL_CLASS}>
-              Email Address
-            </label>
-            <input
+            <Input
               id="create-email"
+              label="Email address"
               type="email"
               name="email"
               placeholder="jane@company.com"
               value={formData.email}
               onChange={handleChange}
               required
-              className={FIELD_CLASS}
             />
-          </div>
 
-          <div>
-            <label htmlFor="create-password" className={LABEL_CLASS}>
-              Password
-            </label>
-            <input
+            <Input
               id="create-password"
+              label="Password"
+              help="At least 8 characters. Share it with them privately."
               type="password"
               name="password"
               placeholder="Min. 8 characters"
               value={formData.password}
               onChange={handleChange}
               required
-              className={FIELD_CLASS}
             />
-          </div>
 
-          <div>
-            <label htmlFor="create-role" className={LABEL_CLASS}>
-              Role
-            </label>
-            <select
+            <Select
               id="create-role"
+              label="Role"
+              help="You can change this later."
               name="role"
               value={formData.role}
               onChange={handleChange}
-              className={FIELD_CLASS}
             >
-              <option value="TEAM_LEAD">Team Lead</option>
-              <option value="CAMPAIGN_MANAGER">Campaign Manager</option>
-              <option value="SUPPORT_AGENT">Support Agent</option>
-            </select>
+              <option value="TEAM_LEAD">Team lead</option>
+              <option value="CAMPAIGN_MANAGER">Campaign manager</option>
+              <option value="SUPPORT_AGENT">Support agent</option>
+            </Select>
+
+            {error && (
+              <p role="alert" className="rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
+                {error}
+              </p>
+            )}
           </div>
 
-          {error && (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12.5px] text-red-700">
-              {error}
-            </p>
-          )}
-
           {/* Footer */}
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-[13px] font-medium text-slate-600 transition hover:bg-slate-50"
-            >
+          <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
+            <Button variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Creating…" : "Create User"}
-            </button>
+            </Button>
+            <Button type="submit" loading={loading}>
+              {loading ? "Adding…" : "Add team member"}
+            </Button>
           </div>
         </form>
       </div>

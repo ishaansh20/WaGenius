@@ -16,11 +16,7 @@ function highlightText(text, query) {
   const lower = query.toLowerCase();
   return parts.map((part, i) =>
     part.toLowerCase() === lower ? (
-      <mark
-        key={i}
-        className="rounded-sm bg-yellow-300 text-slate-900 not-italic"
-        style={{ backgroundColor: "#fde047" }}
-      >
+      <mark key={i} className="rounded-sm bg-accent px-0.5 text-ink">
         {part}
       </mark>
     ) : (
@@ -42,10 +38,7 @@ export function MessageBubble({ message, searchQuery, isCurrentMatch, showSender
   return (
     <div
       data-message-id={message.id}
-      className={cn(
-        "flex w-full items-end gap-2",
-        isIncoming ? "justify-start" : "justify-end",
-      )}
+      className={cn("flex w-full", isIncoming ? "justify-start" : "justify-end")}
     >
       <div
         className={cn(
@@ -55,18 +48,16 @@ export function MessageBubble({ message, searchQuery, isCurrentMatch, showSender
         )}
       >
         {senderLabel && (
-          <span className="px-1 text-[11px] font-medium text-slate-400">
-            {senderLabel}
-          </span>
+          <span className="px-1 text-[13px] font-medium text-ink-muted">{senderLabel}</span>
         )}
 
         <div
           className={cn(
-            "rounded-2xl px-3.5 py-2.5 shadow-sm transition-shadow",
+            "min-w-[88px] rounded-2xl px-3.5 pb-1.5 pt-2.5 shadow-[0_1px_1px_rgba(15,28,23,0.06)] transition-shadow",
             isIncoming
-              ? "rounded-bl-sm border border-slate-200 bg-white text-slate-900"
-              : "rounded-br-sm border border-[#c0e8c0] bg-[#d9fdd3] text-slate-900",
-            isCurrentMatch && "ring-2 ring-yellow-400 ring-offset-1",
+              ? "rounded-tl-md border border-line bg-surface text-ink"
+              : "rounded-tr-md border border-[#c6e9be] bg-[#dcf5d6] text-ink",
+            isCurrentMatch && "ring-2 ring-brand-500 ring-offset-2 ring-offset-[#f6f5f1]",
           )}
         >
           {message.mediaUrl && (
@@ -76,38 +67,36 @@ export function MessageBubble({ message, searchQuery, isCurrentMatch, showSender
               className="mb-2 max-h-64 w-full rounded-lg object-cover"
             />
           )}
-          <p className="whitespace-pre-wrap break-words text-[13.5px] leading-[1.5]">
+          <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.5]">
             {highlightText(message.content, searchQuery)}
           </p>
-        </div>
 
-        {/* Meta row */}
-        <div
-          className={cn(
-            "flex items-center gap-1 px-1 text-[11px] text-slate-400",
-            isIncoming ? "justify-start" : "justify-end",
-          )}
-        >
-          <span className="tabular-nums">{formatTime(message.createdAt)}</span>
+          {/* Meta row */}
+          <div className="mt-1 flex items-center justify-end gap-1 text-[12px] text-ink-muted">
+            <span className="tabular-nums">{formatTime(message.createdAt)}</span>
 
-          {!isIncoming && !message.optimistic && (
-            <>
-              {message.status === "sent" && <Check className="h-3 w-3" />}
-              {(message.status === "delivered" || message.status === "read") && (
-                <CheckCheck
-                  className={cn(
-                    "h-3 w-3",
-                    message.status === "read" ? "text-emerald-500" : "",
-                  )}
-                />
-              )}
-              {message.status === "failed" && (
-                <AlertCircle className="h-3 w-3 text-red-500" />
-              )}
-            </>
-          )}
+            {!isIncoming && !message.optimistic && (
+              <>
+                {message.status === "sent" && (
+                  <Check className="h-3.5 w-3.5" aria-label="Sent" />
+                )}
+                {(message.status === "delivered" || message.status === "read") && (
+                  <CheckCheck
+                    className={cn("h-3.5 w-3.5", message.status === "read" && "text-brand-600")}
+                    aria-label={message.status === "read" ? "Read" : "Delivered"}
+                  />
+                )}
+                {message.status === "failed" && (
+                  <span className="inline-flex items-center gap-1 font-medium text-danger">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    Not sent
+                  </span>
+                )}
+              </>
+            )}
 
-          {message.optimistic && <span className="opacity-60">Sending…</span>}
+            {message.optimistic && <span>Sending…</span>}
+          </div>
         </div>
       </div>
     </div>

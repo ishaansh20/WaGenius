@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Send, Smile } from "lucide-react";
 import { useRef, useEffect } from "react";
 
@@ -29,43 +28,48 @@ export function ChatInput({ value, onChange, onSend, sending }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="sticky bottom-0 border-t border-slate-200 bg-white px-3 py-2.5 sm:px-4"
+      className="sticky bottom-0 border-t border-line bg-surface px-3 py-3 sm:px-4"
     >
       <div className="flex items-end gap-2">
         <button
           type="button"
-          className="mb-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
           title="Emoji"
+          aria-label="Emoji"
         >
           <Smile className="h-5 w-5" />
         </button>
 
         <div className="relative flex-1">
+          <label htmlFor="inbox-composer" className="sr-only">
+            Type a message
+          </label>
           <textarea
+            id="inbox-composer"
             ref={textareaRef}
             value={value}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a message…"
             rows={1}
-            className="min-h-[40px] w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-[13.5px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100"
+            className="block min-h-[44px] w-full resize-none rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[15px] leading-[1.5] text-ink outline-none transition-colors placeholder:text-ink-subtle hover:border-ink-subtle focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12"
           />
         </div>
 
-        <motion.button
-          whileHover={{ scale: sending ? 1 : 1.03 }}
-          whileTap={{ scale: sending ? 1 : 0.97 }}
+        <button
           type="submit"
           disabled={sending || !value.trim()}
-          className="mb-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-900 px-4 text-[14px] font-medium text-white shadow-[0_1px_2px_rgba(11,59,46,0.2)] transition-colors hover:bg-brand-800 active:bg-brand-950 disabled:cursor-not-allowed disabled:opacity-55"
           title="Send"
+          aria-label="Send message"
         >
           {sending ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
           ) : (
             <Send className="h-4 w-4" />
           )}
-        </motion.button>
+          <span className="hidden sm:inline">Send</span>
+        </button>
       </div>
     </form>
   );

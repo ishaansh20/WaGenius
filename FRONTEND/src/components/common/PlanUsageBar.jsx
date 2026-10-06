@@ -1,9 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import usePlan from "../../hooks/usePlan";
+import { cn } from "../../utils/cn";
 
 /**
  * Reusable Plan Usage Progress Bar:
- * Displays real-time usage (e.g. 432 / 500 Contacts) with visual threshold colors.
+ * Displays real-time usage (e.g. 432 / 500 Contacts). The bar is brand green,
+ * and turns red only once the limit is reached.
  *
  * @example
  *   <PlanUsageBar resourceKey="contacts" label="Contacts" />
@@ -18,45 +21,47 @@ export default function PlanUsageBar({ resourceKey, label }) {
   const isUnlimited = limit === -1 || limit >= 999999;
   const percent = isUnlimited ? 0 : Math.min(Math.round((usage / limit) * 100), 100);
 
-  // Status color based on threshold
-  let barColor = "bg-emerald-500";
+  // Bar stays brand green until the limit is reached.
+  let barColor = "bg-brand-600";
   let statusText = null;
+  let statusColor = "text-warning";
 
   if (percent >= 100) {
-    barColor = "bg-red-500";
+    barColor = "bg-danger";
     statusText = "Limit reached";
+    statusColor = "text-danger";
   } else if (percent >= 80) {
-    barColor = "bg-amber-500";
     statusText = "Approaching limit";
   }
 
   return (
-    <div className="space-y-1.5 text-xs">
-      <div className="flex items-center justify-between text-slate-700">
-        <span className="font-semibold">{label || resourceKey}</span>
-        <span className="text-slate-500 font-mono text-[11px]">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[13px] font-medium text-ink">{label || resourceKey}</span>
+        <span className="text-[13px] text-ink-muted tabular-nums">
           {usage.toLocaleString()} / {isUnlimited ? "Unlimited" : limit.toLocaleString()}
         </span>
       </div>
 
       {!isUnlimited && (
-        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/80">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-[#eceeed]">
           <div
-            className={`h-full transition-all duration-300 ${barColor}`}
+            className={cn("h-full rounded-full transition-all duration-300", barColor)}
             style={{ width: `${percent}%` }}
           />
         </div>
       )}
 
       {statusText && (
-        <div className="flex items-center justify-between pt-0.5">
-          <span className="text-[10px] font-bold text-amber-700">{statusText}</span>
+        <div className="flex items-center justify-between gap-3">
+          <span className={cn("text-[13px] font-medium", statusColor)}>{statusText}</span>
           <button
             type="button"
             onClick={() => navigate("/pricing")}
-            className="text-[10px] font-bold text-emerald-700 hover:underline"
+            className="inline-flex items-center gap-1 text-[13px] font-medium text-brand-700 hover:text-brand-900 hover:underline"
           >
-            Upgrade Plan →
+            Upgrade plan
+            <ArrowRight size={14} />
           </button>
         </div>
       )}

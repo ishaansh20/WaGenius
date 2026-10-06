@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import api from "../../services/api";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import StepBadge from "../../components/common/StepBadge";
+import { Badge, Button, Card, Input, Select, Textarea } from "../../components/ui";
 import WhatsAppPreview from "../../components/templates/WhatsAppPreview";
 import { resolveMediaUrl } from "../../utils/media";
 import {
@@ -112,8 +112,8 @@ const CATEGORY_INFO = {
   },
 };
 
-const inputCls =
-  "block h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-800 placeholder-slate-400 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100";
+const controlCls =
+  "h-11 w-full rounded-xl border border-line-strong bg-surface px-3.5 text-sm text-ink placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-600/12";
 
 const WIZARD_STEPS = [
   "What's this for?",
@@ -374,272 +374,232 @@ export default function CreateApprovedTemplatePage() {
   return (
     <DashboardLayout title={id ? "Edit Approved Template" : "Create Approved Template"}>
       <div className="w-full">
-        <div className="mb-6">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            Approved Templates
-          </p>
-          <h1 className="text-[17px] font-semibold leading-tight text-slate-900">
-            {id ? "Edit Approved Template" : "Create Approved Template"}
+        <div className="mb-8">
+          <button
+            type="button"
+            onClick={() => navigate("/templates/approved")}
+            className="mb-3 inline-flex items-center gap-1 text-[14px] font-medium text-ink-muted hover:text-brand-700"
+          >
+            <ChevronLeft size={16} />
+            Approved templates
+          </button>
+          <h1 className="text-[28px] font-semibold tracking-[-0.025em] text-ink sm:text-[30px]">
+            {id ? "Edit approved template" : "Create approved template"}
           </h1>
-          <p className="mt-0.5 text-[13px] text-slate-500">
+          <p className="mt-1.5 text-[15px] text-ink-muted">
             {id
-              ? "Update this template and submit your changes to Meta for review"
-              : "Build a Meta-reviewed WhatsApp template and submit it for approval"}
+              ? "Update this template and submit your changes to Meta for review."
+              : "Build a WhatsApp-reviewed template and submit it for approval."}
           </p>
         </div>
 
         {/* Wizard progress */}
-        <div className="mb-5 flex items-center gap-2">
-          {WIZARD_STEPS.map((label, index) => (
-            <div key={label} className="flex flex-1 items-center gap-2">
-              <div
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold transition ${
-                  index === step
-                    ? "bg-emerald-600 text-white"
-                    : index < step
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-slate-100 text-slate-400"
-                }`}
-              >
-                {index < step ? <CheckCircle className="h-4 w-4" /> : index + 1}
-              </div>
-              <span
-                className={`hidden truncate text-[12.5px] font-medium sm:block ${
-                  index === step ? "text-slate-900" : "text-slate-400"
-                }`}
-              >
-                {label}
-              </span>
-              {index < WIZARD_STEPS.length - 1 && (
-                <div className={`h-px flex-1 ${index < step ? "bg-emerald-200" : "bg-slate-200"}`} />
-              )}
-            </div>
-          ))}
-        </div>
+        <Card padded={false} className="mb-5 px-5 py-4">
+          <ol className="flex items-center gap-2">
+            {WIZARD_STEPS.map((label, index) => (
+              <li key={label} className="flex flex-1 items-center gap-2.5">
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold transition-colors ${
+                    index === step
+                      ? "bg-brand-900 text-white"
+                      : index < step
+                        ? "bg-brand-100 text-brand-800"
+                        : "bg-canvas text-ink-muted ring-1 ring-line"
+                  }`}
+                  aria-current={index === step ? "step" : undefined}
+                >
+                  {index < step ? <CheckCircle className="h-4 w-4" /> : index + 1}
+                </span>
+                <span
+                  className={`hidden truncate text-[14px] font-medium md:block ${
+                    index === step ? "text-ink" : "text-ink-muted"
+                  }`}
+                >
+                  {label}
+                </span>
+                {index < WIZARD_STEPS.length - 1 && (
+                  <span className={`h-px flex-1 ${index < step ? "bg-brand-300" : "bg-line"}`} />
+                )}
+              </li>
+            ))}
+          </ol>
+        </Card>
 
-        <div className="flex flex-col gap-4">
-          {/* Step 0: What's this for? */}
-          {step === 0 && (
-            <section className="rounded-xl border border-slate-200 bg-white p-5">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {META_CATEGORIES.map((cat) => {
-                  const Icon = CATEGORY_INFO[cat].icon;
-                  const active = metaCategory === cat;
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setMetaCategory(cat)}
-                      className={`flex flex-col items-start gap-2 rounded-lg border p-3.5 text-left transition ${
-                        active
-                          ? "border-emerald-300 bg-emerald-50 ring-1 ring-emerald-200"
-                          : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
-                      }`}
-                    >
-                      <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                          active ? "bg-emerald-100 text-emerald-600" : "bg-white text-slate-500 border border-slate-200"
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
+          {/* ═══ LEFT: current step ═══ */}
+          <div className="space-y-5">
+            {/* Step 0: What's this for? */}
+            {step === 0 && (
+              <FormSection title="Basics" description="Choose what kind of message this is. WhatsApp reviews each kind differently.">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {META_CATEGORIES.map((cat) => {
+                    const Icon = CATEGORY_INFO[cat].icon;
+                    const active = metaCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setMetaCategory(cat)}
+                        aria-pressed={active}
+                        className={`flex flex-col items-start gap-2.5 rounded-xl border p-4 text-left transition-colors ${
+                          active
+                            ? "border-brand-600 bg-brand-50 ring-1 ring-brand-600"
+                            : "border-line bg-surface hover:border-line-strong hover:bg-canvas"
                         }`}
                       >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <p className="text-[13px] font-semibold text-slate-800">
-                        {META_CATEGORY_LABELS[cat]}
-                      </p>
-                      <p className="text-[11.5px] leading-relaxed text-slate-500">
-                        {CATEGORY_INFO[cat].description}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-              {metaCategory === "AUTHENTICATION" && (
-                <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
-                  <p className="text-[12px] leading-relaxed text-amber-700">
-                    Login-code templates follow a strict format set by Meta (the code plus its
-                    expiry). This page only handles the basic text — Meta may ask you to adjust
-                    anything beyond a simple code message.
-                  </p>
+                        <span
+                          className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                            active ? "bg-brand-100 text-brand-800" : "bg-canvas text-ink-muted"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="text-[15px] font-semibold text-ink">{META_CATEGORY_LABELS[cat]}</span>
+                        <span className="text-[13px] leading-relaxed text-ink-muted">
+                          {CATEGORY_INFO[cat].description}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+                {metaCategory === "AUTHENTICATION" && (
+                  <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-warning-soft px-4 py-3">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                    <p className="text-[14px] leading-relaxed text-warning">
+                      Login-code templates follow a strict format set by Meta (the code plus its
+                      expiry). This page only handles the basic text — Meta may ask you to adjust
+                      anything beyond a simple code message.
+                    </p>
+                  </div>
+                )}
 
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                    Template Name <span className="text-red-400">*</span>
-                  </label>
-                  <input
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Input
+                    label="Template name"
+                    required
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Order Shipped Notice"
-                    className={inputCls}
+                    placeholder="e.g. Order shipped notice"
                   />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                    Language
-                  </label>
-                  <select
+                  <Select
+                    label="Language"
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className={`${inputCls} cursor-pointer`}
+                    inputClassName="cursor-pointer"
                   >
                     {LANGUAGES.map((lang) => (
                       <option key={lang.code} value={lang.code}>{lang.label}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
-              </div>
-            </section>
-          )}
+              </FormSection>
+            )}
 
-          {/* Step 1: Draft your message */}
-          {step === 1 && (
-            <section className="rounded-xl border border-slate-200 bg-white p-5">
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-                <div>
-                  <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
+            {/* Step 1: Draft your message */}
+            {step === 1 && (
+              <FormSection
+                title="Message"
+                description="Write what your customers will receive, or let AI draft it for you."
+                aside={
+                  <span className="shrink-0 text-[13px] tabular-nums text-ink-muted">
+                    {description.length} / 1024
+                  </span>
+                }
+              >
+                <div className="rounded-xl bg-canvas p-4">
+                  <label htmlFor="ai-goal" className="block text-[13px] font-medium text-ink">
                     What do you want to tell your customers?
                   </label>
-                  <div className="flex gap-2">
+                  <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
                     <input
+                      id="ai-goal"
                       type="text"
                       value={goal}
                       onChange={(e) => setGoal(e.target.value)}
                       placeholder="e.g. tell customers their order has shipped"
-                      className={inputCls}
+                      className={controlCls}
                     />
-                    <button
-                      type="button"
+                    <Button
+                      variant="secondary"
                       onClick={handleDraftWithAI}
                       disabled={draftLoading}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-2 text-[12.5px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      loading={draftLoading}
+                      leftIcon={Sparkles}
+                      className="h-11"
                     >
-                      {draftLoading ? (
-                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      ) : (
-                        <Sparkles className="h-3.5 w-3.5" />
-                      )}
                       {draftLoading ? "Drafting…" : "Draft with AI"}
-                    </button>
+                    </Button>
                   </div>
-                  {draftError && (
-                    <p className="mt-1.5 text-[11.5px] text-red-600">{draftError}</p>
-                  )}
-                  <p className="mt-1.5 text-[11px] text-slate-400">
-                    Optional — or just write the message yourself below.
-                  </p>
-
-                  <div className="mb-2.5 mt-4 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] text-slate-400">Insert:</span>
-                    {QUICK_VARS.map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => insertVariable(v)}
-                        className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-white hover:text-slate-900"
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <label className="text-[12px] font-medium text-slate-700">
-                        Message <span className="text-red-400">*</span>
-                      </label>
-                      <span className="text-[11px] tabular-nums text-slate-400">
-                        {description.length} / 1024 chars
-                      </span>
-                    </div>
-                    <textarea
-                      ref={descRef}
-                      rows={7}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Write your message… use the Insert buttons above for variables"
-                      className="block w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13.5px] text-slate-800 placeholder-slate-400 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100"
-                    />
-                  </div>
-
-                  {variableCount > 0 && (
-                    <div className="mt-3">
-                      <p className="mb-1.5 text-[12px] font-medium text-slate-700">
-                        Example values for {variableTokens.map((t) => `{{${t}}}`).join(", ")}
-                      </p>
-                      <p className="mb-2 text-[11px] text-slate-400">
-                        Meta requires a sample value per placeholder to review the template.
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {variableTokens.map((token, i) => (
-                          <input
-                            key={token}
-                            type="text"
-                            value={bodyVariableExamples[i] || ""}
-                            onChange={(e) => handleExampleChange(i, e.target.value)}
-                            placeholder={`Example for {{${token}}}`}
-                            className={inputCls}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                  {draftError ? (
+                    <p className="mt-1.5 text-[13px] text-danger">{draftError}</p>
+                  ) : (
+                    <p className="mt-1.5 text-[13px] text-ink-muted">
+                      Optional — or just write the message yourself below.
+                    </p>
                   )}
                 </div>
 
-                <div>
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-                    Preview
-                  </p>
-                  <WhatsAppPreview
-                    name={name}
-                    headerType={headerType}
-                    headerText={headerText}
-                    headerMediaFile={isMediaHeader ? headerMedia : null}
-                    headerMediaUrl={isMediaHeader ? existingHeaderMediaUrl : ""}
-                    body={description}
-                    buttons={buttons}
-                    size="large"
+                <div className="mt-5">
+                  <VariableChips onInsert={insertVariable} />
+                  <Textarea
+                    ref={descRef}
+                    label="Message text"
+                    required
+                    rows={7}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Write your message… use the variable buttons above to personalise it"
+                    inputClassName="resize-none text-[15px]"
+                    help="Variables like {{name}} are filled in with each contact's details when the message is sent."
                   />
                 </div>
-              </div>
-            </section>
-          )}
 
-          {/* Step 2: Anything else? (header + buttons, collapsed by default) */}
-          {step === 2 && (
-            <section className="rounded-xl border border-slate-200 bg-white p-5">
-              {!moreOptionsOpen && !hasAdvancedOptions ? (
-                <div className="flex flex-col items-start gap-3">
-                  <p className="text-[13px] text-slate-600">
-                    Most templates are just a message — you can skip this.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setMoreOptionsOpen(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-[12.5px] font-medium text-slate-600 transition hover:border-slate-300 hover:bg-white"
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
+                {variableCount > 0 && (
+                  <div className="mt-5 rounded-xl bg-canvas p-4">
+                    <p className="text-[13px] font-medium text-ink">
+                      Example values for {variableTokens.map((t) => `{{${t}}}`).join(", ")}
+                    </p>
+                    <p className="mt-0.5 text-[13px] text-ink-muted">
+                      Meta requires a sample value per placeholder to review the template.
+                    </p>
+                    <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                      {variableTokens.map((token, i) => (
+                        <input
+                          key={token}
+                          type="text"
+                          value={bodyVariableExamples[i] || ""}
+                          onChange={(e) => handleExampleChange(i, e.target.value)}
+                          placeholder={`Example for {{${token}}}`}
+                          aria-label={`Example for {{${token}}}`}
+                          className={controlCls}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </FormSection>
+            )}
+
+            {/* Step 2: Anything else? (header + buttons, collapsed by default) */}
+            {step === 2 && (
+              !moreOptionsOpen && !hasAdvancedOptions ? (
+                <FormSection title="Header and buttons" description="Most templates are just a message — you can skip this.">
+                  <Button variant="secondary" leftIcon={ChevronDown} onClick={() => setMoreOptionsOpen(true)}>
                     Add a header or buttons (optional)
-                  </button>
-                </div>
+                  </Button>
+                </FormSection>
               ) : (
-                <div className="space-y-5">
+                <>
                   {!hasAdvancedOptions && (
-                    <button
-                      type="button"
-                      onClick={() => setMoreOptionsOpen(false)}
-                      className="text-[12px] font-medium text-slate-500 hover:text-slate-700"
-                    >
-                      ← Skip — I don't need this
-                    </button>
+                    <Button variant="ghost" leftIcon={ChevronLeft} onClick={() => setMoreOptionsOpen(false)}>
+                      Skip — I don't need this
+                    </Button>
                   )}
 
-                  <div>
-                    <StepBadge n="1" label="Header (Optional)" />
-                    <div className="mb-3 flex flex-wrap gap-1.5">
+                  {/* Header / media */}
+                  <FormSection title="Header" description="Optional. A title, image, video or document shown above the message.">
+                    <div className="mb-4 flex flex-wrap gap-2">
                       {HEADER_TYPES.map(({ value, label, icon: Icon }) => {
                         const active = headerType === value;
                         return (
@@ -647,13 +607,14 @@ export default function CreateApprovedTemplatePage() {
                             key={value}
                             type="button"
                             onClick={() => { setHeaderType(value); setHeaderMedia(null); }}
-                            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition ${
+                            aria-pressed={active}
+                            className={`inline-flex h-10 items-center gap-2 rounded-lg border px-3.5 text-[14px] font-medium transition-colors ${
                               active
-                                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                                : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white"
+                                ? "border-brand-600 bg-brand-50 text-brand-800"
+                                : "border-line-strong bg-surface text-ink-muted hover:bg-canvas hover:text-ink"
                             }`}
                           >
-                            <Icon className="h-3.5 w-3.5" />
+                            <Icon className="h-4 w-4" />
                             {label}
                           </button>
                         );
@@ -661,42 +622,38 @@ export default function CreateApprovedTemplatePage() {
                     </div>
 
                     {headerType === "TEXT" && (
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div>
                           <div className="mb-1.5 flex items-center justify-between">
-                            <label className="text-[12px] font-medium text-slate-700">
-                              Header Text <span className="text-red-400">*</span>
+                            <label htmlFor="header-text" className="text-[13px] font-medium text-ink">
+                              Header text <span className="text-danger">*</span>
                             </label>
-                            <span className="text-[11px] tabular-nums text-slate-400">
-                              {headerText.length} / 60 chars
+                            <span className="text-[13px] tabular-nums text-ink-muted">
+                              {headerText.length} / 60
                             </span>
                           </div>
                           <input
+                            id="header-text"
                             type="text"
                             value={headerText}
                             onChange={(e) => setHeaderText(e.target.value)}
                             placeholder="e.g. Your order {{1}} has shipped"
-                            className={inputCls}
+                            className={controlCls}
                           />
-                          <p className="mt-1 text-[11px] text-slate-400">
+                          <p className="mt-1.5 text-[13px] text-ink-muted">
                             You can add one fill-in-the-blank spot in your header — type{" "}
-                            <code className="rounded bg-slate-100 px-1 py-0.5 font-mono">{"{{1}}"}</code>{" "}
+                            <code className="rounded bg-canvas px-1 py-0.5 font-mono text-ink">{"{{1}}"}</code>{" "}
                             where you want it (e.g. "Your order {"{{1}}"} has shipped").
                           </p>
                         </div>
                         {headerHasVariable && (
-                          <div>
-                            <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                              Sample value to show Meta reviewers
-                            </label>
-                            <input
-                              type="text"
-                              value={headerTextExample}
-                              onChange={(e) => setHeaderTextExample(e.target.value)}
-                              placeholder="e.g. #48213"
-                              className={inputCls}
-                            />
-                          </div>
+                          <Input
+                            label="Sample value to show Meta reviewers"
+                            type="text"
+                            value={headerTextExample}
+                            onChange={(e) => setHeaderTextExample(e.target.value)}
+                            placeholder="e.g. #48213"
+                          />
                         )}
                       </div>
                     )}
@@ -708,21 +665,21 @@ export default function CreateApprovedTemplatePage() {
                           onDragLeave={handleHeaderDragLeave}
                           onDrop={handleHeaderDrop}
                           onClick={() => headerFileInputRef.current?.click()}
-                          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 py-8 text-center transition-all ${
+                          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-9 text-center transition-colors ${
                             headerDragActive
-                              ? "border-emerald-400 bg-emerald-50"
-                              : "border-dashed border-slate-200 bg-slate-50 hover:border-slate-300"
+                              ? "border-brand-600 bg-brand-50"
+                              : "border-line-strong bg-canvas hover:border-ink-subtle"
                           }`}
                         >
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white">
-                            <UploadCloud className={`h-4 w-4 ${headerDragActive ? "text-emerald-500" : "text-slate-400"}`} />
-                          </div>
+                          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface shadow-[var(--shadow-card)]">
+                            <UploadCloud className={`h-5 w-5 ${headerDragActive ? "text-brand-600" : "text-ink-muted"}`} />
+                          </span>
                           <div>
-                            <p className="text-[13px] font-medium text-slate-700">
-                              {headerDragActive ? "Drop file here" : `Drag & drop a ${headerType.toLowerCase()}`}
+                            <p className="text-[14px] font-medium text-ink">
+                              {headerDragActive ? "Drop file here" : `Drag and drop a ${headerType.toLowerCase()}`}
                             </p>
-                            <p className="text-[12px] text-slate-400">
-                              or <span className="font-semibold text-emerald-600">browse</span> —{" "}
+                            <p className="text-[13px] text-ink-muted">
+                              or <span className="font-semibold text-brand-700">browse</span> —{" "}
                               {headerType === "IMAGE" && "JPG, PNG, WEBP, up to 5MB"}
                               {headerType === "VIDEO" && "MP4, 3GP, up to 16MB"}
                               {headerType === "DOCUMENT" && "PDF, up to 100MB"}
@@ -737,39 +694,40 @@ export default function CreateApprovedTemplatePage() {
                           />
                         </div>
                       ) : headerMedia ? (
-                        <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+                        <div className="flex items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
                           <div className="flex min-w-0 items-center gap-3">
                             {headerType === "IMAGE" ? (
                               <img
                                 src={URL.createObjectURL(headerMedia)}
                                 alt="Header preview"
-                                className="h-12 w-12 rounded-lg border border-emerald-300 object-cover"
+                                className="h-12 w-12 rounded-lg border border-brand-100 object-cover"
                               />
                             ) : (
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                                <FileText className="h-5 w-5 text-emerald-600" />
-                              </div>
+                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-surface text-brand-700">
+                                <FileText className="h-5 w-5" />
+                              </span>
                             )}
                             <div className="min-w-0">
-                              <p className="truncate text-[13px] font-medium text-slate-800">{headerMedia.name}</p>
-                              <p className="text-[11px] text-slate-500">{(headerMedia.size / 1024).toFixed(1)} KB</p>
+                              <p className="truncate text-[14px] font-medium text-ink">{headerMedia.name}</p>
+                              <p className="text-[13px] text-ink-muted">{(headerMedia.size / 1024).toFixed(1)} KB</p>
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-emerald-500" />
-                            <button
-                              type="button"
+                            <CheckCircle className="h-4 w-4 text-brand-600" />
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => { setHeaderMedia(null); if (headerFileInputRef.current) headerFileInputRef.current.value = ""; }}
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                              aria-label="Remove file"
                             >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
+                              <X size={16} />
+                            </Button>
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                        <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-canvas px-4 py-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-emerald-300 bg-white">
+                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-line bg-surface">
                               <img
                                 src={resolveMediaUrl(existingHeaderMediaUrl)}
                                 alt="Current header"
@@ -781,38 +739,33 @@ export default function CreateApprovedTemplatePage() {
                                   }
                                 }}
                               />
-                              <div className="hidden flex h-full w-full items-center justify-center bg-emerald-100 text-emerald-600">
+                              <div className="hidden flex h-full w-full items-center justify-center bg-brand-50 text-brand-700">
                                 <ImageIcon className="h-5 w-5" />
                               </div>
                             </div>
                             <div className="min-w-0">
-                              <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                                Current Header Media
-                              </span>
-                              <p className="mt-0.5 truncate text-[12.5px] font-medium text-slate-800">
+                              <Badge tone="brand">Current header media</Badge>
+                              <p className="mt-1 truncate text-[14px] font-medium text-ink">
                                 {existingHeaderMediaUrl.split("?")[0].split("/").pop().split("\\").pop() || "Template Header Image"}
                               </p>
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => headerFileInputRef.current?.click()}
-                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-                            >
+                            <Button variant="secondary" size="sm" onClick={() => headerFileInputRef.current?.click()}>
                               Replace
-                            </button>
-                            <button
-                              type="button"
+                            </Button>
+                            <Button
+                              variant="danger-ghost"
+                              size="icon-sm"
                               onClick={() => {
                                 setExistingHeaderMediaUrl("");
                                 setHeaderMedia(null);
                                 if (headerFileInputRef.current) headerFileInputRef.current.value = "";
                               }}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-red-50 hover:text-red-600"
+                              aria-label="Remove header media"
                             >
-                              <X className="h-4 w-4" />
-                            </button>
+                              <X size={16} />
+                            </Button>
                           </div>
                           <input
                             ref={headerFileInputRef}
@@ -826,116 +779,111 @@ export default function CreateApprovedTemplatePage() {
                     )}
 
                     {headerType === "NONE" && (
-                      <p className="text-[12.5px] text-slate-400">
+                      <p className="text-[14px] text-ink-muted">
                         No header — the template will only have body text.
                       </p>
                     )}
-                  </div>
+                  </FormSection>
 
-                  <div>
-                    <div className="mb-3 flex items-center justify-between">
-                      <StepBadge n="2" label="Buttons (Optional)" />
-                      <span className="text-[11px] tabular-nums text-slate-400">
+                  {/* Buttons */}
+                  <FormSection
+                    title="Buttons"
+                    description="Optional. Quick replies, links or a call button shown under the message."
+                    aside={
+                      <span className="shrink-0 text-[13px] tabular-nums text-ink-muted">
                         {buttons.length} / {MAX_BUTTONS}
                       </span>
-                    </div>
-
+                    }
+                  >
                     {buttons.length === 0 ? (
-                      <p className="mb-3 text-[12.5px] text-slate-400">
+                      <p className="mb-4 text-[14px] text-ink-muted">
                         No buttons — quick replies, links, or a call button appear under the message.
                       </p>
                     ) : (
-                      <div className="mb-3 space-y-3">
+                      <div className="mb-4 space-y-3">
                         {buttons.map((button, index) => {
                           const hasUrlVariable = button.type === "URL" && /\{\{1\}\}/.test(button.url);
                           const maxLen = button.type === "COPY_CODE" ? 20 : 25;
                           return (
-                            <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                              <div className="mb-2.5 flex items-center justify-between gap-2">
-                                <select
-                                  value={button.type}
-                                  onChange={(e) => updateButton(index, { type: e.target.value })}
-                                  className={`${inputCls} h-8 w-auto cursor-pointer`}
-                                >
-                                  {BUTTON_TYPES.filter(
-                                    (t) => t.value !== "COPY_CODE" || metaCategory === "AUTHENTICATION",
-                                  ).map((t) => (
-                                    <option key={t.value} value={t.value}>{t.label}</option>
-                                  ))}
-                                </select>
-                                <button
-                                  type="button"
+                            <div key={index} className="rounded-xl border border-line bg-canvas p-4">
+                              <div className="mb-3 flex items-center justify-between gap-2">
+                                <div className="relative">
+                                  <select
+                                    value={button.type}
+                                    onChange={(e) => updateButton(index, { type: e.target.value })}
+                                    aria-label="Button type"
+                                    className="h-9 cursor-pointer appearance-none rounded-lg border border-line-strong bg-surface pl-3 pr-9 text-[14px] text-ink outline-none transition focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12"
+                                  >
+                                    {BUTTON_TYPES.filter(
+                                      (t) => t.value !== "COPY_CODE" || metaCategory === "AUTHENTICATION",
+                                    ).map((t) => (
+                                      <option key={t.value} value={t.value}>{t.label}</option>
+                                    ))}
+                                  </select>
+                                  <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+                                </div>
+                                <Button
+                                  variant="danger-ghost"
+                                  size="icon-sm"
                                   onClick={() => removeButton(index)}
-                                  className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600"
                                   aria-label="Remove button"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                                  <Trash2 size={16} />
+                                </Button>
                               </div>
 
-                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
-                                  <div className="mb-1 flex items-center justify-between">
-                                    <label className="text-[11.5px] font-medium text-slate-600">
+                                  <div className="mb-1.5 flex items-center justify-between">
+                                    <label htmlFor={`button-label-${index}`} className="text-[13px] font-medium text-ink">
                                       Label
                                     </label>
-                                    <span className="text-[10.5px] tabular-nums text-slate-400">
+                                    <span className="text-[12px] tabular-nums text-ink-muted">
                                       {button.text.length} / {maxLen}
                                     </span>
                                   </div>
                                   <input
+                                    id={`button-label-${index}`}
                                     type="text"
                                     value={button.text}
                                     onChange={(e) => updateButton(index, { text: e.target.value })}
-                                    placeholder="e.g. Track Order"
-                                    className={inputCls}
+                                    placeholder="e.g. Track order"
+                                    className={controlCls}
                                   />
                                 </div>
 
                                 {button.type === "URL" && (
-                                  <div>
-                                    <label className="mb-1 block text-[11.5px] font-medium text-slate-600">
-                                      URL
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value={button.url}
-                                      onChange={(e) => updateButton(index, { url: e.target.value })}
-                                      placeholder="https://example.com/track/{{1}}"
-                                      className={`${inputCls} font-mono`}
-                                    />
-                                  </div>
+                                  <Input
+                                    label="URL"
+                                    type="text"
+                                    value={button.url}
+                                    onChange={(e) => updateButton(index, { url: e.target.value })}
+                                    placeholder="https://example.com/track/{{1}}"
+                                    inputClassName="font-mono"
+                                  />
                                 )}
 
                                 {button.type === "PHONE_NUMBER" && (
-                                  <div>
-                                    <label className="mb-1 block text-[11.5px] font-medium text-slate-600">
-                                      Phone Number
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value={button.phoneNumber}
-                                      onChange={(e) => updateButton(index, { phoneNumber: e.target.value })}
-                                      placeholder="+15551234567"
-                                      className={inputCls}
-                                    />
-                                  </div>
+                                  <Input
+                                    label="Phone number"
+                                    type="text"
+                                    value={button.phoneNumber}
+                                    onChange={(e) => updateButton(index, { phoneNumber: e.target.value })}
+                                    placeholder="+15551234567"
+                                  />
                                 )}
                               </div>
 
                               {hasUrlVariable && (
-                                <div className="mt-2">
-                                  <label className="mb-1 block text-[11.5px] font-medium text-slate-600">
-                                    Sample link to show Meta reviewers
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={button.urlExample}
-                                    onChange={(e) => updateButton(index, { urlExample: e.target.value })}
-                                    placeholder="https://example.com/track/48213"
-                                    className={`${inputCls} font-mono`}
-                                  />
-                                </div>
+                                <Input
+                                  label="Sample link to show Meta reviewers"
+                                  type="text"
+                                  value={button.urlExample}
+                                  onChange={(e) => updateButton(index, { urlExample: e.target.value })}
+                                  placeholder="https://example.com/track/48213"
+                                  inputClassName="font-mono"
+                                  className="mt-3"
+                                />
                               )}
                             </div>
                           );
@@ -943,127 +891,152 @@ export default function CreateApprovedTemplatePage() {
                       </div>
                     )}
 
-                    <button
-                      type="button"
+                    <Button
+                      variant="secondary"
+                      leftIcon={Plus}
                       onClick={addButton}
                       disabled={buttons.length >= MAX_BUTTONS}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12.5px] font-medium text-slate-600 transition hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Button
-                    </button>
+                      Add button
+                    </Button>
 
-                    <p className="mt-2.5 text-[11px] leading-relaxed text-slate-400">
+                    <p className="mt-3 text-[13px] leading-relaxed text-ink-muted">
                       Order matters: add all your Quick Reply buttons first, then any Website/Call
                       buttons after.
                     </p>
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
+                  </FormSection>
+                </>
+              )
+            )}
 
-          {/* Step 3: Review & submit */}
-          {step === 3 && (
-            <section className="rounded-xl border border-slate-200 bg-white p-5">
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-                <div className="flex flex-col items-center justify-center">
-                  <WhatsAppPreview
-                    name={name}
-                    headerType={headerType}
-                    headerText={headerText}
-                    headerMediaFile={isMediaHeader ? headerMedia : null}
-                    headerMediaUrl={isMediaHeader ? existingHeaderMediaUrl : ""}
-                    body={description}
-                    buttons={buttons}
-                    size="large"
+            {/* Step 3: Review & submit */}
+            {step === 3 && (
+              <FormSection title="Review and submit" description="Check the preview, then send it to WhatsApp for review.">
+                <dl className="divide-y divide-line rounded-xl border border-line">
+                  <SummaryRow label="Template name" value={name || "—"} />
+                  <SummaryRow label="Category" value={META_CATEGORY_LABELS[metaCategory] || "No category"} />
+                  <SummaryRow
+                    label="Language"
+                    value={LANGUAGES.find((l) => l.code === language)?.label || language}
                   />
-                </div>
+                  {headerType !== "NONE" && (
+                    <SummaryRow
+                      label="Header"
+                      value={headerType === "TEXT" ? "Text header" : `${headerType.toLowerCase()} header`}
+                    />
+                  )}
+                  {buttons.length > 0 && (
+                    <SummaryRow
+                      label="Buttons"
+                      value={`${buttons.length} button${buttons.length === 1 ? "" : "s"}`}
+                    />
+                  )}
+                </dl>
+                <p className="mt-4 text-[14px] text-ink-muted">
+                  Ready to send this to WhatsApp for review? You can still make changes after
+                  submitting if it isn't approved.
+                </p>
+              </FormSection>
+            )}
 
-                <div className="space-y-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-                    Summary
-                  </p>
-                  <div className="flex flex-wrap gap-2 text-[12px]">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
-                      {META_CATEGORY_LABELS[metaCategory] || "No category"}
-                    </span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
-                      {LANGUAGES.find((l) => l.code === language)?.label || language}
-                    </span>
-                    {headerType !== "NONE" && (
-                      <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
-                        {headerType === "TEXT" ? "Text header" : `${headerType.toLowerCase()} header`}
-                      </span>
-                    )}
-                    {buttons.length > 0 && (
-                      <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
-                        {buttons.length} button{buttons.length === 1 ? "" : "s"}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[12.5px] text-slate-500">
-                    Ready to send this to WhatsApp for review? You can still make changes after
-                    submitting if it isn't approved.
-                  </p>
-                </div>
+            {error && (
+              <div className="rounded-xl bg-danger-soft px-4 py-3 text-[14px] text-danger">
+                {error}
               </div>
-            </section>
-          )}
+            )}
 
-          {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
-              {error}
+            <div className="flex flex-wrap items-center gap-2.5">
+              {step > 0 && (
+                <Button variant="secondary" size="lg" leftIcon={ChevronLeft} onClick={goBack}>
+                  Back
+                </Button>
+              )}
+
+              {step < WIZARD_STEPS.length - 1 ? (
+                <Button size="lg" rightIcon={ChevronRight} onClick={goNext}>
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  loading={submitting}
+                  leftIcon={ShieldCheck}
+                >
+                  {submitting ? "Submitting…" : "Submit for approval"}
+                </Button>
+              )}
+
+              <Button variant="ghost" size="lg" onClick={() => navigate("/templates/approved")}>
+                Cancel
+              </Button>
             </div>
-          )}
+          </div>
 
-          <div className="flex items-center gap-3">
-            {step > 0 && (
-              <button
-                type="button"
-                onClick={goBack}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2.5 text-[13px] font-medium text-slate-600 transition hover:bg-slate-50"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Back
-              </button>
-            )}
-
-            {step < WIZARD_STEPS.length - 1 ? (
-              <button
-                type="button"
-                onClick={goNext}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:bg-emerald-800"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                ) : (
-                  <ShieldCheck className="h-4 w-4" />
-                )}
-                {submitting ? "Submitting…" : "Submit for Approval"}
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => navigate("/templates/approved")}
-              className="rounded-lg border border-slate-200 px-4 py-2.5 text-[13px] font-medium text-slate-600 transition hover:bg-slate-50"
-            >
-              Cancel
-            </button>
+          {/* ═══ RIGHT: live preview ═══ */}
+          <div className="lg:sticky lg:top-6">
+            <Card>
+              <h2 className="text-[17px] font-semibold text-ink">Preview</h2>
+              <p className="mb-5 mt-1 text-[14px] text-ink-muted">How customers will see your message.</p>
+              <WhatsAppPreview
+                name={name}
+                headerType={headerType}
+                headerText={headerText}
+                headerMediaFile={isMediaHeader ? headerMedia : null}
+                headerMediaUrl={isMediaHeader ? existingHeaderMediaUrl : ""}
+                body={description}
+                buttons={buttons}
+                size={step === 3 ? "large" : "default"}
+              />
+            </Card>
           </div>
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+/* ── Small building blocks ─────────────────────────────────────────── */
+
+function FormSection({ title, description, aside, children }) {
+  return (
+    <Card>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-semibold text-ink">{title}</h2>
+          {description && <p className="mt-1 text-[14px] text-ink-muted">{description}</p>}
+        </div>
+        {aside}
+      </div>
+      {children}
+    </Card>
+  );
+}
+
+function VariableChips({ onInsert }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-[13px] text-ink-muted">Insert a variable:</span>
+      {QUICK_VARS.map((v) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onInsert(v)}
+          className="h-8 rounded-lg border border-line bg-canvas px-2.5 font-mono text-[13px] text-ink transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-800"
+        >
+          {v}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-4 py-3">
+      <dt className="text-[14px] text-ink-muted">{label}</dt>
+      <dd className="truncate text-right text-[14px] font-medium text-ink">{value}</dd>
+    </div>
   );
 }

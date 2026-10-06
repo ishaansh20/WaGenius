@@ -67,7 +67,7 @@ export default function PlatformLoginPage() {
                 <ShieldCheck className="h-5 w-5 text-[#C5D8E8]" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#6B8BA5]">
+                <p className="text-[12px] font-bold uppercase tracking-[0.25em] text-[#6B8BA5]">
                   Wagenius
                 </p>
                 <h1 className="text-base font-bold tracking-tight text-[#1A3652]">
@@ -129,7 +129,7 @@ export default function PlatformLoginPage() {
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#6B8BA5]">
+                <p className="text-[12px] font-bold uppercase tracking-[0.25em] text-[#6B8BA5]">
                   Wagenius
                 </p>
                 <p className="font-bold text-[#1A3652] text-sm">Platform Console</p>
@@ -215,7 +215,7 @@ export default function PlatformLoginPage() {
 
               <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-[#C5D1DE] bg-[#EFF3F8] p-3 text-[#4A6580]">
                 <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#3D5F7E]" />
-                <p className="text-[11px] leading-snug">
+                <p className="text-[13px] leading-snug">
                   Strictly separated authentication for super administrators only.
                 </p>
               </div>
@@ -238,7 +238,7 @@ function Feature({ icon: Icon, title, text }) {
         <Icon className="h-4 w-4 text-[#2A4A68]" />
       </div>
       <p className="text-xs font-bold text-[#1A3652]">{title}</p>
-      <p className="mt-0.5 text-[11px] leading-relaxed text-[#6B8BA5]">{text}</p>
+      <p className="mt-0.5 text-[13px] leading-relaxed text-[#6B8BA5]">{text}</p>
     </div>
   );
 }

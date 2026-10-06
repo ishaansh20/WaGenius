@@ -33,7 +33,7 @@ import PrivacyPolicyPage from "./pages/Legal/PrivacyPolicyPage";
 import DataDeletionPage from "./pages/Legal/DataDeletionPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import RoleProtectedRoute from "./components/auth/RoleProtectedRoute";
-import HomeRedirect from "./components/auth/HomeRedirect";
+import HomePage from "./pages/Home/HomePage";
 import WhatsAppOnboardingPage from "./pages/Onboarding/WhatsAppOnboardingPage";
 import BillingPage from "./pages/Billing/BillingPage";
 import NotFoundPage from "./pages/NotFound/NotFoundPage";
@@ -186,7 +186,7 @@ function App() {
             </PlatformProtectedRoute>
           }
         />
-        <Route path="/" element={<HomeRedirect />} />
+        <Route path="/" element={<HomePage />} />
         <Route
           path="/dashboard"
           element={

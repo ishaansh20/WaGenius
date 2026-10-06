@@ -86,7 +86,7 @@ export default function PlatformWhatsAppPage() {
                 <Radio className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Companies</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Companies</p>
                 <p className="text-xl font-bold text-slate-900">{summary.total}</p>
               </div>
             </div>
@@ -98,7 +98,7 @@ export default function PlatformWhatsAppPage() {
                 <CheckCircle2 className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active WABAs</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Active WABAs</p>
                 <p className="text-xl font-bold text-emerald-700">{summary.connected}</p>
               </div>
             </div>
@@ -110,7 +110,7 @@ export default function PlatformWhatsAppPage() {
                 <XCircle className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Disconnected</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Disconnected</p>
                 <p className="text-xl font-bold text-rose-600">{summary.disconnected}</p>
               </div>
             </div>
@@ -122,7 +122,7 @@ export default function PlatformWhatsAppPage() {
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Embedded Signups</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Embedded Signups</p>
                 <p className="text-xl font-bold text-purple-700">{summary.embeddedSignup}</p>
               </div>
             </div>
@@ -190,7 +190,7 @@ export default function PlatformWhatsAppPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400">
+                <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
                   <tr>
                     <th className="px-5 py-3.5">Company Tenant</th>
                     <th className="px-5 py-3.5">Connection Status</th>
@@ -216,13 +216,13 @@ export default function PlatformWhatsAppPage() {
                             <Building2 className="h-3.5 w-3.5 text-slate-400" />
                             {comp.name}
                           </button>
-                          <p className="font-mono text-[10px] text-slate-400">{comp.slug}</p>
+                          <p className="font-mono text-[12px] text-slate-400">{comp.slug}</p>
                         </td>
 
                         {/* STATUS */}
                         <td className="px-5 py-3.5">
                           <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-bold ${
                               isConnected
                                 ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
                                 : "border border-red-200 bg-red-50 text-red-600"
@@ -249,7 +249,7 @@ export default function PlatformWhatsAppPage() {
 
                         {/* TOKEN TYPE */}
                         <td className="px-5 py-3.5">
-                          <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
+                          <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-semibold uppercase text-slate-600">
                             {wa.tokenType || "manual"}
                           </span>
                         </td>
@@ -257,7 +257,7 @@ export default function PlatformWhatsAppPage() {
                         {/* TRAFFIC VOLUME */}
                         <td className="px-5 py-3.5 text-slate-700">
                           <p className="font-semibold">{comp.statistics?.messages ?? 0} msgs</p>
-                          <p className="text-[10px] text-slate-400">{comp.statistics?.conversations ?? 0} conversations</p>
+                          <p className="text-[12px] text-slate-400">{comp.statistics?.conversations ?? 0} conversations</p>
                         </td>
 
                         {/* ONBOARDING STATE */}

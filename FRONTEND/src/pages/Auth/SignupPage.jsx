@@ -1,34 +1,40 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Eye, EyeOff, MessageSquare, Zap, Users, BarChart3 } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 import useAuthStore from "../../store/authStore";
 import { registerCompany } from "../../services/api";
-import "./LoginPage.css";
+import { Button, Field, Input, Logo } from "../../components/ui";
 
-const FEATURES = [
-  {
-    icon: MessageSquare,
-    title: "Shared Inbox",
-    desc: "Unified inbox for all WhatsApp conversations across your team.",
-  },
-  {
-    icon: Zap,
-    title: "Automation Workflows",
-    desc: "Build powerful no-code flows to respond and route messages instantly.",
-  },
-  {
-    icon: Users,
-    title: "Campaign Management",
-    desc: "Broadcast targeted campaigns to thousands of contacts at once.",
-  },
-  {
-    icon: BarChart3,
-    title: "Analytics & Insights",
-    desc: "Real-time dashboards to track engagement and agent performance.",
-  },
+const BENEFITS = [
+  "Free to start. Choose a plan when you are ready",
+  "Connect your own WhatsApp Business number step by step",
+  "Invite your team to answer customer chats together",
 ];
+
+const PASSWORD_INPUT =
+  "h-11 w-full rounded-xl border border-line-strong bg-surface pl-3.5 pr-11 text-[15px] text-ink placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-600/12";
+
+function BrandPanel() {
+  return (
+    <aside className="hidden bg-brand-900 lg:flex lg:flex-col lg:justify-center lg:px-14 xl:px-20">
+      <div className="max-w-[440px]">
+        <h2 className="text-[32px] font-semibold leading-[1.2] tracking-[-0.025em] text-white">
+          Bring your own WhatsApp number and get started in minutes.
+        </h2>
+        <ul className="mt-8 space-y-4">
+          {BENEFITS.map((text) => (
+            <li key={text} className="flex items-start gap-3 text-[15px] leading-relaxed text-white/85">
+              <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-brand-300" />
+              <span>{text}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </aside>
+  );
+}
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -96,145 +102,116 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <div className="login-grid-desktop">
-          <div className="product-showcase">
-            <div className="brand-label">WhatsApp Automation Platform</div>
-            <div className="brand-name">Wagenius</div>
-            <h1 className="hero-title">
-              Bring Your Own WhatsApp Number to{" "}
-              <span className="hero-title-accent">Intelligent Automation</span>
+    <div className="min-h-screen bg-surface lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <main className="flex min-h-screen flex-col px-4 py-6 sm:px-8 lg:px-12">
+        <header className="flex items-center justify-between gap-4">
+          <Link to="/" aria-label="Wagenius home">
+            <Logo />
+          </Link>
+          <Link to="/" className="text-[14px] font-medium text-ink-muted hover:text-ink">
+            Back to home
+          </Link>
+        </header>
+
+        <div className="flex flex-1 items-center justify-center py-10">
+          <div className="w-full max-w-[420px]">
+            <h1 className="text-[28px] font-semibold tracking-[-0.025em] text-ink sm:text-[30px]">
+              Create your company account
             </h1>
-            <p className="hero-description">
-              Create your company account, connect your WhatsApp Business number, and start
-              managing campaigns, shared inboxes, and customer engagement in minutes.
+            <p className="mt-1.5 text-[15px] text-ink-muted">
+              Free to start. You can connect your own WhatsApp number afterwards.
             </p>
-            <div className="feature-grid">
-              {FEATURES.map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="feature-card">
-                  <div className="feature-icon-wrap">
-                    <Icon className="feature-icon" />
-                  </div>
-                  <div>
-                    <div className="feature-title">{title}</div>
-                    <div className="feature-desc">{desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="login-card-section">
-            <div className="login-card">
-              <div className="login-card-header">
-                <div className="login-card-label">Wagenius</div>
-                <h2 className="login-card-title">Create your company account</h2>
-                <p className="login-card-subtitle">
-                  Free to start — connect your own WhatsApp number afterward.
-                </p>
-              </div>
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <Input
+                id="companyName"
+                label="Company name"
+                type="text"
+                name="companyName"
+                placeholder="Acme Retail"
+                autoComplete="organization"
+                value={formData.companyName}
+                onChange={handleChange}
+                required
+                inputClassName="text-[15px]"
+              />
 
-              <form onSubmit={handleSubmit} className="login-card-body">
-                <div className="form-group">
-                  <label htmlFor="companyName" className="form-label">
-                    Company Name
-                  </label>
+              <Input
+                id="name"
+                label="Your name"
+                type="text"
+                name="name"
+                placeholder="Jane Smith"
+                autoComplete="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                inputClassName="text-[15px]"
+              />
+
+              <Input
+                id="email"
+                label="Email address"
+                type="email"
+                name="email"
+                placeholder="you@company.com"
+                autoComplete="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                inputClassName="text-[15px]"
+              />
+
+              <Field label="Password" htmlFor="password" help="Use at least 8 characters.">
+                <div className="relative">
                   <input
-                    id="companyName"
-                    type="text"
-                    name="companyName"
-                    placeholder="Acme Retail"
-                    value={formData.companyName}
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Create a password"
+                    autoComplete="new-password"
+                    value={formData.password}
                     onChange={handleChange}
                     required
-                    className="form-input"
+                    minLength={8}
+                    className={PASSWORD_INPUT}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
+              </Field>
 
-                <div className="form-group">
-                  <label htmlFor="name" className="form-label">
-                    Your Name
-                  </label>
-                  <input
-                    id="name"
-                    type="text"
-                    name="name"
-                    placeholder="Jane Smith"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="form-input"
-                  />
-                </div>
+              <Button type="submit" size="lg" loading={loading} className="w-full">
+                {loading ? "Creating account…" : "Create account"}
+              </Button>
+            </form>
 
-                <div className="form-group">
-                  <label htmlFor="email" className="form-label">
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    name="email"
-                    placeholder="you@company.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="form-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="password" className="form-label">
-                    Password
-                  </label>
-                  <div className="password-field">
-                    <input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={handleChange}
-                      required
-                      minLength={8}
-                      className="form-input"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      className="password-toggle"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button type="submit" disabled={loading} className="login-button">
-                  {loading ? (
-                    <>
-                      <span className="login-button-spinner" />
-                      Creating account…
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
-                </button>
-              </form>
-
-              <div className="login-card-footer">
-                <p className="login-card-footer-text">
-                  Already have an account? <Link to="/login">Sign in</Link>
-                </p>
-                <p className="login-card-footer-text">
-                  <Link to="/privacy-policy">Privacy Policy</Link> · <Link to="/data-deletion">Data Deletion</Link>
-                </p>
-              </div>
-            </div>
+            <p className="mt-6 text-center text-[14px] text-ink-muted">
+              Already have an account?{" "}
+              <Link to="/login" className="font-medium text-brand-700 hover:underline">
+                Sign in
+              </Link>
+            </p>
           </div>
         </div>
-      </div>
+
+        <footer className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[13px] text-ink-muted">
+          <Link to="/privacy-policy" className="hover:text-ink hover:underline">
+            Privacy policy
+          </Link>
+          <Link to="/data-deletion" className="hover:text-ink hover:underline">
+            Data deletion
+          </Link>
+        </footer>
+      </main>
+
+      <BrandPanel />
     </div>
   );
 }

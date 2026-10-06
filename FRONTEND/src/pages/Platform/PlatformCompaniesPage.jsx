@@ -66,7 +66,7 @@ function getSubscriptionStatusBadge(company) {
     EXPIRED: "border-red-200 bg-red-50 text-red-600",
   };
   return (
-    <span className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${map[status] || "border-[#C5D1DE] bg-[#EFF3F8] text-[#6B8BA5]"}`}>
+    <span className={`inline-flex rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${map[status] || "border-[#C5D1DE] bg-[#EFF3F8] text-[#6B8BA5]"}`}>
       {status}
     </span>
   );
@@ -186,7 +186,7 @@ function CompanyRow({ company, onView, onToggleStatus, updatingId }) {
       </td>
 
       <td className="px-5 py-4">
-        <div className="flex items-center gap-2 text-[12.5px] text-slate-600">
+        <div className="flex items-center gap-2 text-[13.5px] text-slate-600">
           <Users className="h-3.5 w-3.5 text-slate-400" />
           {getUserCount(company).toLocaleString()}
         </div>
@@ -194,7 +194,7 @@ function CompanyRow({ company, onView, onToggleStatus, updatingId }) {
 
       <td className="px-5 py-4">
         <div className="flex flex-col items-start gap-1">
-          <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-slate-700">
+          <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-semibold uppercase text-slate-700">
             {getPlanLabel(company)}
           </span>
           {getSubscriptionStatusBadge(company)}
@@ -204,15 +204,15 @@ function CompanyRow({ company, onView, onToggleStatus, updatingId }) {
       {/* PLAN EXPIRY COLUMN */}
       <td className="px-5 py-4">
         {expiryInfo.status === "none" || expiryInfo.label === "—" ? (
-          <span className="text-[12px] text-slate-400">—</span>
+          <span className="text-[13.5px] text-slate-400">—</span>
         ) : expiryInfo.isFree ? (
-          <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+          <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[13px] font-semibold text-slate-600">
             Lifetime
           </span>
         ) : expiryInfo.isTrial ? (
           <div className="flex flex-col items-start gap-0.5">
             <span
-              className={`text-[12px] font-semibold ${
+              className={`text-[13.5px] font-semibold ${
                 expiryInfo.isExpired
                   ? "text-rose-600"
                   : expiryInfo.daysLeft <= 3
@@ -223,7 +223,7 @@ function CompanyRow({ company, onView, onToggleStatus, updatingId }) {
               {expiryInfo.label}
             </span>
             <span
-              className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
+              className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] font-semibold ${
                 expiryInfo.isExpired
                   ? "border-rose-200 bg-rose-50 text-rose-600"
                   : expiryInfo.daysLeft <= 3
@@ -240,7 +240,7 @@ function CompanyRow({ company, onView, onToggleStatus, updatingId }) {
         ) : (
           <div className="flex flex-col items-start gap-0.5">
             <span
-              className={`text-[12px] font-semibold ${
+              className={`text-[13.5px] font-semibold ${
                 expiryInfo.isExpired
                   ? "text-rose-600"
                   : expiryInfo.daysLeft !== null && expiryInfo.daysLeft <= 7
@@ -252,7 +252,7 @@ function CompanyRow({ company, onView, onToggleStatus, updatingId }) {
             </span>
             {expiryInfo.daysLeft !== null && (
               <span
-                className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
+                className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] font-semibold ${
                   expiryInfo.isExpired
                     ? "border-rose-200 bg-rose-50 text-rose-600"
                     : expiryInfo.daysLeft <= 7
@@ -271,38 +271,38 @@ function CompanyRow({ company, onView, onToggleStatus, updatingId }) {
         )}
       </td>
 
-      <td className="px-5 py-4 text-[12.5px] text-slate-600">
+      <td className="px-5 py-4 text-[13.5px] text-slate-600">
         {getCampaignCount(company).toLocaleString()}
       </td>
 
-      <td className="px-5 py-4 text-[12.5px] text-slate-600">
+      <td className="px-5 py-4 text-[13.5px] text-slate-600">
         {getTemplateCount(company).toLocaleString()}
       </td>
 
-      <td className="px-5 py-4 text-[12.5px] text-slate-600">
+      <td className="px-5 py-4 text-[13.5px] text-slate-600">
         {getContactCount(company).toLocaleString()}
       </td>
 
       <td className="px-5 py-4">
         {company.whatsapp?.connected ? (
-          <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-emerald-600">
+          <span className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-emerald-600">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Connected
           </span>
         ) : (
-          <span className="text-[12px] text-slate-400">Not connected</span>
+          <span className="text-[13.5px] text-slate-400">Not connected</span>
         )}
       </td>
 
       <td className="px-5 py-4">
         <span
-          className={`rounded-full border px-2.5 py-1 text-[10.5px] font-semibold ${getStatusClasses(company.status)}`}
+          className={`rounded-full border px-2.5 py-1 text-[12px] font-semibold ${getStatusClasses(company.status)}`}
         >
           {getStatusLabel(company.status)}
         </span>
       </td>
 
-      <td className="whitespace-nowrap px-5 py-4 text-[12px] text-slate-400">
+      <td className="whitespace-nowrap px-5 py-4 text-[13.5px] text-slate-400">
         {formatDate(company.createdAt)}
       </td>
 
@@ -311,7 +311,7 @@ function CompanyRow({ company, onView, onToggleStatus, updatingId }) {
           <button
             type="button"
             onClick={() => onView(company._id)}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11.5px] font-medium text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-[13px] font-medium text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
           >
             View
           </button>
@@ -510,7 +510,7 @@ export default function PlatformCompaniesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search company name or ID..."
-              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 text-[12.5px] text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:bg-[#F5F8FB]"
+              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 text-[13.5px] text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:bg-[#F5F8FB]"
             />
             {search && (
               <button
@@ -526,7 +526,7 @@ export default function PlatformCompaniesPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[12px] text-slate-600 outline-none focus:border-emerald-400"
+            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-600 outline-none focus:border-emerald-400"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -536,7 +536,7 @@ export default function PlatformCompaniesPage() {
           <select
             value={whatsappFilter}
             onChange={(e) => setWhatsappFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[12px] text-slate-600 outline-none focus:border-emerald-400"
+            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-600 outline-none focus:border-emerald-400"
           >
             <option value="all">All WhatsApp</option>
             <option value="connected">Connected</option>
@@ -546,7 +546,7 @@ export default function PlatformCompaniesPage() {
           <select
             value={planFilter}
             onChange={(e) => setPlanFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[12px] text-slate-600 outline-none focus:border-emerald-400"
+            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-600 outline-none focus:border-emerald-400"
           >
             <option value="all">All Plans</option>
             {availablePlans.map((plan) => (
@@ -559,7 +559,7 @@ export default function PlatformCompaniesPage() {
           <select
             value={expiryFilter}
             onChange={(e) => setExpiryFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[12px] text-slate-600 outline-none focus:border-emerald-400"
+            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-600 outline-none focus:border-emerald-400"
           >
             <option value="all">All Expiry</option>
             <option value="active">Active / Valid</option>
@@ -573,7 +573,7 @@ export default function PlatformCompaniesPage() {
             <button
               type="button"
               onClick={clearFilters}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[11.5px] font-medium text-slate-500 transition hover:bg-slate-50"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[13px] font-medium text-slate-500 transition hover:bg-slate-50"
             >
               <Filter className="h-3.5 w-3.5" />
               Clear
@@ -582,7 +582,7 @@ export default function PlatformCompaniesPage() {
         </div>
 
         <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[13px] text-slate-400">
             Showing{" "}
             <span className="font-medium text-slate-600">
               {filteredCompanies.length}
@@ -594,7 +594,7 @@ export default function PlatformCompaniesPage() {
             companies
           </p>
           {hasFilters && (
-            <p className="text-[11px] text-emerald-600">Filters applied</p>
+            <p className="text-[13px] text-emerald-600">Filters applied</p>
           )}
         </div>
       </div>
@@ -613,14 +613,14 @@ export default function PlatformCompaniesPage() {
             <h3 className="mt-4 text-sm font-semibold text-slate-700">
               No companies found
             </h3>
-            <p className="mt-1 max-w-sm text-[12px] text-slate-400">
+            <p className="mt-1 max-w-sm text-[13.5px] text-slate-400">
               No company matches the current search or filters.
             </p>
             {hasFilters && (
               <button
                 type="button"
                 onClick={clearFilters}
-                className="mt-4 text-[12px] font-medium text-emerald-600 hover:underline"
+                className="mt-4 text-[13.5px] font-medium text-emerald-600 hover:underline"
               >
                 Clear filters
               </button>
@@ -647,7 +647,7 @@ export default function PlatformCompaniesPage() {
                     ].map((label, i) => (
                       <th
                         key={label + i}
-                        className={`px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 ${
+                        className={`px-5 py-3 text-[12px] font-semibold uppercase tracking-wider text-slate-400 ${
                           i === 10 ? "text-right" : "text-left"
                         }`}
                       >
@@ -674,7 +674,7 @@ export default function PlatformCompaniesPage() {
             </div>
 
             <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[13px] text-slate-400">
                 Page <span className="text-slate-600">{page}</span> of{" "}
                 <span className="text-slate-600">{totalPages}</span>
               </p>

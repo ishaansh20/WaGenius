@@ -124,7 +124,7 @@ export default function PlatformTemplatesPage() {
                 <FileText className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Templates</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Templates</p>
                 <p className="text-xl font-bold text-slate-900">{summary.total}</p>
               </div>
             </div>
@@ -136,7 +136,7 @@ export default function PlatformTemplatesPage() {
                 <CheckCircle2 className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Approved</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Approved</p>
                 <p className="text-xl font-bold text-emerald-700">{summary.approved}</p>
               </div>
             </div>
@@ -148,7 +148,7 @@ export default function PlatformTemplatesPage() {
                 <Clock className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pending Review</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Pending Review</p>
                 <p className="text-xl font-bold text-amber-700">{summary.pending}</p>
               </div>
             </div>
@@ -160,7 +160,7 @@ export default function PlatformTemplatesPage() {
                 <XCircle className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rejected</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Rejected</p>
                 <p className="text-xl font-bold text-rose-600">{summary.rejected}</p>
               </div>
             </div>
@@ -172,7 +172,7 @@ export default function PlatformTemplatesPage() {
                 <Percent className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Approval Rate</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Approval Rate</p>
                 <p className="text-xl font-bold text-purple-700">{summary.approvalRate}%</p>
               </div>
             </div>
@@ -261,7 +261,7 @@ export default function PlatformTemplatesPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400">
+                <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
                   <tr>
                     <th className="px-5 py-3.5">Template</th>
                     <th className="px-5 py-3.5">Company Tenant</th>
@@ -279,7 +279,7 @@ export default function PlatformTemplatesPage() {
                       <td className="px-5 py-3.5">
                         <p className="font-semibold text-slate-900">{t.name}</p>
                         {t.metaTemplateName && (
-                          <p className="font-mono text-[10px] text-slate-400">{t.metaTemplateName}</p>
+                          <p className="font-mono text-[12px] text-slate-400">{t.metaTemplateName}</p>
                         )}
                       </td>
 
@@ -291,7 +291,7 @@ export default function PlatformTemplatesPage() {
                               const targetId = typeof t.companyId === "object" ? (t.companyId?._id || t.companyId?.id) : t.companyId;
                               if (targetId && targetId !== "[object Object]") navigate(`/platform/companies/${targetId}`);
                             }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
                           >
                             <Building2 className="h-3 w-3 text-slate-400" />
                             {typeof t.companyId === "object" ? (t.companyId.name || "Company") : "Company"}
@@ -304,7 +304,7 @@ export default function PlatformTemplatesPage() {
                       {/* META STATUS */}
                       <td className="px-5 py-3.5">
                         <span
-                          className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                          className={`inline-flex rounded-full border px-2.5 py-0.5 text-[12px] font-bold uppercase ${
                             metaStatusClasses[t.metaStatus] || metaStatusClasses.not_submitted
                           }`}
                         >
@@ -314,7 +314,7 @@ export default function PlatformTemplatesPage() {
 
                       {/* CATEGORY */}
                       <td className="px-5 py-3.5">
-                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[12px] font-semibold text-slate-700">
                           {t.metaCategory || t.category || "—"}
                         </span>
                       </td>

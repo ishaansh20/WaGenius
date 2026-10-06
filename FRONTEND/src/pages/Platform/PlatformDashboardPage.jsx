@@ -93,7 +93,7 @@ export default function PlatformDashboardPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">Active Trials</p>
                 <p className="mt-1.5 text-2xl font-bold tracking-tight text-[#1A3652]">{stats.subscriptions?.trial ?? 0}</p>
-                <p className="text-[11px] text-[#6B8BA5] mt-0.5">Companies in 14-day evaluation</p>
+                <p className="text-[13px] text-[#6B8BA5] mt-0.5">Companies in 14-day evaluation</p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#C5D1DE] bg-[#EFF3F8] text-[#2A4A68]">
                 <CreditCard className="h-5 w-5" />
@@ -104,7 +104,7 @@ export default function PlatformDashboardPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-[#2A4A68]">Active Subscriptions</p>
                 <p className="mt-1.5 text-2xl font-bold tracking-tight text-[#1A3652]">{stats.subscriptions?.active ?? 0}</p>
-                <p className="text-[11px] text-[#6B8BA5] mt-0.5">Active tier companies</p>
+                <p className="text-[13px] text-[#6B8BA5] mt-0.5">Active tier companies</p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#C5D1DE] bg-[#EFF3F8] text-[#2A4A68]">
                 <CreditCard className="h-5 w-5" />
@@ -115,7 +115,7 @@ export default function PlatformDashboardPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-[#6B8BA5]">Pending Setup</p>
                 <p className="mt-1.5 text-2xl font-bold tracking-tight text-[#1A3652]">{stats.subscriptions?.pending ?? 0}</p>
-                <p className="text-[11px] text-[#6B8BA5] mt-0.5">Awaiting plan selection</p>
+                <p className="text-[13px] text-[#6B8BA5] mt-0.5">Awaiting plan selection</p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#C5D1DE] bg-[#EFF3F8] text-[#6B8BA5]">
                 <CreditCard className="h-5 w-5" />
@@ -179,7 +179,7 @@ function StatCard({ icon: Icon, label, value }) {
       <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg border border-[#C5D1DE] bg-[#EFF3F8] text-[#2A4A68]">
         <Icon className="h-4 w-4" />
       </div>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6B8BA5]">{label}</p>
+      <p className="text-[13px] font-semibold uppercase tracking-wider text-[#6B8BA5]">{label}</p>
       <p className="mt-1 text-2xl font-bold tracking-tight text-[#1A3652]">
         {Number(value).toLocaleString()}
       </p>

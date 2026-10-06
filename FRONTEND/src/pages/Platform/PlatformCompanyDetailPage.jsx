@@ -83,7 +83,7 @@ function StatBlock({ icon: Icon, label, value, subtext }) {
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
         <Icon className="h-4 w-4 text-emerald-600" />
       </div>
-      <p className="mt-3 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+      <p className="mt-3 text-[12px] font-medium uppercase tracking-wider text-slate-400">
         {label}
       </p>
       <p className="mt-1 text-xl font-semibold text-slate-950">{value}</p>
@@ -312,7 +312,7 @@ export default function PlatformCompanyDetailPage() {
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold text-slate-900">{company.name}</h2>
                   <span
-                    className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+                    className={`rounded-full border px-2.5 py-0.5 text-[13px] font-semibold ${
                       company.status === "active"
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                         : "border-red-200 bg-red-50 text-red-600"
@@ -321,7 +321,7 @@ export default function PlatformCompanyDetailPage() {
                     {company.status}
                   </span>
                   <span
-                    className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+                    className={`rounded-full border px-2.5 py-0.5 text-[13px] font-semibold ${
                       statusClasses[subscription?.status] || statusClasses.PENDING
                     }`}
                   >
@@ -410,20 +410,20 @@ export default function PlatformCompanyDetailPage() {
                   <h3 className="text-sm font-semibold text-slate-900">Company Profile</h3>
                   <div className="mt-4 grid gap-5 sm:grid-cols-2">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">Owner User</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">Owner User</p>
                       <p className="mt-1 text-sm font-medium text-slate-800">
                         {users.find((u) => u.role === "ADMIN")?.name || "No Admin Found"} (
                         {users.find((u) => u.role === "ADMIN")?.email || "—"})
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">Total Conversations</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">Total Conversations</p>
                       <p className="mt-1 text-sm font-medium text-slate-800">
                         {detail?.conversations?.total ?? 0} threads
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">WhatsApp Onboarding</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">WhatsApp Onboarding</p>
                       <p className="mt-1 text-sm font-medium text-slate-800">
                         {company.whatsapp?.onboardingCompletedAt
                           ? `Completed on ${formatDate(company.whatsapp.onboardingCompletedAt)}`
@@ -431,7 +431,7 @@ export default function PlatformCompanyDetailPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">Created At</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">Created At</p>
                       <p className="mt-1 text-sm font-medium text-slate-800">{formatDateTime(company.createdAt)}</p>
                     </div>
                   </div>
@@ -457,7 +457,7 @@ export default function PlatformCompanyDetailPage() {
 
                   <div className="mt-4 space-y-4">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">Plan</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">Plan</p>
                       <p className="mt-1 text-base font-bold text-slate-900">
                         {currentPlan?.name || "No Plan Selected"}
                       </p>
@@ -470,7 +470,7 @@ export default function PlatformCompanyDetailPage() {
                     </div>
 
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">Status</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">Status</p>
                       <div className="mt-1">
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
@@ -485,14 +485,14 @@ export default function PlatformCompanyDetailPage() {
                     {/* PLAN EXPIRY / RENEWAL */}
                     {currentPlan?.isFree || currentPlan?.pricing?.monthly === 0 ? (
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-slate-400">Plan Expiry</p>
+                        <p className="text-[12px] uppercase tracking-wider text-slate-400">Plan Expiry</p>
                         <p className="mt-1 text-xs font-semibold text-slate-700">
                           Lifetime Access (No Expiry)
                         </p>
                       </div>
                     ) : subscription?.status === "TRIAL" ? (
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-slate-400">Trial Period</p>
+                        <p className="text-[12px] uppercase tracking-wider text-slate-400">Trial Period</p>
                         {subscription.trialEndsAt ? (
                           <div className="mt-1 flex items-center gap-2">
                             <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700">
@@ -506,7 +506,7 @@ export default function PlatformCompanyDetailPage() {
                               );
                               return (
                                 <span
-                                  className={`rounded-full border px-2 py-0.2 text-[10px] font-semibold ${
+                                  className={`rounded-full border px-2 py-0.2 text-[12px] font-semibold ${
                                     diffDays < 0
                                       ? "border-rose-200 bg-rose-50 text-rose-600"
                                       : diffDays <= 3
@@ -525,7 +525,7 @@ export default function PlatformCompanyDetailPage() {
                       </div>
                     ) : (
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                        <p className="text-[12px] uppercase tracking-wider text-slate-400">
                           {subscription?.status === "EXPIRED" ? "Expired On" : "Plan Expiry / Renewal Date"}
                         </p>
                         {subscription?.renewalDate || subscription?.startDate ? (
@@ -556,7 +556,7 @@ export default function PlatformCompanyDetailPage() {
                                     {formatDate(expDate)}
                                   </span>
                                   <span
-                                    className={`rounded-full border px-2 py-0.2 text-[10px] font-semibold ${
+                                    className={`rounded-full border px-2 py-0.2 text-[12px] font-semibold ${
                                       isExp
                                         ? "border-rose-200 bg-rose-50 text-rose-600"
                                         : diffDays <= 7
@@ -578,7 +578,7 @@ export default function PlatformCompanyDetailPage() {
 
                     {currentPlan?.limits && (
                       <div className="border-t border-slate-100 pt-3">
-                        <p className="text-[10px] uppercase tracking-wider text-slate-400">Enforced Plan Limits</p>
+                        <p className="text-[12px] uppercase tracking-wider text-slate-400">Enforced Plan Limits</p>
                         <div className="mt-2 space-y-1.5 text-xs text-slate-600">
                           <div className="flex justify-between">
                             <span>Users:</span>
@@ -602,12 +602,12 @@ export default function PlatformCompanyDetailPage() {
 
                     {currentPlan?.features && (
                       <div className="border-t border-slate-100 pt-3">
-                        <p className="text-[10px] uppercase tracking-wider text-slate-400">Enabled Features</p>
+                        <p className="text-[12px] uppercase tracking-wider text-slate-400">Enabled Features</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {Object.entries(currentPlan.features).map(([feat, enabled]) => (
                             <span
                               key={feat}
-                              className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                              className={`rounded-md border px-2 py-0.5 text-[12px] font-semibold uppercase ${
                                 enabled
                                   ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                                   : "border-slate-200 bg-slate-50 text-slate-400"
@@ -640,7 +640,7 @@ export default function PlatformCompanyDetailPage() {
 
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400">
+                  <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
                     <tr>
                       <th className="px-4 py-3">User</th>
                       <th className="px-4 py-3">Role</th>
@@ -657,13 +657,13 @@ export default function PlatformCompanyDetailPage() {
                           <p className="text-slate-400">{u.email}</p>
                         </td>
                         <td className="px-4 py-3.5">
-                          <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                          <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-semibold text-slate-700">
                             {u.role}
                           </span>
                         </td>
                         <td className="px-4 py-3.5">
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ${
                               u.isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
                             }`}
                           >
@@ -699,7 +699,7 @@ export default function PlatformCompanyDetailPage() {
               ) : (
                 <div className="mt-4 overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400">
+                    <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
                       <tr>
                         <th className="px-4 py-3">Campaign</th>
                         <th className="px-4 py-3">Status</th>
@@ -713,11 +713,11 @@ export default function PlatformCompanyDetailPage() {
                         <tr key={c._id} className="hover:bg-slate-50/60">
                           <td className="px-4 py-3.5 font-medium text-slate-900">
                             <p className="font-semibold">{c.campaignName}</p>
-                            <p className="text-[11px] text-slate-400 capitalize">{c.campaignType || "broadcast"}</p>
+                            <p className="text-[13px] text-slate-400 capitalize">{c.campaignType || "broadcast"}</p>
                           </td>
                           <td className="px-4 py-3.5">
                             <span
-                              className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase ${
+                              className={`rounded-full border px-2.5 py-0.5 text-[12px] font-semibold uppercase ${
                                 campaignStatusClasses[c.status] || campaignStatusClasses.draft
                               }`}
                             >
@@ -729,7 +729,7 @@ export default function PlatformCompanyDetailPage() {
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="space-y-1">
-                              <div className="flex gap-2 text-[10px]">
+                              <div className="flex gap-2 text-[12px]">
                                 <span className="text-emerald-700">Sent: {c.sentCount ?? 0}</span>
                                 <span className="text-sky-700">Delivered: {c.deliveredCount ?? 0}</span>
                                 <span className="text-indigo-700">Read: {c.readCount ?? 0}</span>
@@ -778,7 +778,7 @@ export default function PlatformCompanyDetailPage() {
               ) : (
                 <div className="mt-4 overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400">
+                    <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
                       <tr>
                         <th className="px-4 py-3">Template Name</th>
                         <th className="px-4 py-3">Meta Status</th>
@@ -794,12 +794,12 @@ export default function PlatformCompanyDetailPage() {
                           <td className="px-4 py-3.5">
                             <p className="font-semibold text-slate-900">{t.name}</p>
                             {t.metaTemplateName && (
-                              <p className="font-mono text-[10px] text-slate-400">{t.metaTemplateName}</p>
+                              <p className="font-mono text-[12px] text-slate-400">{t.metaTemplateName}</p>
                             )}
                           </td>
                           <td className="px-4 py-3.5">
                             <span
-                              className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${
+                              className={`rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${
                                 metaStatusClasses[t.metaStatus] || metaStatusClasses.not_submitted
                               }`}
                             >
@@ -807,7 +807,7 @@ export default function PlatformCompanyDetailPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3.5">
-                            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[12px] font-semibold text-slate-700">
                               {t.metaCategory || t.category || "—"}
                             </span>
                           </td>
@@ -848,7 +848,7 @@ export default function PlatformCompanyDetailPage() {
                 ) : (
                   <div className="mt-5 grid gap-5 sm:grid-cols-2">
                     <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">Connection Status</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">Connection Status</p>
                       <div className="mt-1 flex items-center gap-2">
                         {whatsappHealth?.connected ? (
                           <>
@@ -865,35 +865,35 @@ export default function PlatformCompanyDetailPage() {
                     </div>
 
                     <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">Token Type</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">Token Type</p>
                       <p className="mt-1 text-sm font-semibold uppercase text-slate-800">
                         {whatsappHealth?.tokenType || "Manual"}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">Phone Number ID</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">Phone Number ID</p>
                       <p className="mt-1 font-mono text-xs text-slate-800">
                         {whatsappHealth?.phoneNumberId || "Not Registered"}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">WABA Account ID</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">WABA Account ID</p>
                       <p className="mt-1 font-mono text-xs text-slate-800">
                         {whatsappHealth?.wabaId || "Not Registered"}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">Connected At</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">Connected At</p>
                       <p className="mt-1 text-xs text-slate-700">
                         {formatDateTime(whatsappHealth?.connectedAt)}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                      <p className="text-[10px] uppercase tracking-wider text-slate-400">Total Inbound & Outbound Messages</p>
+                      <p className="text-[12px] uppercase tracking-wider text-slate-400">Total Inbound & Outbound Messages</p>
                       <p className="mt-1 text-base font-bold text-slate-900">
                         {whatsappHealth?.stats?.totalMessages ?? 0} messages
                       </p>
@@ -946,7 +946,7 @@ export default function PlatformCompanyDetailPage() {
                       </h4>
                       <div className="mt-3 overflow-x-auto">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400">
+                          <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
                             <tr>
                               <th className="px-4 py-2.5">Name</th>
                               <th className="px-4 py-2.5">Phone</th>
@@ -963,7 +963,7 @@ export default function PlatformCompanyDetailPage() {
                                 <td className="px-4 py-2.5 capitalize">{contact.source}</td>
                                 <td className="px-4 py-2.5">
                                   <span
-                                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                    className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ${
                                       contact.optedOut ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"
                                     }`}
                                   >
@@ -1052,7 +1052,7 @@ export default function PlatformCompanyDetailPage() {
                   onChange={(e) => setCustomRenewalDate(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 outline-none focus:border-emerald-400 focus:bg-[#F5F8FB]"
                 />
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-[13px] text-slate-400">
                   Sets the date when the company plan expires or is scheduled to renew.
                 </p>
               </div>
@@ -1068,7 +1068,7 @@ export default function PlatformCompanyDetailPage() {
                     onChange={(e) => setCustomTrialEndsAt(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 outline-none focus:border-emerald-400 focus:bg-[#F5F8FB]"
                   />
-                  <p className="mt-1 text-[11px] text-slate-400">
+                  <p className="mt-1 text-[13px] text-slate-400">
                     Explicit date when free trial will end.
                   </p>
                 </div>
@@ -1083,7 +1083,7 @@ export default function PlatformCompanyDetailPage() {
                   onChange={(e) => setExtendDays(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 outline-none focus:border-emerald-400 focus:bg-[#F5F8FB]"
                 />
-                <p className="mt-1 text-[11px] text-slate-400">Adds days to trial end date and sets status to TRIAL.</p>
+                <p className="mt-1 text-[13px] text-slate-400">Adds days to trial end date and sets status to TRIAL.</p>
               </div>
 
               <button

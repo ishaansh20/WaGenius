@@ -3,7 +3,9 @@ import { getInboxSocket, joinRoom, leaveRoom } from "../../services/socket";
 import api from "../../services/api";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import { Badge, Button, Card, Skeleton, StatusPill } from "../../components/ui";
 import { formatPhone } from "../../utils/formatPhone";
+import { cn } from "../../utils/cn";
 import {
   PieChart,
   Pie,
@@ -18,9 +20,10 @@ import {
 } from "recharts";
 import {
   Activity,
-  BarChart3,
+  ArrowLeft,
   CheckCircle2,
-  Clock3,
+  MessageSquareText,
+  RotateCcw,
   Users,
   XCircle,
   Send,
@@ -43,6 +46,120 @@ const SEGREGATION_THRESHOLDS = [
   { label: "3 Hours", hours: 3 },
   { label: "24 Hours", hours: 24 },
 ];
+
+const CHART = {
+  delivered: "#128c5e",
+  failed: "#d64545",
+  pending: "#c3cad1",
+  grid: "#eceeed",
+  axis: "#4d5868",
+};
+
+const tooltipStyle = {
+  border: "1px solid #e6e8e3",
+  borderRadius: 10,
+  fontSize: 13,
+  boxShadow: "0 12px 32px rgba(15,28,23,0.12)",
+  padding: "8px 12px",
+};
+
+/* ── Small building blocks ─────────────────────────────────────────── */
+
+function SectionCard({ title, description, action, className, bodyClassName, children }) {
+  return (
+    <Card className={cn("flex flex-col", className)}>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-semibold text-ink">{title}</h2>
+          {description && <p className="mt-1 text-[14px] text-ink-muted">{description}</p>}
+        </div>
+        {action && <div className="flex flex-wrap items-center gap-2.5">{action}</div>}
+      </div>
+      <div className={cn("flex-1", bodyClassName)}>{children}</div>
+    </Card>
+  );
+}
+
+function Empty({ icon: Icon = Activity, title, description }) {
+  return (
+    <div className="flex h-full min-h-[200px] flex-col items-center justify-center rounded-xl bg-canvas px-6 py-8 text-center">
+      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-ink-muted shadow-[var(--shadow-card)]">
+        <Icon size={20} />
+      </span>
+      <p className="mt-4 text-[15px] font-semibold text-ink">{title}</p>
+      <p className="mt-1 max-w-xs text-[14px] text-ink-muted">{description}</p>
+    </div>
+  );
+}
+
+function KpiCard({ label, value, caption, icon: Icon, tone = "default" }) {
+  return (
+    <div className="flex flex-col rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
+      <span className="flex items-center gap-2 text-[14px] font-medium text-ink-muted">
+        <Icon size={16} className={tone === "danger" ? "text-danger" : "text-brand-600"} />
+        {label}
+      </span>
+      <p
+        className={cn(
+          "mt-4 text-[32px] font-semibold leading-none tracking-[-0.02em] tabular-nums",
+          tone === "danger" ? "text-danger" : "text-ink",
+        )}
+      >
+        {value ?? "—"}
+      </p>
+      {caption && <p className="mt-2 text-[13px] text-ink-muted">{caption}</p>}
+    </div>
+  );
+}
+
+function Fact({ label, value, tone = "default" }) {
+  return (
+    <div className="rounded-lg border border-line bg-canvas px-3.5 py-2">
+      <p className="text-[13px] text-ink-muted">{label}</p>
+      <p
+        className={cn(
+          "text-[15px] font-semibold tabular-nums",
+          tone === "brand" ? "text-brand-700" : "text-ink",
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function Th({ children, className }) {
+  return (
+    <th scope="col" className={cn("px-4 py-3 text-left text-[13px] font-medium text-ink-muted", className)}>
+      {children}
+    </th>
+  );
+}
+
+const checkboxCls = "h-4 w-4 cursor-pointer rounded border-line-strong accent-[#128c5e]";
+
+function LoadingState() {
+  return (
+    <div className="space-y-5">
+      <div>
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="mt-3 h-4 w-80 max-w-full" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <Skeleton key={index} className="h-[132px] rounded-[var(--radius-card)]" />
+        ))}
+      </div>
+      <Skeleton className="h-[160px] w-full rounded-[var(--radius-card)]" />
+      <div className="grid gap-5 xl:grid-cols-3">
+        <Skeleton className="h-[380px] rounded-[var(--radius-card)] xl:col-span-2" />
+        <Skeleton className="h-[380px] rounded-[var(--radius-card)]" />
+      </div>
+    </div>
+  );
+}
+
+/* ── Page ──────────────────────────────────────────────────────────── */
 
 export default function CampaignAnalyticsPage() {
   const { id } = useParams();
@@ -190,7 +307,11 @@ export default function CampaignAnalyticsPage() {
   }, [id]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <DashboardLayout title="Campaign Analytics">
+        <LoadingState />
+      </DashboardLayout>
+    );
   }
 
   const pendingCount = Math.max(
@@ -225,7 +346,7 @@ export default function CampaignAnalyticsPage() {
     },
   ];
 
-  const COLORS = ["#10b981", "#ef4444", "#64748b"];
+  const COLORS = [CHART.delivered, CHART.failed, CHART.pending];
 
   const responseRate =
     campaign?.sentCount > 0
@@ -237,33 +358,34 @@ export default function CampaignAnalyticsPage() {
 
   const kpiCards = [
     {
-      label: "Total Contacts",
+      label: "Total contacts",
       value: campaign?.totalContacts,
-      tone: "slate",
+      caption: "People in this campaign",
       icon: Users,
     },
     {
       label: "Delivered",
       value: campaign?.sentCount,
-      tone: "emerald",
+      caption: `${successRate}% of attempted messages`,
       icon: CheckCircle2,
     },
     {
       label: "Failed",
       value: campaign?.failedCount,
-      tone: "rose",
+      caption: campaign?.failedCount > 0 ? "You can retry these below" : "No failed messages",
+      tone: campaign?.failedCount > 0 ? "danger" : "default",
       icon: XCircle,
     },
     {
       label: "Replies",
       value: replyAnalytics?.repliedContactsCount || 0,
-      tone: "sky",
-      icon: Users,
+      caption: "Contacts who replied",
+      icon: MessageSquareText,
     },
     {
-      label: "Response Rate",
+      label: "Response rate",
       value: `${responseRate}%`,
-      tone: "sky",
+      caption: "Replies out of delivered",
       icon: Activity,
     },
   ];
@@ -272,46 +394,19 @@ export default function CampaignAnalyticsPage() {
     {
       label: "Delivered",
       value: campaign?.sentCount,
-      tone: "emerald",
+      color: CHART.delivered,
     },
     {
       label: "Failed",
       value: campaign?.failedCount,
-      tone: "rose",
+      color: CHART.failed,
     },
     {
       label: "Pending",
       value: pendingCount,
-      tone: "slate",
+      color: CHART.pending,
     },
   ];
-
-  const toneMap = {
-    slate: {
-      badge: "bg-slate-100 text-slate-700 ring-slate-200",
-      accent: "text-slate-700",
-      icon: "text-slate-500",
-      bar: "bg-slate-500",
-    },
-    emerald: {
-      badge: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-      accent: "text-emerald-600",
-      icon: "text-emerald-500",
-      bar: "bg-emerald-500",
-    },
-    rose: {
-      badge: "bg-rose-50 text-rose-700 ring-rose-100",
-      accent: "text-rose-600",
-      icon: "text-rose-500",
-      bar: "bg-rose-500",
-    },
-    sky: {
-      badge: "bg-sky-50 text-sky-700 ring-sky-100",
-      accent: "text-sky-600",
-      icon: "text-sky-500",
-      bar: "bg-sky-500",
-    },
-  };
 
   const contacts = campaign?.contacts || [];
 
@@ -406,798 +501,642 @@ export default function CampaignAnalyticsPage() {
     });
   }
 
+  const header = (
+    <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="min-w-0">
+        <button
+          type="button"
+          onClick={() => navigate("/campaigns/history")}
+          className="mb-3 inline-flex items-center gap-1.5 text-[14px] font-medium text-brand-700 hover:text-brand-900"
+        >
+          <ArrowLeft size={15} />
+          All campaigns
+        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="min-w-0 truncate text-[28px] font-semibold tracking-[-0.025em] text-ink sm:text-[30px]">
+            {campaign?.campaignName || "Campaign analytics"}
+          </h1>
+          {campaign?.status && <StatusPill status={campaign.status} className="text-[13px]" />}
+        </div>
+        <p className="mt-1.5 truncate text-[15px] text-ink-muted">
+          How this campaign performed, updated live as messages go out.
+          {campaign?._id && <span className="ml-1 text-[13px]">Campaign ID: {campaign._id}</span>}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <Fact label="Success rate" value={`${successRate}%`} tone="brand" />
+        <Fact label="Last update" value={formatEventTime(lastEventAt)} />
+      </div>
+    </div>
+  );
+
   return (
     <DashboardLayout title="Campaign Analytics">
-      <div className="mx-auto flex min-h-screen w-full  overflow-hidden lg:px-4 lg:py-5">
-        <div className="flex min-h-screen w-full rounded-none border-0 bg-white/0 shadow-none lg:min-h-[calc(100vh-2.5rem)] lg:rounded-[20px] lg:border lg:border-slate-200/80 lg:bg-white">
-          <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
-            {loading ? (
-              <div className="space-y-6">
-                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="h-4 w-40 animate-pulse rounded-full bg-slate-200" />
-                  <div className="mt-3 h-3 w-72 max-w-full animate-pulse rounded-full bg-slate-100" />
-                </div>
+      <div className="w-full">
+        {loading ? (
+          <LoadingState />
+        ) : (
+          <>
+            {header}
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-                    >
-                      <div className="h-3 w-24 animate-pulse rounded-full bg-slate-200" />
-                      <div className="mt-4 h-8 w-20 animate-pulse rounded-full bg-slate-100" />
-                    </div>
-                  ))}
-                </div>
+            <div className="space-y-5">
+              {/* ── Key numbers ── */}
+              <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+                {kpiCards.map((card) => (
+                  <KpiCard
+                    key={card.label}
+                    label={card.label}
+                    value={card.value}
+                    caption={card.caption}
+                    icon={card.icon}
+                    tone={card.tone}
+                  />
+                ))}
+              </section>
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="h-4 w-36 animate-pulse rounded-full bg-slate-200" />
-                    <div className="mt-5 h-[260px] animate-pulse rounded-xl bg-slate-100" />
-                  </div>
+              {/* ── Funnel ── */}
+              <SectionCard
+                title="Message journey"
+                description={`Click a stage to filter the contact table below${activeStage ? " — click again to clear" : ""}`}
+              >
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  {funnelStages.map((stage) => {
+                    const percent =
+                      !stage.comingSoon && totalContactsForFunnel > 0
+                        ? Math.round(
+                            (stage.count / totalContactsForFunnel) * 100,
+                          )
+                        : null;
+                    const isActive = activeStage === stage.key;
+                    const isFailed = stage.key === "failed";
 
-                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="h-4 w-40 animate-pulse rounded-full bg-slate-200" />
-                    <div className="mt-5 space-y-3">
-                      {Array.from({ length: 3 }).map((_, index) => (
-                        <div
-                          key={index}
-                          className="h-16 animate-pulse rounded-xl bg-slate-100"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    <BarChart3 className="h-4 w-4 text-slate-400" />
-                    Campaign Analytics
-                  </div>
-
-                  <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-                        Campaign Analytics
-                      </h1>
-
-                      <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-                        Detailed analytics and performance overview for live
-                        campaign operations.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <Clock3 className="h-4 w-4 text-slate-400" />
-                    </div>
-                  </div>
-                </div>
-
-                <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                        Campaign overview
-                      </p>
-                      <h2 className="mt-1 truncate text-xl font-semibold text-slate-900">
-                        {campaign?.campaignName}
-                      </h2>
-                      <p className="mt-1 truncate text-sm text-slate-500">
-                        Campaign ID: {campaign?._id}
-                      </p>
-                    </div>
-
-                    <div
-                      className={`inline-flex items-center gap-2 self-start rounded-lg px-3 py-2 text-sm font-medium ring-1 ${toneMap.emerald.badge}`}
-                    >
-                      <span
-                        className={`h-2 w-2 rounded-full ${toneMap.emerald.bar}`}
-                      />
-                      <span className="capitalize">{campaign?.status}</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 px-5 py-5 md:grid-cols-2 xl:grid-cols-4">
-                    {kpiCards.map((card) => {
-                      const Icon = card.icon;
-                      const tone = toneMap[card.tone];
-
-                      return (
-                        <div
-                          key={card.label}
-                          className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition-colors hover:border-slate-300"
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div>
-                              <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
-                                {card.label}
-                              </p>
-                              <h3
-                                className={`mt-2 text-2xl font-semibold tracking-tight ${tone.accent}`}
-                              >
-                                {card.value}
-                              </h3>
-                            </div>
-
-                            <div
-                              className={`rounded-lg border border-slate-200 bg-white p-2 ${tone.icon}`}
-                            >
-                              <Icon className="h-4 w-4" />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h2 className="text-base font-semibold text-slate-900">
-                        Funnel
-                      </h2>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Click a stage to filter the contact table below
-                        {activeStage ? " — click again to clear" : ""}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 px-5 py-5 sm:grid-cols-3 lg:grid-cols-6">
-                    {funnelStages.map((stage) => {
-                      const percent =
-                        !stage.comingSoon && totalContactsForFunnel > 0
-                          ? Math.round(
-                              (stage.count / totalContactsForFunnel) * 100,
-                            )
-                          : null;
-                      const isActive = activeStage === stage.key;
-
-                      return (
-                        <button
-                          key={stage.key}
-                          type="button"
-                          disabled={stage.comingSoon}
-                          onClick={() =>
-                            setActiveStage((prev) =>
-                              prev === stage.key ? null : stage.key,
-                            )
-                          }
-                          className={`rounded-xl border px-3 py-3 text-left transition ${
-                            stage.comingSoon
-                              ? "cursor-default border-dashed border-slate-200 bg-slate-50/50 opacity-60"
-                              : isActive
-                                ? "border-emerald-300 bg-emerald-50 ring-1 ring-emerald-200"
-                                : "border-slate-200 bg-slate-50/70 hover:border-slate-300"
-                          }`}
-                        >
-                          <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-slate-500">
-                            {stage.label}
-                          </p>
-                          {stage.comingSoon ? (
-                            <p className="mt-1.5 text-sm font-medium text-slate-400">
-                              — <span className="text-[10px]">Coming soon</span>
-                            </p>
-                          ) : (
-                            <>
-                              <p className="mt-1.5 text-xl font-semibold text-slate-900">
-                                {stage.count}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {percent}%
-                              </p>
-                            </>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-emerald-500" />
-
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                          Delivery Timeline
-                        </p>
-                      </div>
-
-                      <h2 className="mt-2 text-lg font-semibold text-slate-900">
-                        Campaign Delivery Trends
-                      </h2>
-
-                      <p className="mt-1 text-sm text-slate-500">
-                        Realtime delivery progression powered by websocket
-                        updates.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
-                          Success Rate
-                        </p>
-
-                        <p className="mt-1 text-sm font-semibold text-emerald-600">
-                          {successRate}%
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
-                          Last Update
-                        </p>
-
-                        <p className="mt-1 text-sm font-semibold text-slate-900">
-                          {formatEventTime(lastEventAt)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="h-[340px] min-h-[340px] px-3 py-5 sm:px-5">
-                    <ResponsiveContainer width="100%" height={320}>
-                      <AreaChart
-                        data={trendData}
-                        margin={{ top: 6, right: 12, left: -8, bottom: 0 }}
+                    return (
+                      <button
+                        key={stage.key}
+                        type="button"
+                        disabled={stage.comingSoon}
+                        aria-pressed={isActive}
+                        onClick={() =>
+                          setActiveStage((prev) =>
+                            prev === stage.key ? null : stage.key,
+                          )
+                        }
+                        className={cn(
+                          "rounded-xl border p-4 text-left transition-colors",
+                          stage.comingSoon
+                            ? "cursor-default border-dashed border-line bg-canvas"
+                            : isActive
+                              ? "border-brand-600 bg-brand-50 ring-1 ring-brand-600"
+                              : "border-line bg-surface hover:border-line-strong hover:bg-canvas",
+                        )}
                       >
-                        <CartesianGrid vertical={false} stroke="#e2e8f0" />
-
-                        <XAxis
-                          tick={{ fontSize: 11 }}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-
-                        <YAxis tickLine={false} axisLine={false} />
-
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: 10,
-                            border: "1px solid #e2e8f0",
-                            boxShadow: "0 10px 20px rgba(15, 23, 42, 0.08)",
-                          }}
-                          labelFormatter={(_, payload) => {
-                            const point = payload?.[0]?.payload;
-                            return `Updated ${formatEventTime(point?.eventAt)}`;
-                          }}
-                        />
-
-                        <Area
-                          type="monotone"
-                          dataKey="sent"
-                          stroke="#10b981"
-                          fill="url(#sentGradient)"
-                          strokeWidth={2.5}
-                          dot={false}
-                        />
-                        <defs>
-                          <linearGradient
-                            id="sentGradient"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="0%"
-                              stopColor="#10b981"
-                              stopOpacity={0.18}
-                            />
-                            <stop
-                              offset="100%"
-                              stopColor="#10b981"
-                              stopOpacity={0}
-                            />
-                          </linearGradient>
-                        </defs>
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </section>
-
-                <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h2 className="text-base font-semibold text-slate-900">
-                        Delivery Breakdown
-                      </h2>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Sent vs failed vs pending contacts
-                      </p>
-                    </div>
-
-                    <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-                      <BarChart3 className="h-4 w-4 text-slate-400" />
-                      Distribution overview
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6 px-5 py-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center">
-                    <div className="h-[280px] min-h-[280px]">
-                      <ResponsiveContainer width="100%" height={280}>
-                        <PieChart>
-                          <Pie
-                            data={chartData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={64}
-                            outerRadius={100}
-                            paddingAngle={3}
-                            dataKey="value"
-                          >
-                            {chartData.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS[index % COLORS.length]}
+                        <p className="text-[14px] font-medium text-ink-muted">
+                          {stage.label}
+                        </p>
+                        {stage.comingSoon ? (
+                          <>
+                            <p className="mt-2 text-[24px] font-semibold leading-none text-ink-subtle">—</p>
+                            <p className="mt-2 text-[13px] text-ink-muted">Coming soon</p>
+                          </>
+                        ) : (
+                          <>
+                            <p
+                              className={cn(
+                                "mt-2 text-[24px] font-semibold leading-none tracking-[-0.02em] tabular-nums",
+                                isFailed && stage.count > 0 ? "text-danger" : "text-ink",
+                              )}
+                            >
+                              {stage.count}
+                            </p>
+                            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#eceeed]">
+                              <div
+                                className={cn("h-full rounded-full", isFailed ? "bg-danger" : "bg-brand-600")}
+                                style={{ width: `${percent}%` }}
                               />
-                            ))}
-                          </Pie>
+                            </div>
+                            <p className="mt-1.5 text-[13px] tabular-nums text-ink-muted">
+                              {percent}% of contacts
+                            </p>
+                          </>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </SectionCard>
 
-                          <Tooltip />
-                        </PieChart>
+              {/* ── Charts ── */}
+              <section className="grid gap-5 xl:grid-cols-3">
+                <SectionCard
+                  className="xl:col-span-2"
+                  title="Delivery over time"
+                  description="Updates live while the campaign is sending."
+                >
+                  {trendData.length ? (
+                    <div className="h-[280px] sm:h-[320px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={trendData}
+                          margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient
+                              id="sentGradient"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="0%"
+                                stopColor={CHART.delivered}
+                                stopOpacity={0.16}
+                              />
+                              <stop
+                                offset="100%"
+                                stopColor={CHART.delivered}
+                                stopOpacity={0}
+                              />
+                            </linearGradient>
+                          </defs>
+
+                          <CartesianGrid vertical={false} stroke={CHART.grid} />
+
+                          <XAxis
+                            tick={{ fill: CHART.axis, fontSize: 13 }}
+                            tickLine={false}
+                            axisLine={false}
+                            dy={8}
+                          />
+
+                          <YAxis
+                            tick={{ fill: CHART.axis, fontSize: 13 }}
+                            tickLine={false}
+                            axisLine={false}
+                          />
+
+                          <Tooltip
+                            contentStyle={tooltipStyle}
+                            labelStyle={{ fontWeight: 600, color: "#0f1c17" }}
+                            labelFormatter={(_, payload) => {
+                              const point = payload?.[0]?.payload;
+                              return `Updated ${formatEventTime(point?.eventAt)}`;
+                            }}
+                          />
+
+                          <Area
+                            type="monotone"
+                            dataKey="sent"
+                            stroke={CHART.delivered}
+                            fill="url(#sentGradient)"
+                            strokeWidth={2.25}
+                            dot={false}
+                          />
+                        </AreaChart>
                       </ResponsiveContainer>
                     </div>
+                  ) : (
+                    <Empty
+                      icon={Activity}
+                      title="No delivery updates yet"
+                      description="The chart fills in as messages are sent."
+                    />
+                  )}
+                </SectionCard>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                      {deliveryLegend.map((item) => {
-                        const tone = toneMap[item.tone];
+                <SectionCard title="Delivery status" description="Delivered, failed and still pending">
+                  <div className="relative h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius="68%"
+                          outerRadius="92%"
+                          paddingAngle={2}
+                          stroke="none"
+                          dataKey="value"
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
 
-                        return (
-                          <div
-                            key={`legend-${item.label}`}
-                            className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3"
-                          >
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`h-2.5 w-2.5 rounded-full ${tone.bar}`}
-                                />
-                                <p className="text-sm font-medium text-slate-800">
-                                  {item.label}
-                                </p>
-                              </div>
-                              <p className="mt-1 text-xs text-slate-500">
-                                Delivery segment
-                              </p>
-                            </div>
-
-                            <p
-                              className={`text-lg font-semibold tracking-tight ${tone.accent}`}
-                            >
-                              {item.value}
-                            </p>
-                          </div>
-                        );
-                      })}
+                        <Tooltip contentStyle={tooltipStyle} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-[26px] font-semibold leading-none text-ink tabular-nums">
+                        {successRate}%
+                      </span>
+                      <span className="mt-1 text-[13px] text-ink-muted">success rate</span>
                     </div>
                   </div>
-                </section>
 
-                {repliersWithTiming.length > 0 && (
-                  <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <h2 className="text-base font-semibold text-slate-900">
-                          Smart Segregation
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                          Replied In
-                        </p>
+                  <div className="mt-4 divide-y divide-line border-t border-line">
+                    {deliveryLegend.map((item) => (
+                      <div
+                        key={`legend-${item.label}`}
+                        className="flex items-center justify-between gap-3 py-2.5"
+                      >
+                        <span className="flex items-center gap-2.5 text-[14px] text-ink">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          {item.label}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[15px] font-semibold tabular-nums",
+                            item.label === "Failed" && item.value > 0 ? "text-danger" : "text-ink",
+                          )}
+                        >
+                          {item.value ?? "—"}
+                        </span>
                       </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </section>
 
-                      <div className="inline-flex items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-                        {SEGREGATION_THRESHOLDS.map((t) => (
+              {/* ── Smart segregation ── */}
+              {repliersWithTiming.length > 0 && (
+                <SectionCard
+                  title="Fast repliers"
+                  description="Contacts who replied within the time you choose. Select them to send a follow-up."
+                  bodyClassName="-mx-5 -mb-5 sm:-mx-6 sm:-mb-6"
+                  action={
+                    <div
+                      role="tablist"
+                      aria-label="Replied within"
+                      className="inline-flex rounded-lg border border-line bg-surface p-1"
+                    >
+                      {SEGREGATION_THRESHOLDS.map((t) => {
+                        const active = segregationThresholdHours === t.hours;
+                        return (
                           <button
                             key={t.hours}
                             type="button"
+                            role="tab"
+                            aria-selected={active}
                             onClick={() =>
                               setSegregationThresholdHours(t.hours)
                             }
-                            className={`rounded-md px-3 py-1.5 text-[12.5px] font-medium transition ${
-                              segregationThresholdHours === t.hours
-                                ? "bg-white text-slate-900 shadow-sm"
-                                : "text-slate-500 hover:text-slate-700"
-                            }`}
+                            className={cn(
+                              "h-8 whitespace-nowrap rounded-md px-3 text-[14px] font-medium transition-colors",
+                              active ? "bg-brand-900 text-white" : "text-ink-muted hover:bg-canvas hover:text-ink",
+                            )}
                           >
                             {t.label}
                           </button>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
+                  }
+                >
+                  <div className="flex flex-col gap-3 border-t border-line px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                    <p className="text-[14px] text-ink-muted">
+                      Message replied by{" "}
+                      <span className="font-semibold text-ink">
+                        {bucketedRepliers.length} contact
+                        {bucketedRepliers.length === 1 ? "" : "s"}
+                      </span>{" "}
+                      within {segregationThresholdHours} Hour
+                      {segregationThresholdHours === 1 ? "" : "s"}
+                      {untimedRepliers.length > 0
+                        ? ` · ${untimedRepliers.length} repl${untimedRepliers.length === 1 ? "y" : "ies"} can't be timed (sent before tracking was enabled)`
+                        : ""}
+                    </p>
 
-                    <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-sm text-slate-500">
-                        Message replied by {bucketedRepliers.length} contact
-                        {bucketedRepliers.length === 1 ? "" : "s"} within{" "}
-                        {segregationThresholdHours} Hour
-                        {segregationThresholdHours === 1 ? "" : "s"}
-                        {untimedRepliers.length > 0
-                          ? ` · ${untimedRepliers.length} repl${untimedRepliers.length === 1 ? "y" : "ies"} can't be timed (sent before tracking was enabled)`
-                          : ""}
-                      </p>
-
-                      <button
-                        type="button"
-                        disabled={selectedReplierPhones.size === 0}
-                        onClick={handleBroadcastToRepliers}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-[12.5px] font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Send className="h-3.5 w-3.5" />
-                        Broadcast to Selected ({selectedReplierPhones.size})
-                      </button>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="w-10 px-5 py-3">
-                              <input
-                                type="checkbox"
-                                checked={
-                                  bucketedRepliers.length > 0 &&
-                                  bucketedRepliers.every((c) =>
-                                    selectedReplierPhones.has(c.phone),
-                                  )
-                                }
-                                onChange={toggleSelectAllRepliers}
-                                className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300"
-                              />
-                            </th>
-                            <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                              Name
-                            </th>
-                            <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                              Mobile Number
-                            </th>
-                            <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                              Read At
-                            </th>
-                            <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                              Replied At
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                          {bucketedRepliers.length === 0 ? (
-                            <tr>
-                              <td
-                                colSpan={5}
-                                className="px-5 py-8 text-center text-sm text-slate-400"
-                              >
-                                No repliers in this window
-                              </td>
-                            </tr>
-                          ) : (
-                            bucketedRepliers.map((c) => (
-                              <tr
-                                key={c.phone}
-                                className="hover:bg-slate-50/70"
-                              >
-                                <td className="px-5 py-3.5">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedReplierPhones.has(c.phone)}
-                                    onChange={() =>
-                                      toggleReplierSelection(c.phone)
-                                    }
-                                    className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300"
-                                  />
-                                </td>
-                                <td className="px-5 py-3.5 text-sm font-medium text-slate-900">
-                                  {c.name || "Unknown"}
-                                </td>
-                                <td className="px-5 py-3.5 text-sm text-slate-600">
-                                  {formatPhone(c.phone)}
-                                </td>
-                                <td className="px-5 py-3.5 text-sm text-slate-500">
-                                  {formatEventTime(c.readAt)}
-                                </td>
-                                <td className="px-5 py-3.5 text-sm text-slate-500">
-                                  {formatEventTime(c.repliedAt)}
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                )}
-
-                {replyAnalytics?.repliedContactsCount > 0 && (
-                  <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div className="border-b border-slate-100 px-5 py-4">
-                      <h2 className="text-base font-semibold text-slate-900">
-                        Campaign Responses
-                      </h2>
-
-                      <p className="mt-1 text-sm text-slate-500">
-                        Contacts who replied after receiving this campaign
-                      </p>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="px-5 py-3 text-left">Contact</th>
-
-                            <th className="px-5 py-3 text-left">Phone</th>
-
-                            <th className="px-5 py-3 text-left">Reply Count</th>
-
-                            <th className="px-5 py-3 text-left">First Reply</th>
-
-                            <th className="px-5 py-3 text-left">
-                              Latest Reply
-                            </th>
-                          </tr>
-                        </thead>
-
-                        <tbody>
-                          {replyAnalytics?.repliedContacts?.map(
-                            (reply, index) => (
-                              <tr
-                                key={index}
-                                onClick={() =>
-                                  navigate("/inbox", {
-                                    state: {
-                                      targetPhone: reply.phone,
-                                    },
-                                  })
-                                }
-                                className="cursor-pointer transition hover:bg-slate-50"
-                              >
-                                <td className="px-5 py-4 font-medium text-slate-900">
-                                  {reply.name}
-                                </td>
-
-                                <td className="px-5 py-4">{reply.phone}</td>
-
-                                <td className="px-5 py-4">
-                                  {reply.replyCount}
-                                </td>
-
-                                <td className="px-5 py-4">
-                                  {reply.firstReply}
-                                </td>
-
-                                <td className="px-5 py-4">
-                                  {reply.latestReply}
-                                </td>
-                              </tr>
-                            ),
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                )}
-                <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h2 className="text-base font-semibold text-slate-900">
-                        Contact Delivery Status
-                      </h2>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Individual message delivery tracking
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      {campaign?.failedCount > 0 && (
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            try {
-                              await api.post(
-                                `/api/campaigns/${campaign._id}/retry-failed`,
-                              );
-
-                              await fetchCampaign();
-                            } catch (error) {
-                              console.log(error);
-                            }
-                          }}
-                          className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
-                        >
-                          Retry Failed ({campaign.failedCount})
-                        </button>
-                      )}
-
-                      <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
-                        <Users className="h-4 w-4 text-slate-500" />
-                        {activeStage
-                          ? `${filteredContacts.length} of ${campaign?.contacts?.length || 0} Contacts`
-                          : `${campaign?.contacts?.length || 0} Contacts`}
-                      </div>
-                    </div>
+                    <Button
+                      size="sm"
+                      leftIcon={Send}
+                      disabled={selectedReplierPhones.size === 0}
+                      onClick={handleBroadcastToRepliers}
+                    >
+                      Send to selected ({selectedReplierPhones.size})
+                    </Button>
                   </div>
 
-                  <div className="overflow-visible">
-                    <table className="min-w-full divide-y divide-slate-200">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                            Contact
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="border-y border-line bg-[#f6f7f6]">
+                          <th scope="col" className="w-12 px-4 py-3 sm:pl-6">
+                            <input
+                              type="checkbox"
+                              aria-label="Select all repliers"
+                              checked={
+                                bucketedRepliers.length > 0 &&
+                                bucketedRepliers.every((c) =>
+                                  selectedReplierPhones.has(c.phone),
+                                )
+                              }
+                              onChange={toggleSelectAllRepliers}
+                              className={checkboxCls}
+                            />
                           </th>
-
-                          <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                            Sent At
-                          </th>
-                          <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                            Delivered At
-                          </th>
-                          <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                            Read At
-                          </th>
-                          <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                            Replied At
-                          </th>
-
-                          <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                            Status
-                          </th>
-                          <th className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600">
-                            Shared Inbox
-                          </th>
+                          <Th>Name</Th>
+                          <Th>Mobile number</Th>
+                          <Th>Read at</Th>
+                          <Th>Replied at</Th>
                         </tr>
                       </thead>
-
-                      <tbody className="divide-y divide-slate-100 bg-white">
-                        {filteredContacts.map((contact, index) => (
-                          <tr
-                            key={index}
-                            onClick={() => {
-                              if (contact.status !== "failed") {
-                                navigate("/inbox", {
-                                  state: {
-                                    targetPhone: contact.phone,
-                                  },
-                                });
-                              }
-                            }}
-                            className={`transition-colors duration-150 hover:bg-slate-50/70 ${
-                              contact.status !== "failed"
-                                ? "cursor-pointer"
-                                : ""
-                            }`}
-                          >
-                            <td className="px-5 py-4">
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-slate-900">
-                                  {contact.name || "Unknown Contact"}
-                                </p>
-
-                                <p className="mt-1 text-sm text-slate-500">
-                                  {formatPhone(contact.phone)}
-                                </p>
-                              </div>
-                            </td>
-
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {contact.sentAt
-                                ? formatEventTime(contact.sentAt)
-                                : "—"}
-                            </td>
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {contact.deliveredAt
-                                ? formatEventTime(contact.deliveredAt)
-                                : "—"}
-                            </td>
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {contact.readAt
-                                ? formatEventTime(contact.readAt)
-                                : "—"}
-                            </td>
-                            <td className="px-5 py-4 text-sm text-slate-500">
-                              {contact.repliedAt
-                                ? formatEventTime(contact.repliedAt)
-                                : "—"}
-                            </td>
-
-                            <td className="px-5 py-4">
-                              {contact.status === "failed" ? (
-                                <div className="group relative inline-block">
-                                  <span className="inline-flex cursor-help items-center rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 ring-1 ring-rose-100">
-                                    Failed
-                                  </span>
-
-                                  <div
-                                    className="
-                                    pointer-events-none
-                                    absolute
-                                    bottom-full
-                                    left-1/2
-                                    z-[9999]
-                                    mb-2
-                                    hidden
-                                    w-96
-                                    -translate-x-1/2
-                                    rounded-xl
-                                    border
-                                    border-slate-200
-                                    bg-white
-                                    p-4
-                                    text-left
-                                    shadow-xl
-                                    group-hover:block"
-                                  >
-                                    <p className="text-sm font-semibold text-slate-900">
-                                      Why did this message fail?
-                                    </p>
-
-                                    {contact.failure?.title && (
-                                      <p className="mt-2 text-sm font-medium text-slate-800">
-                                        Message: {contact.failure.title}
-                                      </p>
-                                    )}
-
-                                    {contact.failure?.details && (
-                                      <p className="mt-2 text-sm leading-6 text-slate-700">
-                                        {contact.failure.details}
-                                      </p>
-                                    )}
-
-                                    {contact.failure?.code && (
-                                      <p className="mt-3 border-t border-slate-200 pt-2 text-xs text-slate-500">
-                                        Error code: {contact.failure.code}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : (
-                                <span
-                                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium capitalize ring-1 ${
-                                    contact.status === "sent" ||
-                                    contact.status === "delivered" ||
-                                    contact.status === "read"
-                                      ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                                      : "bg-slate-100 text-slate-700 ring-slate-200"
-                                  }`}
-                                >
-                                  {contact.status}
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-5 py-4">
-                              {contact.status === "failed" ? (
-                                <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
-                                  Open Inbox
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={() =>
-                                    navigate("/inbox", {
-                                      state: {
-                                        targetPhone: contact.phone,
-                                      },
-                                    })
-                                  }
-                                  className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                                >
-                                  Open Inbox
-                                </button>
-                              )}
+                      <tbody className="divide-y divide-line">
+                        {bucketedRepliers.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="px-4 py-10 text-center text-[14px] text-ink-muted"
+                            >
+                              No repliers in this window
                             </td>
                           </tr>
-                        ))}
+                        ) : (
+                          bucketedRepliers.map((c) => (
+                            <tr
+                              key={c.phone}
+                              className="text-[14px] transition-colors hover:bg-canvas"
+                            >
+                              <td className="px-4 py-3.5 sm:pl-6">
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Select ${c.name || c.phone}`}
+                                  checked={selectedReplierPhones.has(c.phone)}
+                                  onChange={() =>
+                                    toggleReplierSelection(c.phone)
+                                  }
+                                  className={checkboxCls}
+                                />
+                              </td>
+                              <td className="px-4 py-3.5 font-medium text-ink">
+                                {c.name || "Unknown"}
+                              </td>
+                              <td className="px-4 py-3.5 tabular-nums text-ink">
+                                {formatPhone(c.phone)}
+                              </td>
+                              <td className="px-4 py-3.5 tabular-nums text-ink-muted">
+                                {formatEventTime(c.readAt)}
+                              </td>
+                              <td className="px-4 py-3.5 tabular-nums text-ink-muted">
+                                {formatEventTime(c.repliedAt)}
+                              </td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
-                </section>
-              </div>
-            )}
-          </main>
-        </div>
+                </SectionCard>
+              )}
+
+              {/* ── Campaign responses ── */}
+              {replyAnalytics?.repliedContactsCount > 0 && (
+                <SectionCard
+                  title="Replies"
+                  description="Contacts who replied after receiving this campaign. Click a row to open the chat."
+                  bodyClassName="-mx-5 -mb-5 sm:-mx-6 sm:-mb-6"
+                >
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="border-y border-line bg-[#f6f7f6]">
+                          <Th className="sm:pl-6">Contact</Th>
+                          <Th>Phone</Th>
+                          <Th>Replies</Th>
+                          <Th>First reply</Th>
+                          <Th>Latest reply</Th>
+                        </tr>
+                      </thead>
+
+                      <tbody className="divide-y divide-line">
+                        {replyAnalytics?.repliedContacts?.map(
+                          (reply, index) => (
+                            <tr
+                              key={index}
+                              onClick={() =>
+                                navigate("/inbox", {
+                                  state: {
+                                    targetPhone: reply.phone,
+                                  },
+                                })
+                              }
+                              className="cursor-pointer text-[14px] transition-colors hover:bg-canvas"
+                            >
+                              <td className="px-4 py-3.5 font-medium text-ink sm:pl-6">
+                                {reply.name}
+                              </td>
+
+                              <td className="px-4 py-3.5 tabular-nums text-ink">{reply.phone}</td>
+
+                              <td className="px-4 py-3.5 tabular-nums text-ink">
+                                {reply.replyCount}
+                              </td>
+
+                              <td className="px-4 py-3.5 text-ink-muted">
+                                {reply.firstReply}
+                              </td>
+
+                              <td className="px-4 py-3.5 text-ink-muted">
+                                {reply.latestReply}
+                              </td>
+                            </tr>
+                          ),
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </SectionCard>
+              )}
+
+              {/* ── Per-contact delivery ── */}
+              <SectionCard
+                title="Contact delivery status"
+                description="Where each message is right now. Hover a failed status to see why."
+                bodyClassName="-mx-5 -mb-5 sm:-mx-6 sm:-mb-6"
+                action={
+                  <>
+                    <span className="inline-flex h-8 items-center gap-2 rounded-lg bg-canvas px-3 text-[14px] font-medium text-ink">
+                      <Users size={15} className="text-brand-600" />
+                      {activeStage
+                        ? `${filteredContacts.length} of ${campaign?.contacts?.length || 0} contacts`
+                        : `${campaign?.contacts?.length || 0} contacts`}
+                    </span>
+                    {campaign?.failedCount > 0 && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        leftIcon={RotateCcw}
+                        title="Try sending the failed messages again"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await api.post(
+                              `/api/campaigns/${campaign._id}/retry-failed`,
+                            );
+
+                            await fetchCampaign();
+                          } catch (error) {
+                            console.log(error);
+                          }
+                        }}
+                      >
+                        Retry failed ({campaign.failedCount})
+                      </Button>
+                    )}
+                  </>
+                }
+              >
+                <div className="overflow-visible">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-y border-line bg-[#f6f7f6]">
+                        <Th className="sm:pl-6">Contact</Th>
+                        <Th>Sent</Th>
+                        <Th>Delivered</Th>
+                        <Th>Read</Th>
+                        <Th>Replied</Th>
+                        <Th>Status</Th>
+                        <Th className="sm:pr-6">Chat</Th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-line">
+                      {filteredContacts.map((contact, index) => (
+                        <tr
+                          key={index}
+                          onClick={() => {
+                            if (contact.status !== "failed") {
+                              navigate("/inbox", {
+                                state: {
+                                  targetPhone: contact.phone,
+                                },
+                              });
+                            }
+                          }}
+                          className={cn(
+                            "text-[14px] transition-colors hover:bg-canvas",
+                            contact.status !== "failed" && "cursor-pointer",
+                          )}
+                        >
+                          <td className="px-4 py-3.5 sm:pl-6">
+                            <div className="min-w-0">
+                              <p className="truncate text-[15px] font-medium text-ink">
+                                {contact.name || "Unknown Contact"}
+                              </p>
+
+                              <p className="mt-0.5 text-[13px] tabular-nums text-ink-muted">
+                                {formatPhone(contact.phone)}
+                              </p>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-3.5 tabular-nums text-ink-muted">
+                            {contact.sentAt
+                              ? formatEventTime(contact.sentAt)
+                              : "—"}
+                          </td>
+                          <td className="px-4 py-3.5 tabular-nums text-ink-muted">
+                            {contact.deliveredAt
+                              ? formatEventTime(contact.deliveredAt)
+                              : "—"}
+                          </td>
+                          <td className="px-4 py-3.5 tabular-nums text-ink-muted">
+                            {contact.readAt
+                              ? formatEventTime(contact.readAt)
+                              : "—"}
+                          </td>
+                          <td className="px-4 py-3.5 tabular-nums text-ink-muted">
+                            {contact.repliedAt
+                              ? formatEventTime(contact.repliedAt)
+                              : "—"}
+                          </td>
+
+                          <td className="px-4 py-3.5">
+                            {contact.status === "failed" ? (
+                              <div className="group relative inline-block">
+                                <Badge tone="danger" dot className="cursor-help text-[13px]">
+                                  Failed
+                                </Badge>
+
+                                <div className="pointer-events-none absolute bottom-full left-1/2 z-[9999] mb-2 hidden w-80 -translate-x-1/2 rounded-xl border border-line bg-surface p-4 text-left shadow-[var(--shadow-pop)] group-hover:block sm:w-96">
+                                  <p className="text-[14px] font-semibold text-ink">
+                                    Why did this message fail?
+                                  </p>
+
+                                  {contact.failure?.title && (
+                                    <p className="mt-2 text-[14px] font-medium text-ink">
+                                      Message: {contact.failure.title}
+                                    </p>
+                                  )}
+
+                                  {contact.failure?.details && (
+                                    <p className="mt-2 text-[14px] leading-6 text-ink-muted">
+                                      {contact.failure.details}
+                                    </p>
+                                  )}
+
+                                  {contact.failure?.code && (
+                                    <p className="mt-3 border-t border-line pt-2 text-[13px] text-ink-muted">
+                                      Error code: {contact.failure.code}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <Badge
+                                dot
+                                tone={
+                                  contact.status === "sent" ||
+                                  contact.status === "delivered" ||
+                                  contact.status === "read"
+                                    ? "success"
+                                    : "neutral"
+                                }
+                                className="text-[13px] capitalize"
+                              >
+                                {contact.status}
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-3.5 sm:pr-6">
+                            {contact.status === "failed" ? (
+                              <span className="inline-flex h-8 cursor-not-allowed items-center gap-1.5 rounded-lg border border-line px-3 text-[13px] font-medium text-ink-subtle">
+                                <MessageSquareText size={14} />
+                                Open Inbox
+                              </span>
+                            ) : (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                leftIcon={MessageSquareText}
+                                title="Open this contact's chat in the inbox"
+                                onClick={() =>
+                                  navigate("/inbox", {
+                                    state: {
+                                      targetPhone: contact.phone,
+                                    },
+                                  })
+                                }
+                              >
+                                Open Inbox
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </SectionCard>
+            </div>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

@@ -130,7 +130,7 @@ export default function PlatformCampaignsPage() {
                 <Megaphone className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Broadcasts</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Broadcasts</p>
                 <p className="text-xl font-bold text-slate-900">{summary.total}</p>
               </div>
             </div>
@@ -142,7 +142,7 @@ export default function PlatformCampaignsPage() {
                 <PlayCircle className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active / Processing</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Active / Processing</p>
                 <p className="text-xl font-bold text-blue-700">{summary.processing}</p>
               </div>
             </div>
@@ -154,7 +154,7 @@ export default function PlatformCampaignsPage() {
                 <Clock className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Scheduled Queue</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Scheduled Queue</p>
                 <p className="text-xl font-bold text-sky-700">{summary.scheduled}</p>
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function PlatformCampaignsPage() {
                 <Send className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Messages Sent</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Messages Sent</p>
                 <p className="text-xl font-bold text-emerald-700">
                   {new Intl.NumberFormat("en-IN").format(summary.totalSent || 0)}
                 </p>
@@ -242,7 +242,7 @@ export default function PlatformCampaignsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400">
+                <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
                   <tr>
                     <th className="px-5 py-3.5">Broadcast Name</th>
                     <th className="px-5 py-3.5">Company Tenant</th>
@@ -258,7 +258,7 @@ export default function PlatformCampaignsPage() {
                       {/* CAMPAIGN NAME */}
                       <td className="px-5 py-3.5">
                         <p className="font-semibold text-slate-900">{c.campaignName}</p>
-                        <p className="text-[11px] capitalize text-slate-400">{c.campaignType || "broadcast"}</p>
+                        <p className="text-[13px] capitalize text-slate-400">{c.campaignType || "broadcast"}</p>
                       </td>
 
                       {/* COMPANY */}
@@ -269,7 +269,7 @@ export default function PlatformCampaignsPage() {
                               const targetId = typeof c.companyId === "object" ? (c.companyId?._id || c.companyId?.id) : c.companyId;
                               if (targetId && targetId !== "[object Object]") navigate(`/platform/companies/${targetId}`);
                             }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
                           >
                             <Building2 className="h-3 w-3 text-slate-400" />
                             {typeof c.companyId === "object" ? (c.companyId.name || "Company") : "Company"}
@@ -282,7 +282,7 @@ export default function PlatformCampaignsPage() {
                       {/* STATUS */}
                       <td className="px-5 py-3.5">
                         <span
-                          className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                          className={`inline-flex rounded-full border px-2.5 py-0.5 text-[12px] font-bold uppercase ${
                             statusClasses[c.status] || statusClasses.draft
                           }`}
                         >
@@ -298,7 +298,7 @@ export default function PlatformCampaignsPage() {
                       {/* PROGRESS BAR */}
                       <td className="px-5 py-3.5">
                         <div className="space-y-1">
-                          <div className="flex gap-2 text-[10px]">
+                          <div className="flex gap-2 text-[12px]">
                             <span className="text-emerald-700">Sent: {c.sentCount ?? 0}</span>
                             <span className="text-sky-700">Delivered: {c.deliveredCount ?? 0}</span>
                             <span className="text-indigo-700">Read: {c.readCount ?? 0}</span>

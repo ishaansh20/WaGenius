@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CheckCircle, FileText, UploadCloud, X } from "lucide-react";
 import { importContacts } from "../../services/api";
+import { Button } from "../ui";
 import { EMPTY_CSV_ANALYSIS, parseCsvAnalysis } from "../../utils/csvAnalysis";
 
 export default function ImportContactsModal({ isOpen, onClose, onImported, segmentId, title, description }) {
@@ -60,49 +61,60 @@ export default function ImportContactsModal({ isOpen, onClose, onImported, segme
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-brand-950/40 sm:items-center sm:px-4"
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
-      <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <div>
-            <h2 className="text-[15px] font-semibold text-slate-900">{title || "Import Contacts"}</h2>
-            <p className="mt-0.5 text-[12px] text-slate-400">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-contacts-title"
+        className="flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-2xl bg-surface shadow-[var(--shadow-pop)] sm:rounded-2xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
+          <div className="min-w-0">
+            <h2 id="import-contacts-title" className="text-[18px] font-semibold text-ink">
+              {title || "Import contacts"}
+            </h2>
+            <p className="mt-0.5 text-[14px] text-ink-muted">
               {description || "Upload a CSV with name, phone, and (optionally) tags columns."}
             </p>
           </div>
           <button
             type="button"
             onClick={handleClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="-mr-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-muted transition hover:bg-canvas hover:text-ink"
             aria-label="Close"
           >
-            <X className="h-4 w-4" />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="px-5 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           {!file ? (
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => document.getElementById("import-contacts-file")?.click()}
-              className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 py-8 text-center transition-all ${
+              className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
                 dragActive
-                  ? "border-emerald-400 bg-emerald-50"
-                  : "border-dashed border-slate-200 bg-slate-50 hover:border-slate-300"
+                  ? "border-brand-600 bg-brand-50"
+                  : "border-line-strong bg-canvas hover:border-ink-subtle"
               }`}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white">
-                <UploadCloud className={`h-4 w-4 ${dragActive ? "text-emerald-500" : "text-slate-400"}`} />
-              </div>
+              <span
+                className={`flex h-11 w-11 items-center justify-center rounded-full bg-surface shadow-[var(--shadow-card)] ${
+                  dragActive ? "text-brand-700" : "text-ink-muted"
+                }`}
+              >
+                <UploadCloud size={20} />
+              </span>
               <div>
-                <p className="text-[13px] font-medium text-slate-700">
+                <p className="text-[15px] font-semibold text-ink">
                   {dragActive ? "Drop file here" : "Drag & drop a CSV file"}
                 </p>
-                <p className="text-[12px] text-slate-400">
-                  or <span className="font-semibold text-emerald-600">browse</span> — name, phone, tags columns
+                <p className="mt-1 text-[14px] text-ink-muted">
+                  or <span className="font-semibold text-brand-700">browse</span> — name, phone, tags columns
                 </p>
               </div>
               <input
@@ -115,34 +127,37 @@ export default function ImportContactsModal({ isOpen, onClose, onImported, segme
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                    <FileText className="h-4 w-4 text-emerald-600" />
-                  </div>
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-brand-700">
+                    <FileText size={18} />
+                  </span>
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-slate-800">{file.name}</p>
-                    <p className="text-[11px] text-slate-500">{analysis.totalContacts} rows detected</p>
+                    <p className="truncate text-[14px] font-medium text-ink">{file.name}</p>
+                    <p className="text-[13px] text-ink-muted">
+                      <span className="tabular-nums">{analysis.totalContacts}</span> rows detected
+                    </p>
                   </div>
                 </div>
                 {!summary && (
                   <div className="flex shrink-0 items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <CheckCircle size={18} className="text-brand-600" />
                     <button
                       type="button"
                       onClick={() => { setFile(null); setAnalysis(EMPTY_CSV_ANALYSIS); setSummary(null); }}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      aria-label="Remove file"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition hover:bg-surface hover:text-ink"
                     >
-                      <X className="h-3 w-3" />
+                      <X size={16} />
                     </button>
                   </div>
                 )}
               </div>
 
               {summary && (
-                <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-[12.5px]">
-                  <p className="font-medium text-slate-800">Import complete</p>
-                  <p className="mt-1 text-slate-600">
+                <div className="mt-3 rounded-xl bg-canvas px-4 py-3.5 text-[14px]">
+                  <p className="font-semibold text-ink">Import complete</p>
+                  <p className="mt-1 text-ink-muted">
                     {summary.created} created · {summary.updated} updated · {summary.skipped} skipped
                     {summary.invalid > 0 ? ` · ${summary.invalid} invalid (missing phone)` : ""}
                   </p>
@@ -152,30 +167,26 @@ export default function ImportContactsModal({ isOpen, onClose, onImported, segme
           )}
 
           {error && (
-            <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12.5px] text-red-700">
+            <p className="mt-3 rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
               {error}
             </p>
           )}
+        </div>
 
-          <div className="mt-4 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-[13px] font-medium text-slate-600 transition hover:bg-slate-50"
+        <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
+          <Button variant="secondary" onClick={handleClose}>
+            {summary ? "Done" : "Cancel"}
+          </Button>
+          {!summary && (
+            <Button
+              onClick={handleImport}
+              disabled={!file || submitting}
+              leftIcon={UploadCloud}
+              className="disabled:cursor-not-allowed"
             >
-              {summary ? "Done" : "Cancel"}
-            </button>
-            {!summary && (
-              <button
-                type="button"
-                onClick={handleImport}
-                disabled={!file || submitting}
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? "Importing…" : "Import"}
-              </button>
-            )}
-          </div>
+              {submitting ? "Importing…" : "Import"}
+            </Button>
+          )}
         </div>
       </div>
     </div>

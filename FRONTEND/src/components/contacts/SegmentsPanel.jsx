@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { Layers, Send, Trash2, Users } from "lucide-react";
+import { Layers, Plus, Send, Trash2, UserCog, Users } from "lucide-react";
 import { deleteSegment } from "../../services/api";
+import { Button, Card } from "../ui";
 import { fetchSegmentAsCsvFile } from "../../utils/segmentToCsv";
 import CreateGroupModal from "./CreateGroupModal";
 
@@ -48,60 +49,84 @@ export default function SegmentsPanel({ segments, onChanged, onSendSegment }) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">
-          <Layers className="h-3.5 w-3.5 text-slate-400" />
-          Groups
+    <Card>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-semibold text-ink">Groups</h2>
+          <p className="mt-1 text-[14px] text-ink-muted">
+            Saved lists of contacts you can send a campaign to in one click.
+          </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreateGroup}
-          className="text-[12px] font-medium text-emerald-600 hover:underline"
-        >
-          + Create Group
-        </button>
+        {segments.length > 0 && (
+          <Button size="sm" variant="secondary" leftIcon={Plus} onClick={openCreateGroup}>
+            Create group
+          </Button>
+        )}
       </div>
 
       {segments.length === 0 ? (
-        <p className="text-[12px] text-slate-400">
-          No groups yet — create one, then import or add contacts to build a reusable campaign audience.
-        </p>
+        <div className="flex flex-col items-center justify-center rounded-xl bg-canvas px-6 py-8 text-center">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-ink-muted shadow-[var(--shadow-card)]">
+            <Layers size={20} />
+          </span>
+          <p className="mt-4 text-[15px] font-semibold text-ink">No groups yet</p>
+          <p className="mt-1 max-w-sm text-[14px] text-ink-muted">
+            Create one, then import or add contacts to build a reusable campaign audience.
+          </p>
+          <div className="mt-4">
+            <Button leftIcon={Plus} onClick={openCreateGroup}>
+              Create group
+            </Button>
+          </div>
+        </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {segments.map((segment) => (
             <div
               key={segment._id}
-              className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 py-1 pl-3 pr-1.5"
+              className="flex items-center gap-3 rounded-xl border border-line px-4 py-3 transition-colors hover:bg-canvas"
             >
-              <span className="text-[12px] font-medium text-slate-700">{segment.name}</span>
-              <span className="text-[11px] text-slate-400">{segment.contactCount}</span>
-              {segment.type === "static" && (
-                <button
-                  type="button"
-                  onClick={() => openManageGroup(segment)}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-                  title="Manage group members"
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+                <Users size={16} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[14px] font-semibold text-ink">{segment.name}</p>
+                <p className="text-[13px] tabular-nums text-ink-muted">
+                  {segment.contactCount} contact{segment.contactCount === 1 ? "" : "s"}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-0.5">
+                {segment.type === "static" && (
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    onClick={() => openManageGroup(segment)}
+                    title="Manage group members"
+                    aria-label={`Manage members of ${segment.name}`}
+                  >
+                    <UserCog size={16} />
+                  </Button>
+                )}
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => handleSend(segment)}
+                  title="Send campaign to this group"
+                  aria-label={`Send campaign to ${segment.name}`}
+                  className="text-brand-700"
                 >
-                  <Users className="h-3 w-3" />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => handleSend(segment)}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-emerald-600 hover:bg-emerald-100"
-                title="Send campaign to this group"
-              >
-                <Send className="h-3 w-3" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(segment._id)}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-red-100 hover:text-red-600"
-                title="Delete group"
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
+                  <Send size={16} />
+                </Button>
+                <Button
+                  size="icon-sm"
+                  variant="danger-ghost"
+                  onClick={() => handleDelete(segment._id)}
+                  title="Delete group"
+                  aria-label={`Delete ${segment.name}`}
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -113,6 +138,6 @@ export default function SegmentsPanel({ segments, onChanged, onSendSegment }) {
         segment={managingSegment}
         onChanged={onChanged}
       />
-    </div>
+    </Card>
   );
 }

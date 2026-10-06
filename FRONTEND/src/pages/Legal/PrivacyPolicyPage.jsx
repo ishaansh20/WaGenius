@@ -1,17 +1,31 @@
 import { Link } from "react-router-dom";
+import { Logo } from "../../components/ui";
 
-const SECTION_TITLE = "mb-2 text-[15px] font-semibold text-slate-900";
-const PARAGRAPH = "mb-3 text-[13.5px] leading-relaxed text-slate-600";
+const SECTION_TITLE = "text-[20px] font-semibold tracking-[-0.015em] text-ink";
+const PARAGRAPH = "mt-3 text-[16px] leading-[1.7] text-ink";
+const LINK = "font-medium text-brand-700 underline-offset-2 hover:underline";
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-10">
-      <div className="mx-auto max-w-2xl rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-600">Wagenius</p>
-        <h1 className="mt-1 text-[22px] font-semibold text-slate-900">Privacy Policy</h1>
-        <p className="mt-1 text-[12.5px] text-slate-400">Last updated: August 2026</p>
+    <div className="min-h-screen bg-canvas">
+      <header className="border-b border-line bg-surface">
+        <div className="mx-auto flex h-16 max-w-[720px] items-center justify-between px-4 sm:px-6">
+          <Link to="/" aria-label="Wagenius home">
+            <Logo />
+          </Link>
+          <Link to="/login" className="text-[14px] font-medium text-ink-muted hover:text-ink">
+            Sign in
+          </Link>
+        </div>
+      </header>
 
-        <div className="mt-6 space-y-6">
+      <main className="mx-auto max-w-[720px] px-4 py-12 sm:px-6 sm:py-16">
+        <h1 className="text-[32px] font-semibold tracking-[-0.025em] text-ink sm:text-[36px]">
+          Privacy policy
+        </h1>
+        <p className="mt-2 text-[14px] text-ink-muted">Last updated: August 2026</p>
+
+        <div className="mt-10 space-y-10">
           <section>
             <h2 className={SECTION_TITLE}>Who this applies to</h2>
             <p className={PARAGRAPH}>
@@ -68,7 +82,7 @@ export default function PrivacyPolicyPage() {
               Data is retained for as long as a Company's account remains active on the platform.
               A Company can request deletion of their account and associated data at any time —
               see our{" "}
-              <Link to="/data-deletion" className="font-medium text-emerald-600 hover:underline">
+              <Link to="/data-deletion" className={LINK}>
                 Data Deletion page
               </Link>{" "}
               for how.
@@ -79,7 +93,7 @@ export default function PrivacyPolicyPage() {
             <h2 className={SECTION_TITLE}>Contact</h2>
             <p className={PARAGRAPH}>
               Questions about this policy, or a request related to your data, can be sent to{" "}
-              <a href="mailto:info@nuformsocial.com" className="font-medium text-emerald-600 hover:underline">
+              <a href="mailto:info@nuformsocial.com" className={LINK}>
                 info@nuformsocial.com
               </a>
               .
@@ -87,12 +101,15 @@ export default function PrivacyPolicyPage() {
           </section>
         </div>
 
-        <div className="mt-8 border-t border-slate-100 pt-4">
-          <Link to="/login" className="text-[12.5px] font-medium text-slate-500 hover:text-slate-700">
+        <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-line pt-6 text-[14px]">
+          <Link to="/login" className="font-medium text-ink-muted hover:text-ink">
             ← Back to sign in
           </Link>
+          <Link to="/data-deletion" className="font-medium text-ink-muted hover:text-ink">
+            Data deletion
+          </Link>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

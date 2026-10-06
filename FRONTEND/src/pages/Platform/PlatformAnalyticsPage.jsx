@@ -107,13 +107,13 @@ export default function PlatformAnalyticsPage() {
         <div className="grid gap-4 sm:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Monthly Recurring (MRR)</span>
+              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Monthly Recurring (MRR)</span>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                 <DollarSign className="h-4 w-4" />
               </div>
             </div>
             <p className="mt-2 text-2xl font-black tracking-tight text-slate-900">{formatCurrency(financials.mrr)}</p>
-            <p className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+            <p className="mt-1 flex items-center gap-1 text-[13px] text-emerald-600 font-medium">
               <ArrowUpRight className="h-3 w-3" />
               Based on active subscriptions
             </p>
@@ -121,37 +121,37 @@ export default function PlatformAnalyticsPage() {
 
           <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Annual Run Rate (ARR)</span>
+              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Annual Run Rate (ARR)</span>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
                 <TrendingUp className="h-4 w-4" />
               </div>
             </div>
             <p className="mt-2 text-2xl font-black tracking-tight text-slate-900">{formatCurrency(financials.arr)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">Annualized revenue pace</p>
+            <p className="mt-1 text-[13px] text-slate-400">Annualized revenue pace</p>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Paid Tenants</span>
+              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Active Paid Tenants</span>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
                 <Users className="h-4 w-4" />
               </div>
             </div>
             <p className="mt-2 text-2xl font-black tracking-tight text-purple-700">{financials.activePaidSubscriptions}</p>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[13px] text-slate-500">
               Plus <span className="font-semibold text-slate-800">{financials.activeTrials}</span> active trials
             </p>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ARPU (Avg Revenue)</span>
+              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400">ARPU (Avg Revenue)</span>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
                 <DollarSign className="h-4 w-4" />
               </div>
             </div>
             <p className="mt-2 text-2xl font-black tracking-tight text-slate-900">{formatCurrency(financials.arpu)}</p>
-            <p className="mt-1 text-[11px] text-slate-400">Per paying tenant / mo</p>
+            <p className="mt-1 text-[13px] text-slate-400">Per paying tenant / mo</p>
           </div>
         </div>
 
@@ -164,7 +164,7 @@ export default function PlatformAnalyticsPage() {
                 <h3 className="text-sm font-bold text-slate-900">Platform Message Throughput</h3>
                 <p className="text-xs text-slate-400">Daily sent, delivered, and read volume</p>
               </div>
-              <div className="flex items-center gap-3 text-[10px] font-semibold">
+              <div className="flex items-center gap-3 text-[12px] font-semibold">
                 <span className="flex items-center gap-1 text-emerald-600">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" /> Delivered
                 </span>
@@ -265,29 +265,29 @@ export default function PlatformAnalyticsPage() {
                 <p className="text-xs text-slate-400">Turn consumption and automated resolution tracking</p>
               </div>
             </div>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold text-emerald-700">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-bold text-emerald-700">
               Active LLaMA 3.3 Engine
             </span>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-4">
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Conversations</p>
+              <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Conversations</p>
               <p className="mt-1 text-xl font-bold text-slate-900">{ai.totalConversations}</p>
             </div>
 
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total AI Auto-Replies</p>
+              <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total AI Auto-Replies</p>
               <p className="mt-1 text-xl font-bold text-emerald-700">{ai.totalAITurns}</p>
             </div>
 
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Avg Turns / Conversation</p>
+              <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Avg Turns / Conversation</p>
               <p className="mt-1 text-xl font-bold text-slate-900">{ai.avgTurnsPerConversation}</p>
             </div>
 
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Message Volume</p>
+              <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Message Volume</p>
               <p className="mt-1 text-xl font-bold text-slate-900">
                 {new Intl.NumberFormat("en-IN").format(ai.totalMessages || 0)}
               </p>

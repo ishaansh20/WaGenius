@@ -86,7 +86,7 @@ export default function PlatformLayout({ title, description, actions, children }
             <ShieldCheck className="h-4.5 w-4.5 text-[#C5D8E8]" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B8BA5]">
+            <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#6B8BA5]">
               Wagenius
             </p>
             <p className="truncate text-sm font-semibold tracking-tight text-[#1A3652]">
@@ -118,11 +118,11 @@ export default function PlatformLayout({ title, description, actions, children }
             <p className="truncate text-xs font-semibold text-[#1A3652]">
               {platformUser?.name || "Super Admin"}
             </p>
-            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#C5D8E8] text-[#2E5C8A]">
+            <span className="text-[12px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#C5D8E8] text-[#2E5C8A]">
               Root
             </span>
           </div>
-          <p className="truncate text-[11px] text-[#6B8BA5] mt-0.5">
+          <p className="truncate text-[13px] text-[#6B8BA5] mt-0.5">
             {platformUser?.email}
           </p>
         </div>

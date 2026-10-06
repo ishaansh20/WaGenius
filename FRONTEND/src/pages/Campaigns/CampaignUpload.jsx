@@ -3,26 +3,56 @@ import api from "../../services/api";
 import { resolveMediaUrl } from "../../utils/media";
 import { toast } from "react-hot-toast";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { CheckCircle, ChevronDown, FileText, Rocket, UploadCloud, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  CheckCheck,
+  CheckCircle,
+  ChevronDown,
+  FileText,
+  Plus,
+  Send,
+  UploadCloud,
+  X,
+} from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import StepBadge from "../../components/common/StepBadge";
 import { extractVariableTokens, mergeCategories } from "../../constants/templates";
 import { EMPTY_CSV_ANALYSIS, parseCsvAnalysis } from "../../utils/csvAnalysis";
 import { fetchSegments, fetchTemplateCategories } from "../../services/api";
 import { fetchSegmentAsCsvFile } from "../../utils/segmentToCsv";
 import usePlan from "../../hooks/usePlan";
 import { Lock } from "lucide-react";
+import { Button, Card, Field, Input, Select, Textarea } from "../../components/ui";
+import { cn } from "../../utils/cn";
 
-/* ── shared input class ── */
-const inputCls =
-  "block h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-800 placeholder-slate-400 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100";
+/* ── shared control class (for hand-rolled controls that mirror ui/Field) ── */
+const controlCls =
+  "block h-11 w-full rounded-xl border border-line-strong bg-surface px-3.5 text-[14px] text-ink placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-600/12";
+
+/* ── Numbered form section ── */
+function FormSection({ n, title, description, children }) {
+  return (
+    <Card as="section">
+      <div className="mb-5 flex items-start gap-3.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[14px] font-semibold tabular-nums text-brand-700">
+          {n}
+        </span>
+        <div className="min-w-0 pt-0.5">
+          <h2 className="text-[17px] font-semibold text-ink">{title}</h2>
+          {description && <p className="mt-1 text-[14px] text-ink-muted">{description}</p>}
+        </div>
+      </div>
+      {children}
+    </Card>
+  );
+}
 
 /* ── Summary row ── */
-function SummaryRow({ label, value, valueClass = "text-slate-800" }) {
+function SummaryRow({ label, value, valueClass = "text-ink" }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-0 last:pb-0">
-      <span className="text-[12px] text-slate-500">{label}</span>
-      <span className={`max-w-[60%] truncate text-right text-[12px] font-semibold ${valueClass}`}>
+    <div className="flex items-center justify-between gap-3 border-b border-line py-2.5 last:border-0 last:pb-0">
+      <span className="text-[14px] text-ink-muted">{label}</span>
+      <span className={`max-w-[60%] truncate text-right text-[14px] font-medium ${valueClass}`}>
         {value}
       </span>
     </div>
@@ -30,17 +60,33 @@ function SummaryRow({ label, value, valueClass = "text-slate-800" }) {
 }
 
 /* ── Stat tile ── */
-function StatTile({ label, value, color }) {
-  const colors = {
-    default: "border-slate-200 bg-slate-50 text-slate-500",
-    emerald: "border-emerald-200 bg-emerald-50 text-emerald-600",
-    red: "border-red-200 bg-red-50 text-red-600",
-    amber: "border-amber-200 bg-amber-50 text-amber-600",
+function StatTile({ label, value, tone }) {
+  const tones = {
+    default: "text-ink",
+    brand: "text-brand-700",
+    danger: "text-danger",
+    warning: "text-warning",
   };
   return (
-    <div className={`rounded-lg border p-3 ${colors[color] || colors.default}`}>
-      <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
+    <div className="rounded-xl border border-line bg-canvas px-3.5 py-3">
+      <p className="text-[13px] text-ink-muted">{label}</p>
+      <p className={`mt-1 text-[22px] font-semibold tracking-[-0.02em] tabular-nums ${tones[tone] || tones.default}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/* ── Inline note (success / warning) ── */
+function Note({ tone = "brand", icon: Icon, children }) {
+  const tones = {
+    brand: "border-brand-100 bg-brand-50 text-brand-800",
+    warning: "border-warning/20 bg-warning-soft text-warning",
+  };
+  return (
+    <div className={cn("flex items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-[14px]", tones[tone])}>
+      {Icon && <Icon className="mt-0.5 h-4 w-4 shrink-0" />}
+      <div>{children}</div>
     </div>
   );
 }
@@ -323,164 +369,95 @@ export default function CampaignUpload() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+
+  const selectedSegmentName = segments.find((s) => s._id === selectedSegmentId)?.name;
+
   return (
     <DashboardLayout title="Create Campaign">
       <div className="w-full">
         <form onSubmit={handleSubmit}>
+          {/* Page header */}
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-[28px] font-semibold tracking-[-0.025em] text-ink sm:text-[30px]">
+              Create campaign
+            </h1>
+            <p className="mt-1.5 text-[15px] text-ink-muted">
+              Write your message, choose who gets it, and send it on WhatsApp now or later.
+            </p>
+          </div>
+
           {/* Campaign limit reached banner */}
           {campaignLimitReached && (
-            <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px]">
-              <Lock className="h-4 w-4 shrink-0 text-amber-600" />
-              <span className="text-amber-800">
-                <strong>Monthly campaign limit reached</strong> ({getUsage("campaigns")}/{getLimit("campaigns")} this month).
-                {" "}Upgrade to <strong>{plan?.slug === "free" ? "Pro" : "Enterprise"}</strong> to send more campaigns this month.
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-warning/20 bg-warning-soft px-4 py-3 text-[14px] text-warning">
+              <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong className="font-semibold">Monthly campaign limit reached</strong> ({getUsage("campaigns")}/{getLimit("campaigns")} this month).
+                {" "}Upgrade to <strong className="font-semibold">{plan?.slug === "free" ? "Pro" : "Enterprise"}</strong> to send more campaigns this month.
               </span>
             </div>
           )}
 
-          {/* Page header */}
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                Campaigns
-              </p>
-              <h1 className="text-[17px] font-semibold leading-tight text-slate-900">
-                Create Campaign
-              </h1>
-              <p className="mt-0.5 text-[13px] text-slate-500">
-                Upload contacts and launch a WhatsApp campaign
-              </p>
-            </div>
-          </div>
-
           {/* Two-column layout */}
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_288px] xl:grid-cols-[1fr_304px]">
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_368px]">
 
-            {/* ═══ LEFT: form steps ═══ */}
-            <div className="flex flex-col gap-4">
+            {/* ═══ LEFT: form sections ═══ */}
+            <div className="space-y-5">
 
-              {/* Step 1: Campaign Basics */}
-              <section className="rounded-xl border border-slate-200 bg-white p-5">
-                <StepBadge n="1" label="Campaign Basics" />
+              {/* 1 · Campaign details */}
+              <FormSection
+                n="1"
+                title="Campaign details"
+                description="Give your campaign a name you'll recognise later and pick its type."
+              >
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Input
+                    label="Campaign name"
+                    type="text"
+                    value={campaignName}
+                    onChange={(e) => setCampaignName(e.target.value)}
+                    placeholder="e.g. Diwali Offer 2025"
+                  />
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      Campaign Name
-                    </label>
-                    <input
-                      type="text"
-                      value={campaignName}
-                      onChange={(e) => setCampaignName(e.target.value)}
-                      className={inputCls}
-                      placeholder="e.g. Diwali Offer 2025"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      Campaign Type
-                    </label>
-                    <select
-                      value={campaignType}
-                      onChange={(e) => {
-                        setCampaignType(e.target.value);
-                        setTemplateSearch("");
-                        setMessage("");
-                        setSelectedNormalTemplateId("");
-                        setShowTemplateDropdown(false);
-                      }}
-                      className={`${inputCls} cursor-pointer`}
-                    >
-                      <option value="">Select type…</option>
-                      {mergedCategories.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <Select
+                    label="Campaign type"
+                    value={campaignType}
+                    onChange={(e) => {
+                      setCampaignType(e.target.value);
+                      setTemplateSearch("");
+                      setMessage("");
+                      setSelectedNormalTemplateId("");
+                      setShowTemplateDropdown(false);
+                    }}
+                    inputClassName="cursor-pointer"
+                  >
+                    <option value="">Select type…</option>
+                    {mergedCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </Select>
                 </div>
+              </FormSection>
 
-                {/* Delivery mode */}
-                <div className="mt-4">
-                  <p className="mb-1.5 text-[12px] font-medium text-slate-700">
-                    Delivery Mode
-                  </p>
-                  <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setIsScheduled(false)}
-                      className={`rounded-md px-4 py-1.5 text-[12.5px] font-medium transition-all ${
-                        !isScheduled
-                          ? "bg-white text-slate-900 shadow-sm"
-                          : "text-slate-500 hover:text-slate-800"
-                      }`}
-                    >
-                      Send Immediately
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!canSchedule) {
-                          toast.error("Campaign scheduling is available on Pro and Enterprise plans. Upgrade to unlock.", { icon: "🔒" });
-                          return;
-                        }
-                        setIsScheduled(true);
-                      }}
-                      className={`rounded-md px-4 py-1.5 text-[12.5px] font-medium transition-all flex items-center gap-1.5 ${
-                        isScheduled
-                          ? "bg-white text-slate-900 shadow-sm"
-                          : "text-slate-500 hover:text-slate-800"
-                      }`}
-                    >
-                      {!canSchedule && <Lock className="h-3 w-3 text-slate-400" />}
-                      Schedule for Later
-                    </button>
-                  </div>
-                </div>
-
-                {isScheduled && (
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                        Date
-                      </label>
-                      <input
-                        type="date"
-                        value={scheduleDate}
-                        onChange={(e) => setScheduleDate(e.target.value)}
-                        className={inputCls}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                        Time
-                      </label>
-                      <input
-                        type="time"
-                        value={scheduleTime}
-                        onChange={(e) => setScheduleTime(e.target.value)}
-                        className={inputCls}
-                      />
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              {/* Step 2: Message Builder */}
-              <section className="rounded-xl border border-slate-200 bg-white p-5">
-                <StepBadge n="2" label="Message Builder" />
-
-                <div className="mb-4 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5">
-                  <div>
-                    <p className="text-[13px] font-medium text-slate-800">Send via Meta-Approved Template</p>
-                    <p className="text-[11.5px] text-slate-500">
+              {/* 2 · Message */}
+              <FormSection
+                n="2"
+                title="Message"
+                description="Pick a saved template or write your own message."
+              >
+                <div className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-line bg-canvas px-4 py-3.5">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-medium text-ink">Send using a Meta-approved template</p>
+                    <p className="mt-0.5 text-[13px] text-ink-muted">
                       Required to reach contacts outside the 24-hour message window.
                     </p>
                   </div>
                   <button
                     type="button"
+                    role="switch"
+                    aria-checked={useMetaTemplate}
+                    aria-label="Send using a Meta-approved template"
                     onClick={() => setUseMetaTemplate((v) => !v)}
-                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${useMetaTemplate ? "bg-emerald-600" : "bg-slate-300"}`}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${useMetaTemplate ? "bg-brand-600" : "bg-line-strong"}`}
                   >
                     <span
                       className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${useMetaTemplate ? "translate-x-5" : "translate-x-0"}`}
@@ -490,72 +467,85 @@ export default function CampaignUpload() {
 
                 {useMetaTemplate ? (
                   <div>
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      Approved Template <span className="text-red-400">*</span>
-                    </label>
-                    <select
-                      value={selectedMetaTemplateId}
-                      onChange={(e) => {
-                        setSelectedMetaTemplateId(e.target.value);
-                        setTemplateVariableValues([]);
-                        setButtonVariableValues([]);
-                      }}
-                      className={`${inputCls} cursor-pointer`}
-                    >
-                      <option value="">Select an approved template…</option>
-                      {metaApprovedTemplates.map((t) => (
-                        <option key={t._id} value={t._id}>{t.name} ({t.metaTemplateName})</option>
-                      ))}
-                    </select>
+                    <Field label="Approved template" required htmlFor="meta-template-select">
+                      <div className="relative">
+                        <select
+                          id="meta-template-select"
+                          value={selectedMetaTemplateId}
+                          onChange={(e) => {
+                            setSelectedMetaTemplateId(e.target.value);
+                            setTemplateVariableValues([]);
+                            setButtonVariableValues([]);
+                          }}
+                          className={`${controlCls} cursor-pointer appearance-none pr-10`}
+                        >
+                          <option value="">Select an approved template…</option>
+                          {metaApprovedTemplates.map((t) => (
+                            <option key={t._id} value={t._id}>{t.name} ({t.metaTemplateName})</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-subtle" />
+                      </div>
+                    </Field>
 
                     {metaApprovedTemplates.length === 0 && (
-                      <p className="mt-2 text-[12px] text-amber-600">
-                        No Meta-approved templates yet. Create and submit one from the Templates page.
-                      </p>
+                      <div className="mt-3">
+                        <Note tone="warning" icon={AlertTriangle}>
+                          No Meta-approved templates yet. Create and submit one from the Templates page.
+                        </Note>
+                      </div>
                     )}
 
                     {selectedMetaTemplate && (
-                      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                        <p className="mb-2 whitespace-pre-wrap text-[13px] text-slate-700">
+                      <div className="mt-4 rounded-xl border border-line bg-canvas p-4">
+                        <p className="text-[13px] font-medium text-ink-muted">Template text</p>
+                        <p className="mt-1.5 whitespace-pre-wrap text-[14px] leading-relaxed text-ink">
                           {selectedMetaTemplate.description}
                         </p>
 
                         {metaVariableCount > 0 && (
-                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            {Array.from({ length: metaVariableCount }, (_, i) => (
-                              <div key={i}>
-                                <input
-                                  type="text"
-                                  value={templateVariableValues[i] || ""}
-                                  onChange={(e) => {
-                                    const next = [...templateVariableValues];
-                                    next[i] = e.target.value;
-                                    setTemplateVariableValues(next);
-                                  }}
-                                  placeholder={`Value for {{${i + 1}}}`}
-                                  className={inputCls}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const next = [...templateVariableValues];
-                                    next[i] = "{{contact_name}}";
-                                    setTemplateVariableValues(next);
-                                  }}
-                                  className="mt-1 text-[11px] font-medium text-emerald-600 hover:underline"
-                                >
-                                  Use contact name
-                                </button>
-                              </div>
-                            ))}
+                          <div className="mt-4 border-t border-line pt-4">
+                            <p className="text-[13px] font-medium text-ink">Fill in the blanks</p>
+                            <p className="mt-0.5 text-[13px] text-ink-muted">
+                              Each value replaces a {"{{number}}"} in the template text above.
+                            </p>
+                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              {Array.from({ length: metaVariableCount }, (_, i) => (
+                                <div key={i}>
+                                  <input
+                                    type="text"
+                                    value={templateVariableValues[i] || ""}
+                                    onChange={(e) => {
+                                      const next = [...templateVariableValues];
+                                      next[i] = e.target.value;
+                                      setTemplateVariableValues(next);
+                                    }}
+                                    placeholder={`Value for {{${i + 1}}}`}
+                                    aria-label={`Value for {{${i + 1}}}`}
+                                    className={controlCls}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = [...templateVariableValues];
+                                      next[i] = "{{contact_name}}";
+                                      setTemplateVariableValues(next);
+                                    }}
+                                    className="mt-1.5 text-[13px] font-medium text-brand-700 hover:underline"
+                                  >
+                                    Use contact name
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
 
                         {dynamicButtonIndexes.length > 0 && (
-                          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <div className="mt-4 grid grid-cols-1 gap-3 border-t border-line pt-4 sm:grid-cols-2">
                             {dynamicButtonIndexes.map((i) => (
                               <div key={i}>
-                                <label className="mb-1 block text-[11px] text-slate-500">
+                                <label className="mb-1.5 block text-[13px] font-medium text-ink">
                                   Link value for "{selectedMetaTemplate.buttons[i].text}" button
                                 </label>
                                 <input
@@ -567,7 +557,7 @@ export default function CampaignUpload() {
                                     setButtonVariableValues(next);
                                   }}
                                   placeholder="e.g. 48213"
-                                  className={inputCls}
+                                  className={controlCls}
                                 />
                               </div>
                             ))}
@@ -577,17 +567,17 @@ export default function CampaignUpload() {
                     )}
                   </div>
                 ) : campaignType && (
-                  <div className="mb-3">
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
+                  <div className="mb-4">
+                    <label className="mb-1.5 block text-[13px] font-medium text-ink">
                       Template
                     </label>
                     <div ref={templateDropdownRef} className="relative">
                       <button
                         type="button"
                         onClick={() => setShowTemplateDropdown((v) => !v)}
-                        className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 text-left text-[13.5px] transition hover:border-slate-300 hover:bg-white"
+                        className="flex h-11 w-full items-center justify-between rounded-xl border border-line-strong bg-surface px-3.5 text-left text-[14px] transition-colors hover:border-ink-subtle focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-600/12"
                       >
-                        <span className={templateSearch ? "text-slate-800" : "text-slate-400"}>
+                        <span className={templateSearch ? "text-ink" : "text-ink-subtle"}>
                           {templateSearch || "Select a template…"}
                         </span>
                         <div className="flex items-center gap-1">
@@ -595,19 +585,20 @@ export default function CampaignUpload() {
                             <span
                               role="button"
                               tabIndex={0}
+                              aria-label="Clear template"
                               onClick={(e) => { e.stopPropagation(); setTemplateSearch(""); setMessage(""); setSelectedNormalTemplateId(""); }}
                               onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); setTemplateSearch(""); setMessage(""); setSelectedNormalTemplateId(""); } }}
-                              className="rounded p-0.5 text-slate-400 hover:text-slate-700"
+                              className="rounded-md p-1 text-ink-muted hover:bg-canvas hover:text-ink"
                             >
-                              <X className="h-3.5 w-3.5" />
+                              <X className="h-4 w-4" />
                             </span>
                           )}
-                          <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                          <ChevronDown className="h-4 w-4 text-ink-subtle" />
                         </div>
                       </button>
 
                       {showTemplateDropdown && (
-                        <div className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                        <div className="absolute z-50 mt-1.5 max-h-64 w-full overflow-y-auto rounded-xl border border-line bg-surface py-1 shadow-[0_12px_32px_rgba(15,28,23,0.12)]">
                           {mergedTemplates.length > 0 ? (
                             mergedTemplates.map((t) => (
                               <button
@@ -620,22 +611,26 @@ export default function CampaignUpload() {
                                   setSelectedNormalTemplateId(t._id || t.id);
                                   setShowTemplateDropdown(false);
                                 }}
-                                className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2.5 text-left text-[13px] text-slate-700 last:border-0 hover:bg-slate-50"
+                                className={cn(
+                                  "flex w-full items-center justify-between px-3.5 py-2.5 text-left text-[14px] text-ink hover:bg-canvas",
+                                  (t._id || t.id) === selectedNormalTemplateId && "bg-brand-50 font-medium text-brand-900",
+                                )}
                               >
                                 {t.name || t.title}
                               </button>
                             ))
                           ) : (
-                            <div className="px-3 py-3 text-[13px] text-slate-400">
+                            <div className="px-3.5 py-3 text-[14px] text-ink-muted">
                               No templates for this type
                             </div>
                           )}
                           <button
                             type="button"
                             onClick={() => navigate("/templates/create")}
-                            className="w-full border-t border-slate-100 px-3 py-2.5 text-left text-[13px] font-medium text-emerald-600 hover:bg-emerald-50"
+                            className="mt-1 flex w-full items-center gap-2 border-t border-line px-3.5 py-2.5 text-left text-[14px] font-medium text-brand-700 hover:bg-brand-50"
                           >
-                            + Create New Template
+                            <Plus className="h-4 w-4" />
+                            Create new template
                           </button>
                         </div>
                       )}
@@ -646,79 +641,83 @@ export default function CampaignUpload() {
                 {!useMetaTemplate && (
                   <div>
                     <div className="mb-1.5 flex items-center justify-between">
-                      <label className="text-[12px] font-medium text-slate-700">
+                      <label htmlFor="campaign-message" className="text-[13px] font-medium text-ink">
                         Message
                       </label>
-                      <span className="text-[11px] tabular-nums text-slate-400">
-                        {message.length} chars
+                      <span className="text-[13px] tabular-nums text-ink-muted">
+                        {message.length} characters
                       </span>
                     </div>
-                    <textarea
+                    <Textarea
+                      id="campaign-message"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       placeholder="Write your WhatsApp campaign message…"
                       rows={6}
-                      className="block w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13.5px] text-slate-800 placeholder-slate-400 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100"
+                      inputClassName="resize-none text-[14px]"
                     />
                   </div>
                 )}
 
                 {/* Test send — catches typos/broken variables before broadcasting */}
-                <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <p className="mb-2 text-[12px] font-medium text-slate-700">
+                <div className="mt-5 rounded-xl border border-line bg-canvas p-4">
+                  <p className="text-[14px] font-medium text-ink">
                     Send yourself a test message
                   </p>
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  <p className="mt-0.5 text-[13px] text-ink-muted">
+                    Sends the message/template above to this one number only — doesn't count
+                    toward any campaign.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2.5 sm:flex-row">
                     <input
                       type="text"
                       value={testPhone}
                       onChange={(e) => setTestPhone(e.target.value)}
                       placeholder="e.g. 919876543210"
-                      className={`${inputCls} sm:max-w-[220px]`}
+                      aria-label="Phone number for test message"
+                      className={`${controlCls} sm:max-w-[260px]`}
                     />
-                    <button
-                      type="button"
+                    <Button
+                      variant="secondary"
                       onClick={handleSendTest}
                       disabled={testSending || !isMessageReady()}
-                      className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[12.5px] font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      leftIcon={Send}
+                      className="h-11"
                     >
-                      {testSending ? "Sending…" : "Send Test"}
-                    </button>
+                      {testSending ? "Sending…" : "Send test"}
+                    </Button>
                   </div>
-                  <p className="mt-1.5 text-[11px] text-slate-400">
-                    Sends the message/template above to this one number only — doesn't count
-                    toward any campaign.
-                  </p>
                 </div>
-              </section>
+              </FormSection>
 
-              {/* Step 3: CSV Upload */}
-              <section className="rounded-xl border border-slate-200 bg-white p-5">
-                <StepBadge n="3" label="Contact List" />
+              {/* 3 · Contacts */}
+              <FormSection
+                n="3"
+                title="Contacts"
+                description="Choose who will receive this campaign."
+              >
+                <div className="space-y-4">
+                  {prefilledCount && file?.name === "contacts-selection.csv" && (
+                    <Note icon={CheckCircle}>
+                      Using {prefilledCount} contact{prefilledCount === 1 ? "" : "s"} selected from
+                      Contacts.
+                    </Note>
+                  )}
 
-                {prefilledCount && file?.name === "contacts-selection.csv" && (
-                  <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12.5px] text-emerald-700">
-                    Using {prefilledCount} contact{prefilledCount === 1 ? "" : "s"} selected from
-                    Contacts.
-                  </div>
-                )}
+                  {segmentAudienceCount !== null && selectedSegmentId && (
+                    <Note icon={CheckCircle}>
+                      Using {segmentAudienceCount} contact{segmentAudienceCount === 1 ? "" : "s"} from
+                      the "{selectedSegmentName}" segment.
+                    </Note>
+                  )}
 
-                {segmentAudienceCount !== null && selectedSegmentId && (
-                  <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12.5px] text-emerald-700">
-                    Using {segmentAudienceCount} contact{segmentAudienceCount === 1 ? "" : "s"} from
-                    the "{segments.find((s) => s._id === selectedSegmentId)?.name}" segment.
-                  </div>
-                )}
-
-                {segments.length > 0 && (
-                  <div className="mb-3">
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      Or choose a saved segment
-                    </label>
-                    <select
+                  {segments.length > 0 && (
+                    <Select
+                      label="Send to a saved group"
+                      help="Or leave this empty and upload a CSV file below."
                       value={selectedSegmentId}
                       onChange={(e) => handleSegmentSelect(e.target.value)}
-                      className={`${inputCls} cursor-pointer`}
+                      inputClassName="cursor-pointer"
                     >
                       <option value="">Upload a CSV instead…</option>
                       {segments.map((s) => (
@@ -726,227 +725,297 @@ export default function CampaignUpload() {
                           {s.name} ({s.contactCount})
                         </option>
                       ))}
-                    </select>
-                  </div>
-                )}
+                    </Select>
+                  )}
 
-                {!file ? (
-                  <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 py-10 text-center transition-all ${
-                      dragActive
-                        ? "border-emerald-400 bg-emerald-50"
-                        : "border-dashed border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-50/80"
+                  {!file ? (
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          fileInputRef.current?.click();
+                        }
+                      }}
+                      className={cn(
+                        "group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-600/12",
+                        dragActive
+                          ? "border-brand-500 bg-brand-50"
+                          : "border-line-strong bg-canvas hover:border-brand-400 hover:bg-brand-50/60",
+                      )}
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-line bg-surface">
+                        <UploadCloud
+                          className={cn(
+                            "h-5 w-5 transition-colors",
+                            dragActive ? "text-brand-600" : "text-ink-muted group-hover:text-brand-600",
+                          )}
+                        />
+                      </div>
+                      <div>
+                        <p className="text-[15px] font-semibold text-ink">
+                          {dragActive ? "Drop your CSV here" : "Drag and drop your CSV file here"}
+                        </p>
+                        <p className="mt-1 text-[14px] text-ink-muted">
+                          or <span className="font-medium text-brand-700 underline-offset-2 group-hover:underline">click to choose a file</span>
+                        </p>
+                      </div>
+                      <p className="text-[13px] text-ink-muted">
+                        Supports .csv with phone / name columns
+                      </p>
+                      <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3.5">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface">
+                          <FileText className="h-5 w-5 text-brand-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-[14px] font-medium text-ink">{file.name}</p>
+                          <p className="text-[13px] text-ink-muted">{(file.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <CheckCircle className="hidden h-5 w-5 text-brand-600 sm:block" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          Change
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFile(null);
+                            setSelectedSegmentId("");
+                            setSegmentAudienceCount(null);
+                            if (fileInputRef.current) fileInputRef.current.value = "";
+                          }}
+                          aria-label="Remove file"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-line-strong bg-surface text-ink-muted hover:bg-canvas hover:text-ink"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
+                    </div>
+                  )}
+                </div>
+              </FormSection>
+
+              {/* 4 · When to send */}
+              <FormSection
+                n="4"
+                title="When to send"
+                description="Send it right away or pick a date and time."
+              >
+                <div className="inline-flex flex-wrap rounded-xl border border-line bg-canvas p-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsScheduled(false)}
+                    aria-pressed={!isScheduled}
+                    className={`flex h-9 items-center gap-1.5 rounded-lg px-4 text-[14px] font-medium transition-colors ${
+                      !isScheduled
+                        ? "bg-brand-900 text-white"
+                        : "text-ink-muted hover:text-ink"
                     }`}
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white">
-                      <UploadCloud className={`h-5 w-5 ${dragActive ? "text-emerald-500" : "text-slate-400"}`} />
-                    </div>
-                    <div>
-                      <p className="text-[13.5px] font-medium text-slate-700">
-                        {dragActive ? "Drop your CSV here" : "Drag & drop a CSV file"}
-                      </p>
-                      <p className="mt-0.5 text-[12px] text-slate-400">
-                        or{" "}
-                        <span className="font-semibold text-emerald-600">browse to upload</span>
-                      </p>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      Supports .csv with phone / name columns
-                    </p>
-                    <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                        <FileText className="h-4 w-4 text-emerald-600" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-medium text-slate-800">{file.name}</p>
-                        <p className="text-[11px] text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-500" />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-[12px] font-medium text-slate-500 hover:text-slate-800"
-                      >
-                        Change
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFile(null);
-                          setSelectedSegmentId("");
-                          setSegmentAudienceCount(null);
-                          if (fileInputRef.current) fileInputRef.current.value = "";
-                        }}
-                        aria-label="Remove file"
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
-                  </div>
-                )}
-              </section>
-
-              {/* Step 4: Launch */}
-              <section className="rounded-xl border border-slate-200 bg-white p-5">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <p className="text-[13.5px] font-semibold text-slate-900">
-                      Ready to launch?
-                    </p>
-                    <p className="mt-0.5 text-[12px] text-slate-400">
-                      Review the summary on the right before sending.
-                    </p>
-                  </div>
+                    <Send className="h-4 w-4" />
+                    Send now
+                  </button>
                   <button
-                    type="submit"
-                    disabled={uploading}
-                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    type="button"
+                    onClick={() => {
+                      if (!canSchedule) {
+                        toast.error("Campaign scheduling is available on Pro and Enterprise plans. Upgrade to unlock.", { icon: "🔒" });
+                        return;
+                      }
+                      setIsScheduled(true);
+                    }}
+                    aria-pressed={isScheduled}
+                    className={`flex h-9 items-center gap-1.5 rounded-lg px-4 text-[14px] font-medium transition-colors ${
+                      isScheduled
+                        ? "bg-brand-900 text-white"
+                        : "text-ink-muted hover:text-ink"
+                    }`}
                   >
-                    {uploading ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    ) : (
-                      <Rocket className="h-4 w-4" />
-                    )}
-                    {uploading ? "Launching…" : "Launch Campaign"}
+                    {!canSchedule ? <Lock className="h-4 w-4" /> : <CalendarClock className="h-4 w-4" />}
+                    Schedule for later
                   </button>
                 </div>
-              </section>
+                {!canSchedule && (
+                  <p className="mt-2 text-[13px] text-ink-muted">
+                    Scheduling is available on Pro and Enterprise plans.
+                  </p>
+                )}
+
+                {isScheduled && (
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Input
+                      label="Date"
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                    />
+                    <Input
+                      label="Time"
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                    />
+                  </div>
+                )}
+              </FormSection>
             </div>
 
-            {/* ═══ RIGHT: sticky sidebar ═══ */}
-            <div className="flex flex-col gap-4 lg:sticky lg:top-6">
-
-              {/* Campaign Summary */}
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-widest text-slate-400">
-                  Summary
-                </h3>
-                <SummaryRow label="Name" value={campaignName.trim() || "—"} />
-                <SummaryRow label="Type" value={campaignType || "—"} />
-                <SummaryRow
-                  label="Mode"
-                  value={isScheduled ? "Scheduled" : "Immediate"}
-                  valueClass={isScheduled ? "text-amber-600" : "text-emerald-600"}
-                />
-                <SummaryRow label="Characters" value={String(message.length)} />
-                {!useMetaTemplate && selectedNormalTemplate?.mediaUrl && (
-                  <SummaryRow label="Attachment" value="Image included" valueClass="text-emerald-600" />
-                )}
-              </div>
+            {/* ═══ RIGHT: sticky preview + summary ═══ */}
+            <div className="space-y-5 lg:sticky lg:top-6">
 
               {/* WhatsApp Preview */}
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-widest text-slate-400">
-                  Preview
-                </h3>
-                <div className="min-h-[120px] rounded-lg border border-slate-200 bg-[#ece5dc] p-3">
-                  <div className="mb-2.5 flex items-center gap-2 border-b border-slate-200/60 pb-2.5">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[9px] font-bold text-white">
+              <Card>
+                <h2 className="text-[17px] font-semibold text-ink">Preview</h2>
+                <p className="mt-1 text-[14px] text-ink-muted">How your message will look on WhatsApp.</p>
+                <div className="mt-4 overflow-hidden rounded-xl border border-line">
+                  <div className="flex items-center gap-2.5 bg-brand-900 px-3.5 py-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-[12px] font-semibold text-white">
                       WA
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-semibold text-slate-800">Campaign Preview</p>
-                      <span className="text-[10px] text-emerald-600">online</span>
+                      <p className="truncate text-[14px] font-medium text-white">
+                        {campaignName.trim() || "Your business"}
+                      </p>
+                      <p className="text-[12px] text-white/75">online</p>
                     </div>
                   </div>
-                  <div className="flex justify-end">
-                    {hasMessage ? (
-                      <div className="max-w-[90%] rounded-xl rounded-br-sm bg-[#d9fdd3] px-3 py-2 shadow-sm">
-                        {!useMetaTemplate && selectedNormalTemplate?.mediaUrl && (
-                          <img
-                            src={resolveMediaUrl(selectedNormalTemplate.mediaUrl)}
-                            alt=""
-                            className="mb-2 max-h-40 w-full rounded-lg object-cover"
-                          />
-                        )}
-                        {useMetaTemplate && selectedMetaTemplate?.headerType === "IMAGE" && (() => {
-                          const metaImg =
-                            selectedMetaTemplate.headerMediaUrl ||
-                            selectedMetaTemplate.mediaUrl ||
-                            (/^https?:\/\//i.test(selectedMetaTemplate.headerHandle)
-                              ? selectedMetaTemplate.headerHandle
-                              : "");
-                          return metaImg ? (
+                  <div className="min-h-[160px] bg-[#efeae2] p-3.5">
+                    <div className="flex justify-end">
+                      {hasMessage ? (
+                        <div className="max-w-[92%] rounded-xl rounded-tr-sm bg-[#d9fdd3] px-3 py-2 shadow-[0_1px_1px_rgba(15,28,23,0.12)]">
+                          {!useMetaTemplate && selectedNormalTemplate?.mediaUrl && (
                             <img
-                              src={resolveMediaUrl(metaImg)}
+                              src={resolveMediaUrl(selectedNormalTemplate.mediaUrl)}
                               alt=""
                               className="mb-2 max-h-40 w-full rounded-lg object-cover"
                             />
-                          ) : null;
-                        })()}
-                        <p className="whitespace-pre-wrap break-words text-[12.5px] leading-relaxed text-slate-800">
-                          {message}
-                        </p>
-                        <p className="mt-0.5 text-right text-[10px] text-emerald-500">✓✓</p>
-                      </div>
-                    ) : (
-                      <div className="max-w-[90%] rounded-xl rounded-br-sm bg-slate-100 px-3 py-2">
-                        <p className="text-[12.5px] italic text-slate-400">
-                          Message preview will appear here…
-                        </p>
-                      </div>
-                    )}
+                          )}
+                          {useMetaTemplate && selectedMetaTemplate?.headerType === "IMAGE" && (() => {
+                            const metaImg =
+                              selectedMetaTemplate.headerMediaUrl ||
+                              selectedMetaTemplate.mediaUrl ||
+                              (/^https?:\/\//i.test(selectedMetaTemplate.headerHandle)
+                                ? selectedMetaTemplate.headerHandle
+                                : "");
+                            return metaImg ? (
+                              <img
+                                src={resolveMediaUrl(metaImg)}
+                                alt=""
+                                className="mb-2 max-h-40 w-full rounded-lg object-cover"
+                              />
+                            ) : null;
+                          })()}
+                          <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-ink">
+                            {message}
+                          </p>
+                          <div className="mt-0.5 flex justify-end">
+                            <CheckCheck className="h-4 w-4 text-brand-600" aria-hidden="true" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="max-w-[92%] rounded-xl rounded-tr-sm bg-surface/80 px-3 py-2">
+                          <p className="text-[14px] text-ink-muted">
+                            Your message preview will appear here.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Card>
 
-              {/* Audience Summary */}
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-widest text-slate-400">
-                  Audience
-                </h3>
+              {/* Summary + launch */}
+              <Card>
+                <h2 className="text-[17px] font-semibold text-ink">Summary</h2>
+                <div className="mt-3">
+                  <SummaryRow label="Name" value={campaignName.trim() || "—"} />
+                  <SummaryRow label="Type" value={campaignType || "—"} />
+                  <SummaryRow
+                    label="When"
+                    value={isScheduled ? "Scheduled" : "Send now"}
+                    valueClass={isScheduled ? "text-info" : "text-brand-700"}
+                  />
+                  <SummaryRow label="Characters" value={String(message.length)} />
+                  {!useMetaTemplate && selectedNormalTemplate?.mediaUrl && (
+                    <SummaryRow label="Attachment" value="Image included" valueClass="text-brand-700" />
+                  )}
+                </div>
 
-                {!file ? (
-                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
-                    <p className="text-[12px] text-slate-400">
-                      Upload a CSV to see audience stats
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    <div className="grid grid-cols-2 gap-2">
-                      <StatTile label="Total" value={csvAnalysis.totalContacts} color="default" />
-                      <StatTile label="Valid" value={csvAnalysis.validContacts} color="emerald" />
-                      <StatTile label="Invalid" value={csvAnalysis.invalidContacts} color="red" />
-                      <StatTile label="Dupes" value={csvAnalysis.duplicateContacts} color="amber" />
+                {/* Audience */}
+                <div className="mt-5 border-t border-line pt-5">
+                  <h3 className="text-[15px] font-semibold text-ink">Contacts</h3>
+
+                  {!file ? (
+                    <div className="mt-3 rounded-xl bg-canvas px-4 py-5 text-center">
+                      <p className="text-[14px] text-ink-muted">
+                        Upload a CSV to see audience stats
+                      </p>
                     </div>
-
-                    {csvAnalysis.duplicateContacts > 0 && (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-700">
-                        ⚠ {csvAnalysis.duplicateContacts} duplicate{csvAnalysis.duplicateContacts > 1 ? "s" : ""} found — please deduplicate before launching.
+                  ) : (
+                    <div className="mt-3 flex flex-col gap-3">
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <StatTile label="Total" value={csvAnalysis.totalContacts} tone="default" />
+                        <StatTile label="Valid" value={csvAnalysis.validContacts} tone="brand" />
+                        <StatTile label="Invalid" value={csvAnalysis.invalidContacts} tone={csvAnalysis.invalidContacts > 0 ? "danger" : "default"} />
+                        <StatTile label="Duplicates" value={csvAnalysis.duplicateContacts} tone={csvAnalysis.duplicateContacts > 0 ? "warning" : "default"} />
                       </div>
-                    )}
 
-                    {csvAnalysis.columns.length > 0 && (
-                      <div>
-                        <p className="mb-1.5 text-[11px] font-medium text-slate-500">Detected columns</p>
-                        <div className="flex flex-wrap gap-1">
-                          {csvAnalysis.columns.map((col) => (
-                            <span
-                              key={col}
-                              className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600"
-                            >
-                              {col}
-                            </span>
-                          ))}
+                      {csvAnalysis.duplicateContacts > 0 && (
+                        <Note tone="warning" icon={AlertTriangle}>
+                          {csvAnalysis.duplicateContacts} duplicate{csvAnalysis.duplicateContacts > 1 ? "s" : ""} found — please deduplicate before launching.
+                        </Note>
+                      )}
+
+                      {csvAnalysis.columns.length > 0 && (
+                        <div>
+                          <p className="mb-1.5 text-[13px] text-ink-muted">Detected columns</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {csvAnalysis.columns.map((col) => (
+                              <span
+                                key={col}
+                                className="rounded-full border border-line bg-canvas px-2.5 py-0.5 text-[13px] font-medium text-ink"
+                              >
+                                {col}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-5 border-t border-line pt-5">
+                  <Button
+                    type="submit"
+                    size="lg"
+                    loading={uploading}
+                    disabled={uploading}
+                    leftIcon={isScheduled ? CalendarClock : Send}
+                    className="w-full"
+                  >
+                    {uploading ? "Launching…" : isScheduled ? "Schedule campaign" : "Send campaign"}
+                  </Button>
+                  <p className="mt-2.5 text-center text-[13px] text-ink-muted">
+                    Check the preview and summary before sending.
+                  </p>
+                </div>
+              </Card>
             </div>
           </div>
         </form>

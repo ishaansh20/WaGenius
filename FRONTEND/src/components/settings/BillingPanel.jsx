@@ -2,15 +2,22 @@ import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import { fetchPlans, fetchMySubscription, selectPlan } from "../../services/api";
+import { Badge, Button, Card, Skeleton } from "../ui";
+import { cn } from "../../utils/cn";
 
-const statusClasses = {
-  TRIAL: "border-amber-200 bg-amber-50 text-amber-700",
-  ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  PENDING: "border-slate-200 bg-slate-50 text-slate-500",
-  SUSPENDED: "border-red-200 bg-red-50 text-red-600",
-  CANCELLED: "border-red-200 bg-red-50 text-red-600",
-  EXPIRED: "border-red-200 bg-red-50 text-red-600",
+const statusTones = {
+  TRIAL: "warning",
+  ACTIVE: "brand",
+  PENDING: "neutral",
+  SUSPENDED: "danger",
+  CANCELLED: "danger",
+  EXPIRED: "danger",
 };
+
+function formatStatus(value = "") {
+  const text = String(value).toLowerCase().replace(/_/g, " ");
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "—";
+}
 
 export default function BillingPanel() {
   const [plans, setPlans] = useState([]);
@@ -57,8 +64,13 @@ export default function BillingPanel() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[300px] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />
+      <div className="space-y-5" aria-busy="true">
+        <Skeleton className="h-[96px] w-full rounded-[var(--radius-card)]" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-[260px] rounded-[var(--radius-card)]" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -68,24 +80,24 @@ export default function BillingPanel() {
   return (
     <div className="space-y-5">
       {subscription && (
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between">
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Current Plan</p>
-              <p className="mt-1 text-lg font-semibold text-slate-900">
+              <p className="text-[13px] text-ink-muted">Current plan</p>
+              <p className="mt-1 text-[20px] font-semibold text-ink">
                 {subscription.planId?.name || "—"}
               </p>
             </div>
-            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses[subscription.status] || statusClasses.PENDING}`}>
-              {subscription.status}
-            </span>
+            <Badge tone={statusTones[subscription.status] || "neutral"} dot className="text-[13px]">
+              {formatStatus(subscription.status)}
+            </Badge>
           </div>
           {subscription.status === "TRIAL" && subscription.trialEndsAt && (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-[14px] text-ink-muted">
               Trial ends {new Date(subscription.trialEndsAt).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}
             </p>
           )}
-        </div>
+        </Card>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -93,41 +105,44 @@ export default function BillingPanel() {
           const isCurrent = plan._id === currentPlanId;
 
           return (
-            <div key={plan._id} className="flex flex-col rounded-xl border border-slate-200 bg-white p-5">
-              <h3 className="text-base font-semibold text-slate-900">{plan.name}</h3>
-              <p className="mt-1 text-2xl font-semibold text-slate-950">
+            <Card
+              key={plan._id}
+              className={cn("flex flex-col", isCurrent && "border-brand-600 ring-1 ring-brand-600")}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="text-[17px] font-semibold text-ink">{plan.name}</h3>
+                {isCurrent && <Badge tone="brand" className="text-[13px]">Current</Badge>}
+              </div>
+              <p className="mt-2 text-[28px] font-semibold tracking-[-0.02em] text-ink tabular-nums">
                 ₹{plan.pricing?.monthly ?? 0}
-                <span className="text-sm font-normal text-slate-400">/month</span>
+                <span className="ml-1 text-[14px] font-normal text-ink-muted">/month</span>
               </p>
 
-              <ul className="mt-4 flex-1 space-y-1.5 text-xs text-slate-600">
+              <ul className="mt-4 flex-1 space-y-2 text-[14px] text-ink">
                 <li>{plan.limits?.users ?? 0} Users</li>
                 <li>{plan.limits?.contacts ?? 0} Contacts</li>
                 <li>{plan.limits?.campaigns ?? 0} Campaigns</li>
                 {plan.features?.whatsapp && (
-                  <li className="flex items-center gap-1 text-emerald-600">
-                    <CheckCircle2 className="h-3 w-3" /> WhatsApp
+                  <li className="flex items-center gap-1.5 text-brand-700">
+                    <CheckCircle2 size={16} /> WhatsApp
                   </li>
                 )}
                 {plan.features?.ai && (
-                  <li className="flex items-center gap-1 text-emerald-600">
-                    <Sparkles className="h-3 w-3" /> AI
+                  <li className="flex items-center gap-1.5 text-brand-700">
+                    <Sparkles size={16} /> AI
                   </li>
                 )}
               </ul>
 
-              <button
+              <Button
+                variant={isCurrent ? "secondary" : "primary"}
                 disabled={isCurrent || selectingId === plan._id}
                 onClick={() => handleSelect(plan)}
-                className={`mt-4 rounded-lg py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
-                  isCurrent
-                    ? "bg-slate-100 text-slate-400"
-                    : "bg-emerald-600 text-white hover:bg-emerald-500"
-                }`}
+                className="mt-5 w-full disabled:cursor-not-allowed"
               >
                 {isCurrent ? "Current Plan" : selectingId === plan._id ? "Selecting..." : plan.trialDays > 0 ? "Start Trial" : "Select Plan"}
-              </button>
-            </div>
+              </Button>
+            </Card>
           );
         })}
       </div>

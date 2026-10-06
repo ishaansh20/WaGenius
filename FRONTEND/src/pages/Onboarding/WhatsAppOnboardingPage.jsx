@@ -4,13 +4,18 @@ import { toast } from "react-hot-toast";
 import {
   ShieldCheck,
   CheckCircle2,
-  Sparkles,
   ArrowRight,
+  ArrowLeft,
   Lock,
   Zap,
   AlertCircle,
   RefreshCw,
   Check,
+  Loader2,
+  CreditCard,
+  Clock3,
+  ExternalLink,
+  LogOut,
 } from "lucide-react";
 import {
   completeEmbeddedSignup,
@@ -19,6 +24,8 @@ import {
   fetchCompanySetupStatus,
 } from "../../services/api";
 import useAuthStore from "../../store/authStore";
+import { Badge, Button, Card, Logo } from "../../components/ui";
+import { cn } from "../../utils/cn";
 
 
 const META_APP_ID = import.meta.env.VITE_META_APP_ID;
@@ -364,234 +371,149 @@ export default function WhatsAppOnboardingPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#FAF8F5] text-slate-900 flex flex-col justify-between">
-      {/* Top Navbar */}
-      <header className="max-w-5xl w-full mx-auto px-6 py-6 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-slate-950 flex items-center justify-center shadow-sm font-black text-white text-xs tracking-wider">
-            WA
-          </div>
-          <span className="font-bold text-lg tracking-tight text-slate-900">
-            WA GENIUS
-          </span>
-        </div>
+  /* ── Derived presentation state for the stepper (display only) ───── */
+  const inProgress = Boolean(statusStage && statusStage !== "ERROR");
+  const connectStepState = alreadyConnected || statusStage === "SUCCESS" ? "done" : "current";
+  const paymentStepState =
+    statusStage === "SUCCESS" || (alreadyConnected && !paymentBlocked)
+      ? "done"
+      : alreadyConnected && paymentBlocked
+        ? "current"
+        : "upcoming";
+  const readyStepState =
+    statusStage === "SUCCESS" ? "done" : alreadyConnected && !paymentBlocked ? "current" : "upcoming";
 
-        <div className="flex items-center gap-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-            <span>Official Meta Cloud API Partner</span>
+  return (
+    <div className="flex min-h-screen flex-col bg-canvas text-ink">
+      {/* Top bar */}
+      <header className="border-b border-line bg-surface">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <Logo />
+
+          <div className="flex items-center gap-3">
+            <Badge tone="brand" className="hidden md:inline-flex">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Official Meta Cloud API partner
+            </Badge>
+            <div className="hidden text-right sm:block">
+              <p className="text-[14px] font-medium text-ink">{user?.name || user?.email}</p>
+              <p className="text-[13px] text-ink-muted">{user?.email}</p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={LogOut}
+              onClick={() => {
+                logout();
+                navigate("/login");
+              }}
+            >
+              Sign out
+            </Button>
           </div>
-          <div className="text-right hidden sm:block">
-            <p className="text-xs font-semibold text-slate-800">{user?.name || user?.email}</p>
-            <p className="text-[11px] text-slate-500">{user?.email}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              logout();
-              navigate("/login");
-            }}
-            className="text-xs font-semibold text-slate-700 hover:text-red-700 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-red-50 shadow-sm transition"
-          >
-            Sign Out
-          </button>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-4xl w-full mx-auto px-6 py-4 sm:py-8 flex-1 flex flex-col justify-center">
-        {/* Header Title */}
-        <div className="text-center max-w-2xl mx-auto space-y-3 mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Step 2 of 2 • WhatsApp Business Connection</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
+      {/* Main */}
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+        {/* Page header */}
+        <div className="mb-6">
+          <p className="text-[13px] font-medium text-brand-700">Step 2 of 2: WhatsApp connection</p>
+          <h1 className="mt-1 text-[28px] font-semibold tracking-[-0.025em] text-ink sm:text-[30px]">
             Connect your WhatsApp Business account
           </h1>
-          <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-            Connect your WhatsApp Business number directly through Meta in under
-            2 minutes to start launching campaigns, automated bots, and shared
-            inboxes.
+          <p className="mt-1.5 text-[15px] text-ink-muted">
+            Link your WhatsApp Business number through Meta. It takes about 2 minutes, then you can send campaigns,
+            reply to customers in the shared inbox and set up automated replies.
           </p>
         </div>
 
-        {/* Central Card */}
-        <div className="rounded-3xl border border-slate-200 bg-white p-7 sm:p-10 shadow-sm space-y-8">
-          {/* Action Box */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 sm:p-8 text-center space-y-5">
-            {/* Status: Already Connected */}
+        {/* Stepper summary */}
+        <ol className="mb-5 grid grid-cols-3 gap-2 rounded-[var(--radius-card)] border border-line bg-surface p-2 shadow-[var(--shadow-card)]">
+          <StepperItem number="1" label="Connect WhatsApp" state={connectStepState} />
+          <StepperItem number="2" label="Payment method" state={paymentStepState} />
+          <StepperItem number="3" label="Ready to go" state={readyStepState} />
+        </ol>
+
+        <div className="space-y-4">
+          {/* ── Step 1: Connect WhatsApp ───────────────────────────── */}
+          <StepCard
+            number="1"
+            title="Connect WhatsApp"
+            description="A secure Meta window opens so you can log in and choose your WhatsApp Business number."
+            state={connectStepState}
+            statusLabel={
+              connectStepState === "done"
+                ? "Connected"
+                : inProgress
+                  ? "Connecting"
+                  : statusStage === "ERROR"
+                    ? "Not finished"
+                    : "To do"
+            }
+          >
             {alreadyConnected ? (
-              <div className="space-y-4 py-2">
-                <div
-                  className={`mx-auto h-16 w-16 rounded-2xl flex items-center justify-center shadow-lg text-white ${
-                    paymentBlocked
-                      ? "bg-amber-500 shadow-amber-500/20"
-                      : "bg-emerald-600 shadow-emerald-600/20"
-                  }`}
-                >
-                  <CheckCircle2 className="h-9 w-9" />
-                </div>
-                <div className="space-y-1.5">
-                  <h2 className="text-xl font-bold text-slate-900">
-                    WhatsApp is Already Connected
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-                    Your company account is already linked to WhatsApp Business
-                    API.
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+                  <div>
+                    <p className="text-[14px] font-medium text-ink">WhatsApp is already connected</p>
+                    <p className="text-[14px] text-ink-muted">
+                      Your company account is linked to the WhatsApp Business API.
+                    </p>
                     {connectedDetails?.phoneNumberId && (
-                      <span className="block mt-1 text-slate-600 font-mono text-xs">
+                      <p className="mt-1 font-mono text-[13px] text-ink-muted">
                         Phone ID: {connectedDetails.phoneNumberId}
-                      </span>
+                      </p>
                     )}
-                  </p>
+                  </div>
                 </div>
-
-                {paymentBlocked ? (
-                  <div className="mx-auto max-w-md space-y-3">
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-left">
-                      <p className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                        Payment Method Required
-                      </p>
-                      <p className="mt-1 text-xs sm:text-sm text-amber-900/90">
-                        {paymentReason ||
-                          "Add a payment method to your WhatsApp Business Account before you can start sending messages."}
-                      </p>
-                    </div>
-
-                    {businessVerificationPending && (
-                      <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left">
-                        <p className="text-xs font-semibold text-sky-900">
-                          Meta Business Verification Pending
-                        </p>
-                        <p className="mt-0.5 text-xs text-sky-800/80 leading-relaxed">
-                          Your Meta Business Portfolio verification is in progress. Messaging volume may be limited by Meta until verification is completed.
-                        </p>
-                      </div>
-                    )}
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                      <a
-                        href={
-                          connectedDetails?.wabaId && connectedDetails?.businessId
-                            ? `https://business.facebook.com/latest/billing_hub/accounts/details/?asset_id=${connectedDetails.wabaId}&business_id=${connectedDetails.businessId}&placement=BILLING_HUB`
-                            : "https://business.facebook.com/billing_hub/payment_methods"
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full sm:w-auto min-w-[200px] py-3 px-6 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2"
-                      >
-                        <span>Add Payment Method</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={runPaymentCheck}
-                        disabled={checkingPayment}
-                        className="w-full sm:w-auto py-3 px-5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition text-center disabled:opacity-60"
-                      >
-                        {checkingPayment ? "Checking…" : "I've added it — Recheck"}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const data = await fetchCompanySetupStatus();
-                          if (data?.setupStatus) {
-                            useAuthStore.getState().setSetupStatus(data.setupStatus);
-                            if (data.setupStatus === "PAYMENT_REQUIRED") {
-                              setPaymentBlocked(true);
-                              toast.error(
-                                "Payment method required on Meta before accessing dashboard.",
-                              );
-                              return;
-                            }
-                          }
-                        } catch {
-                          // fall through
-                        }
-                        navigate("/dashboard");
-                      }}
-                      className="w-full sm:w-auto min-w-[200px] py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2"
-                    >
-                      <span>Go to Dashboard</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAlreadyConnected(false)}
-                      className="w-full sm:w-auto py-3 px-5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm transition text-center"
-                    >
-                      Reconnect Number
-                    </button>
-                  </div>
+                {!paymentBlocked && (
+                  <Button variant="secondary" onClick={() => setAlreadyConnected(false)}>
+                    Reconnect number
+                  </Button>
                 )}
               </div>
-            ) : statusStage && statusStage !== "ERROR" ? (
-              /* Status: Active In-Progress Stages */
-              <div className="space-y-6 py-4">
-                <div className="mx-auto h-16 w-16 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/20 text-white">
+            ) : inProgress ? (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
                   {statusStage === "SUCCESS" ? (
-                    <Check className="h-9 w-9 stroke-[3]" />
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
                   ) : (
-                    <div className="h-8 w-8 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                    <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-brand-600" />
                   )}
+                  <div>
+                    <p className="text-[15px] font-semibold text-ink">{getStageLabel()}</p>
+                    <p className="mt-0.5 text-[14px] text-ink-muted">
+                      {statusStage === "SUCCESS"
+                        ? "Your WhatsApp Business account is verified and linked to your workspace. Taking you to your dashboard..."
+                        : "Please wait. We're confirming your Meta login, finding your WhatsApp number and setting up message delivery."}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <h2 className="text-xl font-bold text-slate-900">
-                    {getStageLabel()}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-                    {statusStage === "SUCCESS"
-                      ? "Your WhatsApp Business account has been verified, encrypted, and linked to your company workspace. Redirecting..."
-                      : "Please wait while we exchange Meta authorization tokens, discover your WABA and phone numbers, and register your webhooks."}
-                  </p>
-                </div>
-
-                {/* Stepper indicators */}
-                <div className="max-w-md mx-auto pt-2 grid grid-cols-4 gap-2">
+                {/* Progress segments */}
+                <div className="grid grid-cols-4 gap-2">
                   {[
-                    { key: "CONNECTING", label: "Auth Code" },
-                    { key: "PROCESSING", label: "Meta Token" },
-                    { key: "SAVING", label: "WABA Setup" },
+                    { key: "CONNECTING", label: "Meta login" },
+                    { key: "PROCESSING", label: "Access granted" },
+                    { key: "SAVING", label: "Number setup" },
                     { key: "SUCCESS", label: "Connected" },
                   ].map((step, idx) => {
-                    const stepOrder = [
-                      "CONNECTING",
-                      "PROCESSING",
-                      "SAVING",
-                      "SUCCESS",
-                    ];
+                    const stepOrder = ["CONNECTING", "PROCESSING", "SAVING", "SUCCESS"];
                     const currentIdx = stepOrder.indexOf(statusStage);
                     const isDone = currentIdx >= idx;
                     const isCurrent = statusStage === step.key;
 
                     return (
-                      <div
-                        key={step.key}
-                        className="flex flex-col items-center gap-1.5"
-                      >
+                      <div key={step.key} className="flex flex-col gap-1.5">
                         <div
-                          className={`h-2 w-full rounded-full transition-all duration-300 ${
-                            isDone
-                              ? "bg-emerald-600"
-                              : isCurrent
-                                ? "bg-emerald-400 animate-pulse"
-                                : "bg-slate-200"
-                          }`}
+                          className={cn(
+                            "h-1.5 w-full rounded-full transition-colors duration-300",
+                            isDone ? "bg-brand-600" : isCurrent ? "bg-brand-300" : "bg-[#eceeed]",
+                          )}
                         />
-                        <span
-                          className={`text-[10px] font-medium ${
-                            isDone
-                              ? "text-emerald-700 font-semibold"
-                              : "text-slate-400"
-                          }`}
-                        >
+                        <span className={cn("text-[12px]", isDone ? "font-medium text-brand-700" : "text-ink-muted")}>
                           {step.label}
                         </span>
                       </div>
@@ -600,142 +522,279 @@ export default function WhatsAppOnboardingPage() {
                 </div>
               </div>
             ) : (
-              /* Status: Idle or Error (Ready to Connect) */
-              <>
-                <div className="mx-auto h-16 w-16 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/20">
-                  <svg className="h-9 w-9 fill-white" viewBox="0 0 24 24">
-                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-5.805 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
-                  </svg>
-                </div>
-
-                <div className="space-y-1.5">
-                  <h2 className="text-xl font-bold text-slate-900">
-                    Official WhatsApp Business Connection
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-                    A secure Meta dialog window will open to authenticate and
-                    link your WhatsApp Business number.
-                  </p>
-                </div>
-
-                {/* Error Banner */}
+              <div className="space-y-4">
+                {/* Error box */}
                 {statusStage === "ERROR" && errorMessage && (
-                  <div className="max-w-md mx-auto p-4 rounded-xl border border-red-200 bg-red-50/80 text-left flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-                    <div className="space-y-1 text-xs">
-                      <p className="font-semibold text-red-900">
-                        Connection Incomplete
-                      </p>
-                      <p className="text-red-700 leading-relaxed">
-                        {errorMessage}
+                  <div className="flex items-start gap-3 rounded-xl border border-danger/20 bg-danger-soft p-4">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-danger" />
+                    <div className="space-y-1">
+                      <p className="text-[14px] font-semibold text-danger">The connection didn&apos;t finish</p>
+                      <p className="text-[14px] text-ink">{errorMessage}</p>
+                      <p className="text-[13px] text-ink-muted">
+                        What to do: click &quot;Try again&quot; below and complete every screen in the Meta window
+                        without closing it.
                       </p>
                     </div>
                   </div>
                 )}
 
-                <div className="pt-2 flex items-center justify-center">
-                  <button
-                    type="button"
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <Button
+                    size="lg"
                     onClick={handleConnectWhatsApp}
                     disabled={connecting || checkingInitialStatus}
-                    className="w-full sm:w-auto min-w-[240px] py-3.5 px-7 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                    loading={connecting}
+                    leftIcon={!connecting && statusStage === "ERROR" ? RefreshCw : WhatsAppIcon}
+                    rightIcon={!connecting && statusStage !== "ERROR" ? ArrowRight : undefined}
+                    className="w-full sm:w-auto"
                   >
-                    {connecting ? (
-                      <>
-                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Opening Meta Dialog...</span>
-                      </>
-                    ) : statusStage === "ERROR" ? (
-                      <>
-                        <RefreshCw className="h-4 w-4" />
-                        <span>Try Again via Meta</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Connect WhatsApp via Meta</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
+                    {connecting
+                      ? "Opening Meta window..."
+                      : statusStage === "ERROR"
+                        ? "Try again with Meta"
+                        : "Connect WhatsApp with Meta"}
+                  </Button>
+                  {checkingInitialStatus && (
+                    <span className="text-[13px] text-ink-muted">Checking your current connection...</span>
+                  )}
                 </div>
-              </>
+              </div>
             )}
-          </div>
+          </StepCard>
 
-          {/* Benefits Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-            <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <h3 className="text-xs font-bold text-slate-900">
-                  Direct Meta Cloud API
-                </h3>
+          {/* ── Step 2: Payment method ─────────────────────────────── */}
+          <StepCard
+            number="2"
+            title="Add a payment method in Meta"
+            description="Meta needs a credit or debit card on your WhatsApp Business account before you can send messages."
+            state={paymentStepState}
+            statusLabel={
+              paymentStepState === "done" ? "Done" : paymentStepState === "current" ? "Action needed" : "After step 1"
+            }
+          >
+            {alreadyConnected && paymentBlocked && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning-soft p-4">
+                  <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+                  <div>
+                    <p className="text-[14px] font-semibold text-ink">Payment method required</p>
+                    <p className="mt-0.5 text-[14px] text-ink">
+                      {paymentReason ||
+                        "Add a payment method to your WhatsApp Business Account before you can start sending messages."}
+                    </p>
+                    <p className="mt-1 text-[13px] text-ink-muted">
+                      What to do: open Meta, add a card, then come back and click &quot;I&apos;ve added it, check
+                      again&quot;.
+                    </p>
+                  </div>
+                </div>
+
+                {businessVerificationPending && (
+                  <div className="flex items-start gap-3 rounded-xl border border-info/20 bg-info-soft p-4">
+                    <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-info" />
+                    <div>
+                      <p className="text-[14px] font-semibold text-ink">Meta business verification in progress</p>
+                      <p className="mt-0.5 text-[14px] text-ink-muted">
+                        Meta is still verifying your business. Until it finishes, Meta may limit how many messages you
+                        can send.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <a
+                    href={
+                      connectedDetails?.wabaId && connectedDetails?.businessId
+                        ? `https://business.facebook.com/latest/billing_hub/accounts/details/?asset_id=${connectedDetails.wabaId}&business_id=${connectedDetails.businessId}&placement=BILLING_HUB`
+                        : "https://business.facebook.com/billing_hub/payment_methods"
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-900 px-6 font-display text-[15px] font-medium text-white shadow-[0_1px_2px_rgba(11,59,46,0.2)] transition-colors hover:bg-brand-800"
+                  >
+                    Add payment method in Meta
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    onClick={runPaymentCheck}
+                    disabled={checkingPayment}
+                    loading={checkingPayment}
+                    leftIcon={RefreshCw}
+                  >
+                    {checkingPayment ? "Checking…" : "I've added it, check again"}
+                  </Button>
+                </div>
               </div>
-              <p className="text-[11.5px] text-slate-500 leading-relaxed">
-                Direct official connection with 0% extra fee or middleman
-                charges.
-              </p>
+            )}
+          </StepCard>
+
+          {/* ── Step 3: Ready ──────────────────────────────────────── */}
+          <StepCard
+            number="3"
+            title="Start using Wagenius"
+            description="Once WhatsApp and payment are set up, your full dashboard unlocks."
+            state={readyStepState}
+            statusLabel={readyStepState === "done" ? "Done" : readyStepState === "current" ? "Ready" : "Locked"}
+          >
+            {alreadyConnected && !paymentBlocked && (
+              <Button
+                size="lg"
+                rightIcon={ArrowRight}
+                className="w-full sm:w-auto"
+                onClick={async () => {
+                  try {
+                    const data = await fetchCompanySetupStatus();
+                    if (data?.setupStatus) {
+                      useAuthStore.getState().setSetupStatus(data.setupStatus);
+                      if (data.setupStatus === "PAYMENT_REQUIRED") {
+                        setPaymentBlocked(true);
+                        toast.error("Payment method required on Meta before accessing dashboard.");
+                        return;
+                      }
+                    }
+                  } catch {
+                    // fall through
+                  }
+                  navigate("/dashboard");
+                }}
+              >
+                Go to dashboard
+              </Button>
+            )}
+          </StepCard>
+
+          {/* Why it's safe */}
+          <Card>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              <Benefit
+                icon={CheckCircle2}
+                title="Direct Meta connection"
+                text="Official connection with no extra fee or middleman charges."
+              />
+              <Benefit
+                icon={Zap}
+                title="Templates sync automatically"
+                text="Your approved Meta message templates appear in Wagenius right away."
+              />
+              <Benefit
+                icon={Lock}
+                title="Secure login"
+                text="You sign in directly with Meta. Your access is stored encrypted."
+              />
             </div>
 
-            <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-2">
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-amber-500" />
-                <h3 className="text-xs font-bold text-slate-900">
-                  Auto Template Sync
-                </h3>
-              </div>
-              <p className="text-[11.5px] text-slate-500 leading-relaxed">
-                All approved Meta message templates sync into your workspace
-                instantly.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-2">
-              <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-blue-500" />
-                <h3 className="text-xs font-bold text-slate-900">
-                  End-to-End Secure
-                </h3>
-              </div>
-              <p className="text-[11.5px] text-slate-500 leading-relaxed">
-                Authenticated directly via Meta OAuth 2.0 with token-based
-                encryption.
-              </p>
-            </div>
-          </div>
-
-          {/* Security & Info Footer */}
-          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-            <div className="flex items-center gap-2">
-              <Lock className="h-3.5 w-3.5 text-emerald-600" />
-              <span>
-                Official Graph API v23.0 • Meta Verified Embedded Signup
+            <div className="mt-5 flex flex-col items-start justify-between gap-3 border-t border-line pt-4 sm:flex-row sm:items-center">
+              <span className="inline-flex items-center gap-2 text-[13px] text-ink-muted">
+                <Lock className="h-3.5 w-3.5 text-brand-600" />
+                Official Graph API v23.0, Meta verified Embedded Signup
               </span>
+              <Button variant="ghost" size="sm" leftIcon={ArrowLeft} onClick={() => navigate("/billing")}>
+                Review plan and billing
+              </Button>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate("/billing")}
-              className="text-slate-500 hover:text-slate-800 font-medium hover:underline flex items-center gap-1"
-            >
-              ← Review Plan & Billing
-            </button>
-          </div>
+          </Card>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="max-w-5xl w-full mx-auto px-6 py-6 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-        <p>© 2026 WA GENIUS. All rights reserved.</p>
-        <div className="flex items-center gap-4">
-          <a href="/privacy-policy" className="hover:text-slate-700 transition">
-            Privacy Policy
-          </a>
-          <span>•</span>
-          <a href="/data-deletion" className="hover:text-slate-700 transition">
-            Data Deletion
-          </a>
+      <footer className="border-t border-line">
+        <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-3 px-4 py-5 text-[13px] text-ink-muted sm:flex-row sm:px-6">
+          <p>© 2026 Wagenius. All rights reserved.</p>
+          <div className="flex items-center gap-4">
+            <a href="/privacy-policy" className="transition hover:text-ink">
+              Privacy policy
+            </a>
+            <a href="/data-deletion" className="transition hover:text-ink">
+              Data deletion
+            </a>
+          </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+/* ── Presentational building blocks ──────────────────────────────────── */
+
+function WhatsAppIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-5.805 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+    </svg>
+  );
+}
+
+function StepMarker({ number, state }) {
+  return (
+    <span
+      className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold tabular-nums",
+        state === "done" && "bg-brand-600 text-white",
+        state === "current" && "bg-brand-900 text-white",
+        state === "upcoming" && "border border-line-strong bg-surface text-ink-muted",
+      )}
+    >
+      {state === "done" ? <Check className="h-4 w-4 stroke-[2.5]" /> : number}
+    </span>
+  );
+}
+
+function StepperItem({ number, label, state }) {
+  return (
+    <li
+      className={cn(
+        "flex min-w-0 items-center gap-2.5 rounded-xl px-2.5 py-2 sm:px-3",
+        state === "current" && "bg-brand-50",
+      )}
+      aria-current={state === "current" ? "step" : undefined}
+    >
+      <StepMarker number={number} state={state} />
+      <span
+        className={cn(
+          "min-w-0 truncate text-[13px] sm:text-[14px]",
+          state === "upcoming" ? "text-ink-muted" : "font-medium text-ink",
+        )}
+      >
+        {label}
+      </span>
+    </li>
+  );
+}
+
+function StepCard({ number, title, description, state, statusLabel, children }) {
+  const hasBody = Boolean(children) && children !== false;
+  return (
+    <Card className={cn(state === "current" && "border-brand-600 ring-4 ring-brand-600/10")}>
+      <div className="flex items-start gap-4">
+        <StepMarker number={number} state={state} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <h2 className={cn("text-[17px] font-semibold", state === "upcoming" ? "text-ink-muted" : "text-ink")}>
+              {title}
+            </h2>
+            <Badge tone={state === "done" ? "brand" : state === "current" ? "dark" : "neutral"} dot={state !== "current"}>
+              {statusLabel}
+            </Badge>
+          </div>
+          <p className="mt-1 text-[14px] text-ink-muted">{description}</p>
+          {hasBody && <div className="mt-4">{children}</div>}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function Benefit({ icon: Icon, title, text }) {
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-brand-600" />
+        <h3 className="text-[14px] font-semibold text-ink">{title}</h3>
+      </div>
+      <p className="mt-1 text-[14px] text-ink-muted">{text}</p>
     </div>
   );
 }

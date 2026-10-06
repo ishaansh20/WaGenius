@@ -3,9 +3,10 @@ import api, { fetchTemplateCategories } from "../../services/api";
 import { toast } from "react-hot-toast";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import StepBadge from "../../components/common/StepBadge";
-import { CheckCircle, FileText, Image as ImageIcon, Lock, Save, ShieldCheck, Sparkles, UploadCloud, X } from "lucide-react";
+import { CheckCircle, ChevronLeft, FileText, Image as ImageIcon, Lock, Save, ShieldCheck, Sparkles, UploadCloud, X } from "lucide-react";
 import usePlan from "../../hooks/usePlan";
+import { Badge, Button, Card, Input, Select, Textarea } from "../../components/ui";
+import { BubbleBody, BubbleButtons, ChatBubble, EmptyBubble, PhoneFrame } from "../../components/templates/WhatsAppPreview";
 import { resolveMediaUrl } from "../../utils/media";
 import {
   LANGUAGES,
@@ -16,8 +17,18 @@ import {
   mergeCategories,
 } from "../../constants/templates";
 
-const inputCls =
-  "block h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-800 placeholder-slate-400 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100";
+const controlCls =
+  "h-11 w-full rounded-xl border border-line-strong bg-surface px-3.5 text-sm text-ink placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-600/12";
+
+// Meta review status → Badge tone.
+const META_STATUS_TONES = {
+  not_submitted: "neutral",
+  PENDING: "warning",
+  APPROVED: "success",
+  REJECTED: "danger",
+  PAUSED: "warning",
+  DISABLED: "danger",
+};
 
 export default function CreateTemplatePage() {
   const navigate = useNavigate();
@@ -243,203 +254,180 @@ export default function CreateTemplatePage() {
       <div className="w-full">
         <form onSubmit={handleSubmit}>
 
+          {/* Page header */}
+          <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <Link
+                to="/templates"
+                className="mb-3 inline-flex items-center gap-1 text-[14px] font-medium text-ink-muted hover:text-brand-700"
+              >
+                <ChevronLeft size={16} />
+                Templates
+              </Link>
+              <h1 className="text-[28px] font-semibold tracking-[-0.025em] text-ink sm:text-[30px]">
+                {id ? "Edit template" : "Create template"}
+              </h1>
+              <p className="mt-1.5 text-[15px] text-ink-muted">
+                {id
+                  ? "Update an existing WhatsApp message template."
+                  : "Create a reusable WhatsApp message template."}
+              </p>
+            </div>
+          </div>
+
           {/* Template limit reached banner — only show when creating a new template */}
           {!id && hasReachedLimit("templates") && (
-            <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px]">
-              <Lock className="h-4 w-4 shrink-0 text-amber-600" />
-              <span className="text-amber-800">
-                <strong>Template limit reached</strong> ({getUsage("templates")}/{getLimit("templates")} templates).
-                {" "}Upgrade to <strong>{plan?.slug === "free" ? "Pro" : "Enterprise"}</strong> to create more templates.
+            <div className="mb-5 flex items-start gap-3 rounded-xl bg-warning-soft px-4 py-3 text-[14px] text-warning">
+              <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong className="font-semibold">Template limit reached</strong> ({getUsage("templates")}/{getLimit("templates")} templates).
+                {" "}Upgrade to <strong className="font-semibold">{plan?.slug === "free" ? "Pro" : "Enterprise"}</strong> to create more templates.
               </span>
             </div>
           )}
 
-          {/* Page header */}
-          <div className="mb-6">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Templates</p>
-            <h1 className="text-[17px] font-semibold leading-tight text-slate-900">
-              {id ? "Edit Template" : "Create Template"}
-            </h1>
-            <p className="mt-0.5 text-[13px] text-slate-500">
-              {id
-                ? "Update an existing WhatsApp message template"
-                : "Create a reusable WhatsApp message template"}
-            </p>
-          </div>
-
           {/* Two-column layout */}
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_288px] xl:grid-cols-[1fr_304px]">
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
 
             {/* ═══ LEFT: form ═══ */}
-            <div className="flex flex-col gap-4">
+            <div className="space-y-5">
 
-              {/* Step 1: Basics */}
-              <section className="rounded-xl border border-slate-200 bg-white p-5">
-                <StepBadge n="1" label="Template Basics" />
+              {/* Basics */}
+              <FormSection title="Basics" description="Give your template a name you'll recognise later.">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Input
+                    label="Template name"
+                    type="text"
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="e.g. Payment reminder"
+                    className="sm:col-span-2"
+                  />
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      Template Name <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      required
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="e.g. Payment Reminder"
-                      className={inputCls}
-                    />
-                  </div>
+                  <Select
+                    label="Category"
+                    required
+                    name="category"
+                    value={formData.category}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "__create__") {
+                        setShowCategoryInput(true);
+                        setFormData({ ...formData, category: "" });
+                        return;
+                      }
+                      setShowCategoryInput(false);
+                      setNewCategory("");
+                      setFormData({ ...formData, category: value });
+                    }}
+                    inputClassName="cursor-pointer"
+                  >
+                    <option value="" disabled>Select category…</option>
+                    {mergedCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                    <option value="__create__">+ Create new category</option>
+                  </Select>
 
-                  <div>
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      Category <span className="text-red-400">*</span>
-                    </label>
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "__create__") {
-                          setShowCategoryInput(true);
-                          setFormData({ ...formData, category: "" });
-                          return;
-                        }
-                        setShowCategoryInput(false);
-                        setNewCategory("");
-                        setFormData({ ...formData, category: value });
-                      }}
-                      className={`${inputCls} cursor-pointer`}
-                    >
-                      <option value="" disabled>Select category…</option>
-                      {mergedCategories.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                      <option value="__create__">+ Create New Category</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      Status
-                    </label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleChange}
-                      className={`${inputCls} cursor-pointer`}
-                    >
-                      <option value="draft">Draft</option>
-                      <option value="active">Active</option>
-                      <option value="archived">Archived</option>
-                      <option value="pending">Pending</option>
-                    </select>
-                  </div>
+                  <Select
+                    label="Status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    inputClassName="cursor-pointer"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="active">Active</option>
+                    <option value="archived">Archived</option>
+                    <option value="pending">Pending</option>
+                  </Select>
                 </div>
 
                 {/* Inline new category */}
                 {showCategoryInput && (
-                  <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      New Category Name
+                  <div className="mt-4 rounded-xl bg-canvas p-4">
+                    <label htmlFor="new-category-name" className="mb-1.5 block text-[13px] font-medium text-ink">
+                      New category name
                     </label>
                     <div className="flex gap-2">
                       <input
+                        id="new-category-name"
                         type="text"
                         value={newCategory}
                         onChange={(e) => setNewCategory(e.target.value)}
                         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCreateCategory(); } }}
-                        placeholder="e.g. Festival Campaigns"
-                        className={inputCls}
+                        placeholder="e.g. Festival campaigns"
+                        className={controlCls}
                         autoFocus
                       />
-                      <button
-                        type="button"
-                        onClick={handleCreateCategory}
-                        className="shrink-0 rounded-lg bg-emerald-600 px-3 text-[13px] font-medium text-white transition hover:bg-emerald-700"
-                      >
+                      <Button onClick={handleCreateCategory} className="h-11">
                         Save
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="icon"
                         onClick={() => { setShowCategoryInput(false); setNewCategory(""); }}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-100"
+                        aria-label="Cancel new category"
+                        className="h-11 w-11"
                       >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                        <X size={16} />
+                      </Button>
                     </div>
                   </div>
                 )}
-              </section>
+              </FormSection>
 
-              {/* Step 2: Message */}
-              <section className="rounded-xl border border-slate-200 bg-white p-5">
-                <StepBadge n="2" label="Message" />
+              {/* Message body */}
+              <FormSection
+                title="Message"
+                description="This is the text your customers will receive."
+                aside={
+                  <span className="shrink-0 text-[13px] tabular-nums text-ink-muted">
+                    {formData.description.length} characters
+                  </span>
+                }
+              >
+                <VariableChips onInsert={insertVariable} />
 
-                {/* Quick variable insert */}
-                <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] text-slate-400">Insert:</span>
-                  {QUICK_VARS.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => insertVariable(v)}
-                      className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-white hover:text-slate-900"
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
+                <Textarea
+                  ref={descRef}
+                  label="Message text"
+                  rows={8}
+                  required
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  placeholder="Write your WhatsApp template message…"
+                  inputClassName="resize-none text-[15px]"
+                  help="Variables like {{name}} are replaced with each contact's details when the message is sent."
+                />
+              </FormSection>
 
-                <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label className="text-[12px] font-medium text-slate-700">
-                      Description / Message <span className="text-red-400">*</span>
-                    </label>
-                    <span className="text-[11px] tabular-nums text-slate-400">
-                      {formData.description.length} chars
-                    </span>
-                  </div>
-                  <textarea
-                    ref={descRef}
-                    rows={8}
-                    required
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    placeholder="Write your WhatsApp template message…"
-                    className="block w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13.5px] text-slate-800 placeholder-slate-400 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100"
-                  />
-                </div>
-              </section>
-
-              {/* Step 3: Attachment */}
-              <section className="rounded-xl border border-slate-200 bg-white p-5">
-                <StepBadge n="3" label="Attachment (Optional)" />
-
+              {/* Attachment (header media) */}
+              <FormSection title="Attachment" description="Optional. Add an image or PDF shown above your message.">
                 {!media && !existingMediaUrl ? (
                   <div
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 py-8 text-center transition-all ${
+                    className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-9 text-center transition-colors ${
                       dragActive
-                        ? "border-emerald-400 bg-emerald-50"
-                        : "border-dashed border-slate-200 bg-slate-50 hover:border-slate-300"
+                        ? "border-brand-600 bg-brand-50"
+                        : "border-line-strong bg-canvas hover:border-ink-subtle"
                     }`}
                   >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white">
-                      <UploadCloud className={`h-4 w-4 ${dragActive ? "text-emerald-500" : "text-slate-400"}`} />
-                    </div>
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface shadow-[var(--shadow-card)]">
+                      <UploadCloud className={`h-5 w-5 ${dragActive ? "text-brand-600" : "text-ink-muted"}`} />
+                    </span>
                     <div>
-                      <p className="text-[13px] font-medium text-slate-700">
-                        {dragActive ? "Drop file here" : "Drag & drop a file"}
+                      <p className="text-[14px] font-medium text-ink">
+                        {dragActive ? "Drop file here" : "Drag and drop a file"}
                       </p>
-                      <p className="text-[12px] text-slate-400">
-                        or <span className="font-semibold text-emerald-600">browse</span> — JPG, PNG, PDF
+                      <p className="text-[13px] text-ink-muted">
+                        or <span className="font-semibold text-brand-700">browse</span> — JPG, PNG, PDF
                       </p>
                     </div>
                     <input
@@ -451,43 +439,44 @@ export default function CreateTemplatePage() {
                     />
                   </div>
                 ) : media ? (
-                  <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3">
                     <div className="flex min-w-0 items-center gap-3">
                       {media.type?.startsWith("image/") ? (
                         <img
                           src={URL.createObjectURL(media)}
                           alt="Attachment preview"
-                          className="h-12 w-12 rounded-lg border border-emerald-300 object-cover"
+                          className="h-12 w-12 rounded-lg border border-brand-100 object-cover"
                         />
                       ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-                          <FileText className="h-5 w-5 text-emerald-600" />
-                        </div>
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-surface text-brand-700">
+                          <FileText className="h-5 w-5" />
+                        </span>
                       )}
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-medium text-slate-800">{media.name}</p>
-                        <p className="text-[11px] text-slate-500">{(media.size / 1024).toFixed(1)} KB</p>
+                        <p className="truncate text-[14px] font-medium text-ink">{media.name}</p>
+                        <p className="text-[13px] text-ink-muted">{(media.size / 1024).toFixed(1)} KB</p>
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-500" />
-                      <button
-                        type="button"
+                      <CheckCircle className="h-4 w-4 text-brand-600" />
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => {
                           setMedia(null);
                           if (fileInputRef.current) fileInputRef.current.value = "";
                         }}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        aria-label="Remove file"
                       >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                        <X size={16} />
+                      </Button>
                     </div>
                   </div>
                 ) : (
                   /* existingMediaUrl */
-                  <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-canvas px-4 py-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-emerald-300 bg-white">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-line bg-surface">
                         <img
                           src={resolveMediaUrl(existingMediaUrl)}
                           alt="Current media"
@@ -499,39 +488,34 @@ export default function CreateTemplatePage() {
                             }
                           }}
                         />
-                        <div className="hidden flex h-full w-full items-center justify-center bg-emerald-100 text-emerald-600">
+                        <div className="hidden flex h-full w-full items-center justify-center bg-brand-50 text-brand-700">
                           <ImageIcon className="h-5 w-5" />
                         </div>
                       </div>
                       <div className="min-w-0">
-                        <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-800">
-                          Current Attachment
-                        </span>
-                        <p className="mt-0.5 truncate text-[12.5px] font-medium text-slate-800">
+                        <Badge tone="brand">Current attachment</Badge>
+                        <p className="mt-1 truncate text-[14px] font-medium text-ink">
                           {existingMediaUrl.split("/").pop().split("\\").pop()}
                         </p>
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-                      >
+                      <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
                         Change
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="danger-ghost"
+                        size="icon-sm"
                         onClick={() => {
                           setRemoveMediaFlag(true);
                           setExistingMediaUrl("");
                           if (fileInputRef.current) fileInputRef.current.value = "";
                         }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:bg-red-50 hover:text-red-600"
                         title="Remove attachment"
+                        aria-label="Remove attachment"
                       >
-                        <X className="h-4 w-4" />
-                      </button>
+                        <X size={16} />
+                      </Button>
                     </div>
                     <input
                       ref={fileInputRef}
@@ -542,46 +526,39 @@ export default function CreateTemplatePage() {
                     />
                   </div>
                 )}
-              </section>
+              </FormSection>
 
-              {/* Step 4: Meta Approval — only for a template with prior submission
+              {/* Meta Approval — only for a template with prior submission
                   history (this is where CreateApprovedTemplatePage sends a
                   REJECTED template back to for edit+resubmit). A brand-new
                   template is pointed at the dedicated wizard instead, since
                   that flow already has header/button support and auto-naming
                   this page's manual fields don't. */}
               {id && metaStatus !== "not_submitted" ? (
-              <section className="rounded-xl border border-slate-200 bg-white p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <StepBadge n="4" label="Submit for Meta Approval" />
-                  <span
-                    className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                      (META_STATUS_CONFIG[metaStatus] || META_STATUS_CONFIG.not_submitted).className
-                    }`}
-                  >
-                    {(META_STATUS_CONFIG[metaStatus] || META_STATUS_CONFIG.not_submitted).label}
-                  </span>
-                </div>
+                <FormSection
+                  title="WhatsApp approval"
+                  description="Submit this template to WhatsApp (Meta) for review."
+                  aside={
+                    <Badge tone={META_STATUS_TONES[metaStatus] || "neutral"} dot>
+                      {(META_STATUS_CONFIG[metaStatus] || META_STATUS_CONFIG.not_submitted).label}
+                    </Badge>
+                  }
+                >
+                  {metaStatus === "REJECTED" && rejectionReason && (
+                    <div className="mb-4 rounded-xl bg-danger-soft px-4 py-3 text-[14px] text-danger">
+                      <p className="font-medium">This template wasn't approved by WhatsApp.</p>
+                      <p className="mt-0.5">Try adjusting the wording and resubmitting.</p>
+                      <details className="mt-1.5">
+                        <summary className="cursor-pointer text-[13px] font-medium">Show technical details</summary>
+                        <p className="mt-1 text-[13px]">{rejectionReason}</p>
+                      </details>
+                    </div>
+                  )}
 
-                {metaStatus === "REJECTED" && rejectionReason && (
-                  <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12.5px] text-red-700">
-                    <p className="font-medium">This template wasn't approved by WhatsApp.</p>
-                    <p className="mt-0.5 text-red-600">Try adjusting the wording and resubmitting.</p>
-                    <details className="mt-1.5">
-                      <summary className="cursor-pointer text-[11.5px] text-red-500 hover:text-red-700">
-                        Show technical details
-                      </summary>
-                      <p className="mt-1 text-[11.5px] text-red-600">{rejectionReason}</p>
-                    </details>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      Meta Template Name <span className="text-red-400">*</span>
-                    </label>
-                    <input
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Input
+                      label="Meta template name"
+                      required
                       type="text"
                       value={metaForm.metaTemplateName}
                       onChange={(e) =>
@@ -593,231 +570,165 @@ export default function CreateTemplatePage() {
                         })
                       }
                       placeholder="e.g. payment_reminder"
-                      className={`${inputCls} font-mono`}
+                      inputClassName="font-mono"
+                      help="A technical ID WhatsApp uses behind the scenes. Pick something short and unique (e.g. payment_reminder). Customers never see it."
+                      className="sm:col-span-2"
                     />
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      This is a technical ID WhatsApp uses behind the scenes — pick something short
-                      and unique (e.g. payment_reminder). Customers never see it.
-                    </p>
-                  </div>
 
-                  <div>
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      Meta Category <span className="text-red-400">*</span>
-                    </label>
-                    <select
+                    <Select
+                      label="Meta category"
+                      required
                       value={metaForm.metaCategory}
                       onChange={(e) => setMetaForm({ ...metaForm, metaCategory: e.target.value })}
-                      className={`${inputCls} cursor-pointer`}
+                      inputClassName="cursor-pointer"
                     >
                       <option value="" disabled>Select category…</option>
                       {META_CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
-                    </select>
-                  </div>
+                    </Select>
 
-                  <div>
-                    <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-                      Language
-                    </label>
-                    <select
+                    <Select
+                      label="Language"
                       value={metaForm.language}
                       onChange={(e) => setMetaForm({ ...metaForm, language: e.target.value })}
-                      className={`${inputCls} cursor-pointer`}
+                      inputClassName="cursor-pointer"
                     >
                       {LANGUAGES.map((lang) => (
                         <option key={lang.code} value={lang.code}>{lang.label}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
-                </div>
 
-                {variableCount > 0 && (
-                  <div className="mt-3">
-                    <p className="mb-1.5 text-[12px] font-medium text-slate-700">
-                      Example values for {variableTokens.map((t) => `{{${t}}}`).join(", ")}
-                    </p>
-                    <p className="mb-2 text-[11px] text-slate-400">
-                      Meta requires a sample value per placeholder in the message above to review the template.
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {variableTokens.map((token, i) => (
-                        <input
-                          key={token}
-                          type="text"
-                          value={metaForm.bodyVariableExamples[i] || ""}
-                          onChange={(e) => handleExampleChange(i, e.target.value)}
-                          placeholder={`Example for {{${token}}}`}
-                          className={inputCls}
-                        />
-                      ))}
+                  {variableCount > 0 && (
+                    <div className="mt-5 rounded-xl bg-canvas p-4">
+                      <p className="text-[13px] font-medium text-ink">
+                        Example values for {variableTokens.map((t) => `{{${t}}}`).join(", ")}
+                      </p>
+                      <p className="mt-0.5 text-[13px] text-ink-muted">
+                        Meta requires a sample value per placeholder in the message above to review the template.
+                      </p>
+                      <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                        {variableTokens.map((token, i) => (
+                          <input
+                            key={token}
+                            type="text"
+                            value={metaForm.bodyVariableExamples[i] || ""}
+                            onChange={(e) => handleExampleChange(i, e.target.value)}
+                            placeholder={`Example for {{${token}}}`}
+                            aria-label={`Example for {{${token}}}`}
+                            className={controlCls}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {submitError && (
-                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12.5px] text-red-700">
-                    <p className="font-medium">Couldn't submit this template.</p>
-                    <details className="mt-1">
-                      <summary className="cursor-pointer text-[11.5px] text-red-500 hover:text-red-700">
-                        Show technical details
-                      </summary>
-                      <p className="mt-1 text-[11.5px] text-red-600">{submitError}</p>
-                    </details>
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleSubmitForApproval}
-                  disabled={!id || submitting}
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-900 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {submitting ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  ) : (
-                    <ShieldCheck className="h-4 w-4" />
                   )}
-                  {metaStatus === "REJECTED" ? "Resubmit for Approval" : "Submit for Approval"}
-                </button>
-              </section>
+
+                  {submitError && (
+                    <div className="mt-4 rounded-xl bg-danger-soft px-4 py-3 text-[14px] text-danger">
+                      <p className="font-medium">Couldn't submit this template.</p>
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-[13px] font-medium">Show technical details</summary>
+                        <p className="mt-1 text-[13px]">{submitError}</p>
+                      </details>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleSubmitForApproval}
+                    disabled={!id || submitting}
+                    loading={submitting}
+                    leftIcon={ShieldCheck}
+                    className="mt-5"
+                  >
+                    {metaStatus === "REJECTED" ? "Resubmit for approval" : "Submit for approval"}
+                  </Button>
+                </FormSection>
               ) : (
-                <section className="rounded-xl border border-slate-200 bg-white p-5">
-                  <StepBadge n="4" label="Meta Approval" />
-                  <p className="mt-2 text-[12.5px] text-slate-500">
+                <FormSection title="WhatsApp approval">
+                  <p className="text-[14px] text-ink-muted">
                     Want this approved by WhatsApp? Use{" "}
                     <Link
                       to="/templates/approved/create"
-                      className="inline-flex items-center gap-1 font-medium text-emerald-600 hover:underline"
+                      className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline"
                     >
-                      <Sparkles className="h-3 w-3" />
-                      Create Approved Template
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Create approved template
                     </Link>{" "}
                     for a guided setup with headers, buttons, and AI-assisted drafting.
                   </p>
-                </section>
+                </FormSection>
               )}
 
               {/* Error */}
               {formError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
+                <div className="rounded-xl bg-danger-soft px-4 py-3 text-[14px] text-danger">
                   {formError}
                 </div>
               )}
 
               {/* Submit */}
-              <div className="flex items-center gap-3">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-[13.5px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <Button type="submit" size="lg" disabled={loading} loading={loading} leftIcon={Save}>
                   {loading
                     ? id ? "Updating…" : "Creating…"
-                    : id ? "Update Template" : "Create Template"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/templates")}
-                  className="rounded-lg border border-slate-200 px-4 py-2.5 text-[13px] font-medium text-slate-600 transition hover:bg-slate-50"
-                >
+                    : id ? "Update template" : "Create template"}
+                </Button>
+                <Button variant="secondary" size="lg" onClick={() => navigate("/templates")}>
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
 
-            {/* ═══ RIGHT: sidebar ═══ */}
-            <div className="flex flex-col gap-4 lg:sticky lg:top-6">
-
-              {/* WhatsApp Preview */}
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-widest text-slate-400">
-                  Preview
-                </h3>
-                <div className="min-h-[120px] rounded-lg border border-slate-200 bg-[#ece5dc] p-3">
-                  <div className="mb-2.5 flex items-center gap-2 border-b border-slate-200/60 pb-2.5">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-[9px] font-bold text-white">
-                      WA
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12px] font-semibold text-slate-800">
-                        {formData.name || "Template Preview"}
-                      </p>
-                      <p className="text-[10px] text-emerald-600">template</p>
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    {formData.description.trim() || previewMediaUrl || headerType === "IMAGE" ? (
-                      <div className="max-w-[90%] overflow-hidden rounded-xl rounded-br-sm bg-[#d9fdd3] shadow-sm">
-                        {/* Media image preview */}
-                        {(previewMediaUrl || headerType === "IMAGE") && (
-                          <div className="relative flex h-32 w-full items-center justify-center bg-slate-200/70">
-                            {previewMediaUrl ? (
-                              <img
-                                src={previewMediaUrl}
-                                alt="Preview"
-                                className="h-full w-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-                                  if (e.currentTarget.nextElementSibling) {
-                                    e.currentTarget.nextElementSibling.classList.remove("hidden");
-                                  }
-                                }}
-                              />
-                            ) : null}
-                            <div className={`flex flex-col items-center gap-1 text-slate-400 ${previewMediaUrl ? "hidden" : ""}`}>
-                              <ImageIcon className="h-6 w-6 text-emerald-600" />
-                              <span className="text-[11px] font-medium text-slate-700">Header Image</span>
-                              {!previewMediaUrl && (
-                                <span className="text-[9.5px] text-slate-400">(Configured on Meta)</span>
-                              )}
-                            </div>
+            {/* ═══ RIGHT: live preview ═══ */}
+            <div className="space-y-5 lg:sticky lg:top-6">
+              <Card>
+                <h2 className="text-[17px] font-semibold text-ink">Preview</h2>
+                <p className="mb-5 mt-1 text-[14px] text-ink-muted">How customers will see your message.</p>
+                <PhoneFrame name={formData.name}>
+                  {formData.description.trim() || previewMediaUrl || headerType === "IMAGE" ? (
+                    <ChatBubble>
+                      {/* Media image preview */}
+                      {(previewMediaUrl || headerType === "IMAGE") && (
+                        <div className="relative flex h-36 w-full items-center justify-center bg-black/5">
+                          {previewMediaUrl ? (
+                            <img
+                              src={previewMediaUrl}
+                              alt="Preview"
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                if (e.currentTarget.nextElementSibling) {
+                                  e.currentTarget.nextElementSibling.classList.remove("hidden");
+                                }
+                              }}
+                            />
+                          ) : null}
+                          <div className={`flex flex-col items-center gap-1 text-ink-muted ${previewMediaUrl ? "hidden" : ""}`}>
+                            <ImageIcon className="h-6 w-6 text-brand-600" />
+                            <span className="text-[13px] font-medium text-ink">Header image</span>
+                            {!previewMediaUrl && (
+                              <span className="text-[12px] text-ink-muted">(Configured on Meta)</span>
+                            )}
                           </div>
-                        )}
-                        {headerType === "TEXT" && headerText && (
-                          <div className="px-3 pt-2">
-                            <p className="text-[12.5px] font-bold text-slate-900">{headerText}</p>
-                          </div>
-                        )}
-                        <div className="px-3 py-2">
-                          <p className="whitespace-pre-wrap break-words text-[12.5px] leading-relaxed text-slate-800">
-                            {formData.description || <span className="italic text-slate-400">Message preview will appear here…</span>}
-                          </p>
-                          <p className="mt-0.5 text-right text-[10px] text-emerald-500">✓✓</p>
                         </div>
-                        {buttons?.length > 0 && (
-                          <div className="divide-y divide-slate-200/70 border-t border-slate-200/70">
-                            {buttons.map((b, idx) => (
-                              <p key={idx} className="px-3 py-1.5 text-center text-[12px] font-medium text-sky-700">
-                                {b.text || "Button"}
-                              </p>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="max-w-[90%] rounded-xl rounded-br-sm bg-slate-100 px-3 py-2">
-                        <p className="text-[12.5px] italic text-slate-400">
-                          Message preview will appear here…
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+                      )}
+                      {headerType === "TEXT" && headerText && (
+                        <p className="px-3 pt-2 text-[14px] font-semibold text-ink">{headerText}</p>
+                      )}
+                      <BubbleBody>{formData.description}</BubbleBody>
+                      <BubbleButtons buttons={buttons} />
+                    </ChatBubble>
+                  ) : (
+                    <EmptyBubble />
+                  )}
+                </PhoneFrame>
+              </Card>
 
               {/* Guidelines */}
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-widest text-slate-400">
-                  Guidelines
-                </h3>
-                <div className="flex flex-col gap-2.5">
+              <Card>
+                <h2 className="text-[17px] font-semibold text-ink">Tips for a good template</h2>
+                <ul className="mt-4 space-y-2.5">
                   {[
                     "Keep messages short, clear and action-oriented.",
                     'Use variables like {{name}} for personalization.',
@@ -825,27 +736,58 @@ export default function CreateTemplatePage() {
                     "Avoid excessive promotional or spam-like wording.",
                     "Supported media: JPG, PNG and PDF.",
                   ].map((tip) => (
-                    <div key={tip} className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[9px] font-bold text-emerald-600">
-                        ✓
-                      </span>
-                      <p className="text-[12.5px] leading-relaxed text-slate-500">{tip}</p>
-                    </div>
+                    <li key={tip} className="flex items-start gap-2.5">
+                      <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
+                      <p className="text-[14px] leading-relaxed text-ink-muted">{tip}</p>
+                    </li>
                   ))}
-                </div>
-                <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                    Best Practice
-                  </p>
-                  <p className="text-[12px] leading-relaxed text-slate-500">
+                </ul>
+                <div className="mt-4 rounded-xl bg-canvas p-4">
+                  <p className="text-[14px] font-medium text-ink">Best practice</p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-ink-muted">
                     Templates with personalization and a clear purpose generally receive better engagement.
                   </p>
                 </div>
-              </div>
+              </Card>
             </div>
           </div>
         </form>
       </div>
     </DashboardLayout>
+  );
+}
+
+/* ── Small building blocks ─────────────────────────────────────────── */
+
+function FormSection({ title, description, aside, children }) {
+  return (
+    <Card>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-semibold text-ink">{title}</h2>
+          {description && <p className="mt-1 text-[14px] text-ink-muted">{description}</p>}
+        </div>
+        {aside}
+      </div>
+      {children}
+    </Card>
+  );
+}
+
+function VariableChips({ onInsert }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-[13px] text-ink-muted">Insert a variable:</span>
+      {QUICK_VARS.map((v) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onInsert(v)}
+          className="h-8 rounded-lg border border-line bg-canvas px-2.5 font-mono text-[13px] text-ink transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-800"
+        >
+          {v}
+        </button>
+      ))}
+    </div>
   );
 }

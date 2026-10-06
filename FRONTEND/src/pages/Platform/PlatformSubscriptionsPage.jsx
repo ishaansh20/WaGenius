@@ -138,7 +138,7 @@ export default function PlatformSubscriptionsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by company or plan name..."
-              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 text-[12.5px] text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:bg-[#F5F8FB]"
+              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 text-[13.5px] text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:bg-[#F5F8FB]"
             />
             {search && (
               <button
@@ -154,7 +154,7 @@ export default function PlatformSubscriptionsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[12px] text-slate-600 outline-none focus:border-emerald-400"
+            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-600 outline-none focus:border-emerald-400"
           >
             <option value="all">All Statuses</option>
             <option value="TRIAL">Trial</option>
@@ -168,7 +168,7 @@ export default function PlatformSubscriptionsPage() {
           <select
             value={planFilter}
             onChange={(e) => setPlanFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[12px] text-slate-600 outline-none focus:border-emerald-400"
+            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-600 outline-none focus:border-emerald-400"
           >
             <option value="all">All Plans</option>
             {plans.map((p) => (
@@ -182,7 +182,7 @@ export default function PlatformSubscriptionsPage() {
             <button
               type="button"
               onClick={clearFilters}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[11.5px] font-medium text-slate-500 transition hover:bg-slate-50"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[13px] font-medium text-slate-500 transition hover:bg-slate-50"
             >
               <Filter className="h-3.5 w-3.5" />
               Clear
@@ -191,11 +191,11 @@ export default function PlatformSubscriptionsPage() {
         </div>
 
         <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[13px] text-slate-400">
             Showing <span className="font-medium text-slate-600">{filteredSubscriptions.length}</span> of{" "}
             <span className="font-medium text-slate-600">{subscriptions.length}</span> subscriptions
           </p>
-          {hasFilters && <p className="text-[11px] text-emerald-600">Filters applied</p>}
+          {hasFilters && <p className="text-[13px] text-emerald-600">Filters applied</p>}
         </div>
       </div>
 
@@ -211,14 +211,14 @@ export default function PlatformSubscriptionsPage() {
               <CreditCard className="h-5 w-5 text-slate-400" />
             </div>
             <h3 className="mt-4 text-sm font-semibold text-slate-700">No subscriptions found</h3>
-            <p className="mt-1 max-w-sm text-[12px] text-slate-400">
+            <p className="mt-1 max-w-sm text-[13.5px] text-slate-400">
               No subscriptions match your search or filter criteria.
             </p>
             {hasFilters && (
               <button
                 type="button"
                 onClick={clearFilters}
-                className="mt-4 text-[12px] font-medium text-emerald-600 hover:underline"
+                className="mt-4 text-[13.5px] font-medium text-emerald-600 hover:underline"
               >
                 Clear filters
               </button>
@@ -233,7 +233,7 @@ export default function PlatformSubscriptionsPage() {
                     {["Company", "Plan", "Pricing", "Billing Cycle", "Status", "Plan Expiry", "Start Date", ""].map((label, i) => (
                       <th
                         key={label + i}
-                        className={`px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 ${
+                        className={`px-5 py-3 text-[12px] font-semibold uppercase tracking-wider text-slate-400 ${
                           i === 7 ? "text-right" : "text-left"
                         }`}
                       >
@@ -284,7 +284,7 @@ export default function PlatformSubscriptionsPage() {
                               <p className="truncate text-[13.5px] font-semibold text-slate-900">
                                 {company?.name || "Unknown Company"}
                               </p>
-                              <p className="mt-0.5 truncate text-[11.5px] text-slate-400">
+                              <p className="mt-0.5 truncate text-[13px] text-slate-400">
                                 ID: {company?._id || sub.companyId}
                               </p>
                             </div>
@@ -292,25 +292,25 @@ export default function PlatformSubscriptionsPage() {
                         </td>
 
                         <td className="px-5 py-4">
-                          <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11.5px] font-semibold text-slate-800">
+                          <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-semibold text-slate-800">
                             {plan?.name || "Custom / Unknown"}
                           </span>
                         </td>
 
-                        <td className="px-5 py-4 text-[12.5px] font-medium text-slate-900">
+                        <td className="px-5 py-4 text-[13.5px] font-medium text-slate-900">
                           ₹{price ?? 0}
-                          <span className="text-[11px] font-normal text-slate-400">
+                          <span className="text-[13px] font-normal text-slate-400">
                             /{sub.billingCycle === "yearly" ? "yr" : "mo"}
                           </span>
                         </td>
 
-                        <td className="px-5 py-4 text-[12px] font-medium uppercase text-slate-600">
+                        <td className="px-5 py-4 text-[13.5px] font-medium uppercase text-slate-600">
                           {sub.billingCycle || "monthly"}
                         </td>
 
                         <td className="px-5 py-4">
                           <span
-                            className={`rounded-full border px-2.5 py-1 text-[10.5px] font-semibold ${
+                            className={`rounded-full border px-2.5 py-1 text-[12px] font-semibold ${
                               statusClasses[sub.status] || statusClasses.PENDING
                             }`}
                           >
@@ -318,18 +318,18 @@ export default function PlatformSubscriptionsPage() {
                           </span>
                         </td>
 
-                        <td className="px-5 py-4 text-[12px]">
+                        <td className="px-5 py-4 text-[13.5px]">
                           {isFree ? (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                            <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[13px] font-semibold text-slate-600">
                               Lifetime
                             </span>
                           ) : isTrial && expiryDate ? (
                             <div className="flex flex-col items-start gap-0.5">
-                              <span className={`text-[12px] font-semibold ${isExpired ? "text-rose-600" : daysLeft <= 3 ? "text-amber-600" : "text-slate-700"}`}>
+                              <span className={`text-[13.5px] font-semibold ${isExpired ? "text-rose-600" : daysLeft <= 3 ? "text-amber-600" : "text-slate-700"}`}>
                                 {formatDate(expiryDate)}
                               </span>
                               <span
-                                className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
+                                className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] font-semibold ${
                                   isExpired
                                     ? "border-rose-200 bg-rose-50 text-rose-600"
                                     : daysLeft <= 3
@@ -343,12 +343,12 @@ export default function PlatformSubscriptionsPage() {
                             </div>
                           ) : expiryDate ? (
                             <div className="flex flex-col items-start gap-0.5">
-                              <span className={`text-[12px] font-semibold ${isExpired ? "text-rose-600" : daysLeft !== null && daysLeft <= 7 ? "text-amber-600" : "text-slate-700"}`}>
+                              <span className={`text-[13.5px] font-semibold ${isExpired ? "text-rose-600" : daysLeft !== null && daysLeft <= 7 ? "text-amber-600" : "text-slate-700"}`}>
                                 {formatDate(expiryDate)}
                               </span>
                               {daysLeft !== null && (
                                 <span
-                                  className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
+                                  className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] font-semibold ${
                                     isExpired
                                       ? "border-rose-200 bg-rose-50 text-rose-600"
                                       : daysLeft <= 7
@@ -365,7 +365,7 @@ export default function PlatformSubscriptionsPage() {
                           )}
                         </td>
 
-                        <td className="whitespace-nowrap px-5 py-4 text-[12px] text-slate-400">
+                        <td className="whitespace-nowrap px-5 py-4 text-[13.5px] text-slate-400">
                           {formatDate(sub.startDate || sub.createdAt)}
                         </td>
 
@@ -374,7 +374,7 @@ export default function PlatformSubscriptionsPage() {
                             <button
                               type="button"
                               onClick={() => navigate(`/platform/companies/${company._id}`)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-[11.5px] font-medium text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-[13px] font-medium text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
                             >
                               Manage
                               <ExternalLink className="h-3 w-3" />
@@ -389,7 +389,7 @@ export default function PlatformSubscriptionsPage() {
             </div>
 
             <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[13px] text-slate-400">
                 Page <span className="text-slate-600">{page}</span> of{" "}
                 <span className="text-slate-600">{totalPages}</span>
               </p>

@@ -235,7 +235,7 @@ export default function PlatformSettingsPage() {
                 <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 p-3.5">
                   <div>
                     <p className="text-xs font-semibold text-slate-900">Allow Self-Serve Signups</p>
-                    <p className="text-[11px] text-slate-400">Permit new companies to register via /signup</p>
+                    <p className="text-[13px] text-slate-400">Permit new companies to register via /signup</p>
                   </div>
                   <input
                     type="checkbox"
@@ -283,7 +283,7 @@ export default function PlatformSettingsPage() {
                   <option value="v22.0">v22.0 (Latest)</option>
                   <option value="v20.0">v20.0 (Legacy)</option>
                 </select>
-                <p className="mt-1.5 text-[11px] text-slate-400">
+                <p className="mt-1.5 text-[13px] text-slate-400">
                   Used by webhooks and message dispatchers for Meta Cloud API calls.
                 </p>
               </div>
@@ -322,7 +322,7 @@ export default function PlatformSettingsPage() {
               <div className="flex items-center justify-between rounded-xl border border-amber-100 bg-amber-50/40 p-3.5">
                 <div>
                   <p className="text-xs font-semibold text-amber-900">Maintenance Mode</p>
-                  <p className="text-[11px] text-amber-700">Show maintenance warning banner across all tenant dashboards</p>
+                  <p className="text-[13px] text-amber-700">Show maintenance warning banner across all tenant dashboards</p>
                 </div>
                 <input
                   type="checkbox"

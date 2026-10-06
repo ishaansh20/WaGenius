@@ -12,13 +12,14 @@ import {
   ChevronUp,
   Info,
   ArrowRight,
-  RefreshCw,
   ExternalLink,
   MessageSquare,
   Users,
   BarChart3,
   Smartphone,
-  Layers,
+  CheckCircle2,
+  Lock,
+  LogOut,
 } from "lucide-react";
 import {
   fetchPlans,
@@ -28,6 +29,8 @@ import {
 import useAuthStore from "../../store/authStore";
 import useSubscriptionStore from "../../store/subscriptionStore";
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import { Badge, Button, Card, Logo, Skeleton } from "../../components/ui";
+import { cn } from "../../utils/cn";
 
 /* ─── Comparison Matrix Definitions ───────────────────────────────────── */
 const COMPARISON_SECTIONS = [
@@ -136,37 +139,98 @@ const FAQS = [
 function Cell({ value }) {
   if (value === true) {
     return (
-      <span className="inline-flex items-center justify-center">
-        <Check className="h-4 w-4 text-emerald-600 stroke-[2.5]" />
+      <span className="inline-flex items-center justify-center" aria-label="Included">
+        <Check className="h-[18px] w-[18px] stroke-[2.5] text-brand-600" />
       </span>
     );
   }
   if (value === false) {
     return (
-      <span className="inline-flex items-center justify-center">
-        <Minus className="h-4 w-4 text-slate-300" />
+      <span className="inline-flex items-center justify-center" aria-label="Not included">
+        <Minus className="h-4 w-4 text-ink-subtle" />
       </span>
     );
   }
-  return <span className="text-xs font-semibold text-slate-800">{value}</span>;
+  return <span className="text-[14px] font-medium text-ink">{value}</span>;
 }
 
 /* ─── Card Feature Row Helpers ────────────────────────────────────────── */
 function FeatureRow({ children }) {
   return (
-    <li className="flex items-start gap-2 text-slate-700">
-      <Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5 stroke-[2.5]" />
-      <span className="text-xs font-medium leading-snug">{children}</span>
+    <li className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700">
+        <Check className="h-3 w-3 stroke-[3]" />
+      </span>
+      <span className="text-[14px] leading-snug text-ink">{children}</span>
     </li>
   );
 }
 
 function MissingRow({ children }) {
   return (
-    <li className="flex items-start gap-2 text-slate-400">
-      <X className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-      <span className="text-xs leading-snug">{children}</span>
+    <li className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center text-ink-subtle">
+        <X className="h-3.5 w-3.5" />
+      </span>
+      <span className="text-[14px] leading-snug text-ink-muted">{children}</span>
     </li>
+  );
+}
+
+/* ─── Setup Step (progress stepper) ───────────────────────────────────── */
+function SetupStep({ number, title, caption, state, lockedIcon: LockedIcon }) {
+  // state: "done" | "current" | "upcoming"
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-xl border p-3.5",
+        state === "done" && "border-brand-100 bg-brand-50",
+        state === "current" && "border-brand-600 bg-surface ring-2 ring-brand-600/15",
+        state === "upcoming" && "border-line bg-canvas",
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold tabular-nums",
+          state === "done" && "bg-brand-600 text-white",
+          state === "current" && "bg-brand-900 text-white",
+          state === "upcoming" && "border border-line-strong bg-surface text-ink-muted",
+        )}
+      >
+        {state === "done" ? (
+          <Check className="h-4 w-4 stroke-[2.5]" />
+        ) : LockedIcon && state === "upcoming" ? (
+          <LockedIcon className="h-4 w-4" />
+        ) : (
+          number
+        )}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[14px] font-semibold leading-tight text-ink">{title}</p>
+        <p className="mt-0.5 truncate text-[13px] text-ink-muted">{caption}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Section heading ─────────────────────────────────────────────────── */
+function SectionHeading({ title, description, className }) {
+  return (
+    <div className={cn("mb-4", className)}>
+      <h2 className="text-[20px] font-semibold tracking-[-0.015em] text-ink">{title}</h2>
+      {description && <p className="mt-1 text-[14px] text-ink-muted">{description}</p>}
+    </div>
+  );
+}
+
+/* ─── Meta message category ───────────────────────────────────────────── */
+function MetaCategory({ name, plain, examples }) {
+  return (
+    <div className="rounded-xl border border-line bg-canvas p-4">
+      <p className="text-[15px] font-semibold text-ink">{name}</p>
+      <p className="mt-0.5 text-[13px] font-medium text-brand-700">{plain}</p>
+      <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">{examples}</p>
+    </div>
   );
 }
 
@@ -328,585 +392,460 @@ export default function BillingPage() {
     return `Start ${plan.name}`;
   }
 
+
+  /* ── Derived presentation state for the setup stepper ──────────────── */
+  const planStepDone =
+    currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "READY";
+  const whatsappStepActive =
+    currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "PAYMENT_REQUIRED";
+  const showActivatedNotice =
+    (currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "PAYMENT_REQUIRED") &&
+    setupStatus !== "READY";
+
   /* ── Content Body ───────────────────────────────────────────────────── */
   const content = (
-    <div className="space-y-10 pb-20">
-      {/* ── Setup Progress & Activation Banner (When Authenticated) ─── */}
-      {user && (
-        <div className="max-w-5xl mx-auto pt-1 space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">
-                  Company Setup Progress
-                </span>
-                <h2 className="text-base font-bold text-slate-900">
-                  {setupStatus === "READY"
-                    ? "Setup Complete • Full Platform Access Active"
-                    : setupStatus === "PAYMENT_REQUIRED"
-                    ? "Step 2: Add Payment Method in Meta"
-                    : setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || currentPlan || justActivatedPlan
-                    ? "Step 2: Connect WhatsApp Business Account"
-                    : "Step 1: Select a Subscription Plan"}
-                </h2>
-              </div>
-              {currentPlan ? (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700">
-                  <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                  <span>Current Plan: {currentPlan.name}</span>
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600">
-                  <span>No Plan Selected</span>
-                </div>
-              )}
-            </div>
+    <div className="mx-auto max-w-6xl space-y-8 pb-16">
+      {/* ── Page header + billing cycle toggle ───────────────────────── */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-[28px] font-semibold tracking-[-0.025em] text-ink sm:text-[30px]">
+            Choose the plan that fits your business
+          </h1>
+          <p className="mt-1.5 max-w-2xl text-[15px] text-ink-muted">
+            Simple, transparent pricing. Start free and upgrade as you grow. Every plan uses your own WhatsApp Business
+            account, with no hidden commission.
+          </p>
+        </div>
 
-            {/* 3 Step Indicator */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Step 1: Plan Selection */}
-              <div
-                className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all ${
-                  currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "READY"
-                    ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
-                    : "bg-blue-50/70 border-blue-300 text-blue-950 ring-2 ring-blue-500/20"
-                }`}
-              >
-                <div
-                  className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                    currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "READY"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-blue-600 text-white"
-                  }`}
-                >
-                  {currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "READY" ? (
-                    <Check className="h-4 w-4 stroke-[2.5]" />
-                  ) : (
-                    "1"
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold leading-tight">1. Plan Selection</p>
-                  <p className="text-[11px] text-slate-500 truncate">
-                    {currentPlan || justActivatedPlan
-                      ? `${(justActivatedPlan || currentPlan).name} Active`
-                      : "Choose a plan below"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 2: WhatsApp Onboarding */}
-              <div
-                className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all ${
-                  setupStatus === "READY"
-                    ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
-                    : currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "PAYMENT_REQUIRED"
-                    ? "bg-amber-50/70 border-amber-300 text-amber-950 ring-2 ring-amber-500/20"
-                    : "bg-slate-50 border-slate-200 text-slate-400"
-                }`}
-              >
-                <div
-                  className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                    setupStatus === "READY"
-                      ? "bg-emerald-600 text-white"
-                      : currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "PAYMENT_REQUIRED"
-                      ? "bg-amber-500 text-white"
-                      : "bg-slate-200 text-slate-500"
-                  }`}
-                >
-                  {setupStatus === "READY" ? (
-                    <Check className="h-4 w-4 stroke-[2.5]" />
-                  ) : (
-                    "2"
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold leading-tight">2. WhatsApp Setup</p>
-                  <p className="text-[11px] text-slate-500 truncate">
-                    {setupStatus === "READY"
-                      ? "Connected & Active"
-                      : setupStatus === "PAYMENT_REQUIRED"
-                      ? "Meta Payment Required"
-                      : "Required to proceed"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Step 3: Platform Access */}
-              <div
-                className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all ${
-                  setupStatus === "READY"
-                    ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
-                    : "bg-slate-50 border-slate-200 text-slate-400"
-                }`}
-              >
-                <div
-                  className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                    setupStatus === "READY"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-200 text-slate-500"
-                  }`}
-                >
-                  {setupStatus === "READY" ? (
-                    <Check className="h-4 w-4 stroke-[2.5]" />
-                  ) : (
-                    <Shield className="h-3.5 w-3.5 text-slate-400" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold leading-tight">3. Platform Access</p>
-                  <p className="text-[11px] text-slate-500 truncate">
-                    {setupStatus === "READY" ? "Full Access Active" : "Locked"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Plan Activated Notice */}
-            {(currentPlan || justActivatedPlan || setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || setupStatus === "PAYMENT_REQUIRED") && setupStatus !== "READY" && (
-              <div className="mt-3 p-4 rounded-xl border border-emerald-300 bg-emerald-50/70 shadow-sm flex items-center gap-3">
-                <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 ring-4 ring-emerald-200" />
-                <div>
-                  <p className="text-xs font-bold text-emerald-950">
-                    ✓ {(justActivatedPlan?.name || currentPlan?.name || "Selected")} Plan Activated
-                  </p>
-                  <p className="text-[11.5px] text-slate-600 leading-tight">
-                    Your subscription plan has been successfully activated. Continue to WhatsApp Onboarding on your plan card below.
-                  </p>
-                </div>
-              </div>
+        <div
+          role="tablist"
+          aria-label="Billing cycle"
+          className="inline-flex shrink-0 self-start rounded-lg border border-line bg-surface p-1 md:self-auto"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={billingCycle === "monthly"}
+            onClick={() => setBillingCycle("monthly")}
+            className={cn(
+              "h-9 whitespace-nowrap rounded-md px-4 text-[14px] font-medium transition-colors",
+              billingCycle === "monthly" ? "bg-brand-900 text-white" : "text-ink-muted hover:bg-canvas hover:text-ink",
             )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Section 1: Hero ─────────────────────────────────────────────── */}
-      <div className="text-center max-w-3xl mx-auto pt-2 space-y-3">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>Simple, transparent pricing</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
-          Choose the plan that fits your business
-        </h1>
-        <p className="text-sm sm:text-base text-slate-500 leading-relaxed">
-          Start free and upgrade as you grow. All plans connect your own WhatsApp Business API with zero hidden commissions.
-        </p>
-
-        {/* Billing Toggle */}
-        <div className="pt-2 flex items-center justify-center gap-3">
-          <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button
-              type="button"
-              onClick={() => setBillingCycle("monthly")}
-              className={`px-5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                billingCycle === "monthly"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={billingCycle === "yearly"}
+            onClick={() => setBillingCycle("yearly")}
+            className={cn(
+              "inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-md px-4 text-[14px] font-medium transition-colors",
+              billingCycle === "yearly" ? "bg-brand-900 text-white" : "text-ink-muted hover:bg-canvas hover:text-ink",
+            )}
+          >
+            Yearly
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[12px] font-semibold",
+                billingCycle === "yearly" ? "bg-white/15 text-white" : "bg-brand-100 text-brand-800",
+              )}
             >
-              Monthly
-            </button>
-            <button
-              type="button"
-              onClick={() => setBillingCycle("yearly")}
-              className={`px-5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                billingCycle === "yearly"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              <span>Annual</span>
-              <span className="bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full tracking-wide">
-                SAVE 20%
-              </span>
-            </button>
-          </div>
+              Save 20%
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* ── Section 2: 3-Plan Cards ──────────────────────────────────────── */}
-      <div id="plan-cards" className="max-w-6xl mx-auto px-1">
+      {/* ── Setup progress (when signed in) ──────────────────────────── */}
+      {user && (
+        <Card>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[13px] text-ink-muted">Company setup progress</p>
+              <h2 className="mt-1 text-[17px] font-semibold text-ink">
+                {setupStatus === "READY"
+                  ? "Setup complete. You have full access to Wagenius."
+                  : setupStatus === "PAYMENT_REQUIRED"
+                  ? "Step 2: Add a payment method in Meta"
+                  : setupStatus === "WHATSAPP_ONBOARDING_REQUIRED" || currentPlan || justActivatedPlan
+                  ? "Step 2: Connect your WhatsApp Business account"
+                  : "Step 1: Choose a plan"}
+              </h2>
+            </div>
+            {currentPlan ? (
+              <Badge tone="brand" className="self-start px-3 py-1 text-[13px]">
+                <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                Current plan: {currentPlan.name}
+              </Badge>
+            ) : (
+              <Badge tone="neutral" className="self-start px-3 py-1 text-[13px]">
+                No plan selected
+              </Badge>
+            )}
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <SetupStep
+              number="1"
+              title="Choose a plan"
+              state={planStepDone ? "done" : "current"}
+              caption={
+                currentPlan || justActivatedPlan
+                  ? `${(justActivatedPlan || currentPlan).name} plan active`
+                  : "Pick a plan below"
+              }
+            />
+            <SetupStep
+              number="2"
+              title="Connect WhatsApp"
+              state={setupStatus === "READY" ? "done" : whatsappStepActive ? "current" : "upcoming"}
+              caption={
+                setupStatus === "READY"
+                  ? "Connected and active"
+                  : setupStatus === "PAYMENT_REQUIRED"
+                  ? "Meta payment method needed"
+                  : "Needed to continue"
+              }
+            />
+            <SetupStep
+              number="3"
+              title="Start using Wagenius"
+              state={setupStatus === "READY" ? "done" : "upcoming"}
+              lockedIcon={Lock}
+              caption={setupStatus === "READY" ? "Full access is on" : "Unlocks after setup"}
+            />
+          </div>
+
+          {showActivatedNotice && (
+            <div className="mt-4 flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50 p-4">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+              <div>
+                <p className="text-[14px] font-semibold text-ink">
+                  {justActivatedPlan?.name || currentPlan?.name || "Selected"} plan activated
+                </p>
+                <p className="mt-0.5 text-[14px] text-ink-muted">
+                  Your plan is active. Next, connect WhatsApp using the button on your plan card below.
+                </p>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* ── Plan cards ───────────────────────────────────────────────── */}
+      <div id="plan-cards">
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600" />
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <Card key={i} className="space-y-4">
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-10 w-1/2" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-11 w-full" />
+              </Card>
+            ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+          <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-3">
             {plans.map((plan) => {
               const current = isCurrent(plan);
               const price = getPrice(plan);
               const bullets = getPlanBullets(plan);
 
               return (
-                <div
+                <Card
                   key={plan._id}
-                  className={`group relative flex flex-col justify-between rounded-3xl p-6 sm:p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
-                    current
-                      ? "border-2 border-emerald-500 bg-white shadow-xl shadow-emerald-500/10 ring-2 ring-emerald-500/20"
-                      : "border border-slate-200 bg-white shadow-sm hover:border-slate-300"
-                  }`}
+                  className={cn("relative flex flex-col", current && "border-2 border-brand-600 ring-4 ring-brand-600/10")}
                 >
-                  {/* Current Active Plan Badge */}
-                  {current && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-emerald-600 px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-md flex items-center gap-1.5 whitespace-nowrap">
-                      <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                      Current Plan
-                    </div>
-                  )}
-
-                  <div>
+                  <div className="flex-1">
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h3 className="text-xl font-extrabold text-slate-900">{plan.name}</h3>
-                        <p className="mt-1 text-xs text-slate-500 leading-snug min-h-[32px]">{plan.description}</p>
+                      <h3 className="text-[19px] font-semibold text-ink">{plan.name}</h3>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                        {current && (
+                          <Badge tone="dark">
+                            <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                            Current plan
+                          </Badge>
+                        )}
+                        {plan.isFree && <Badge tone="brand">Free forever</Badge>}
                       </div>
-                      {plan.isFree && (
-                        <span className="shrink-0 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 mt-1">
-                          Free Forever
-                        </span>
-                      )}
                     </div>
+                    <p className="mt-1.5 min-h-[42px] text-[14px] leading-snug text-ink-muted">{plan.description}</p>
 
                     {/* Price */}
-                    <div className="mt-5 pb-5 border-b border-slate-100">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl sm:text-5xl font-black text-slate-950">
+                    <div className="mt-5 border-b border-line pb-5">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-[36px] font-semibold leading-none tracking-[-0.02em] text-ink tabular-nums">
                           ₹{price?.toLocaleString()}
                         </span>
-                        <span className="text-xs text-slate-500 font-medium">/month</span>
+                        <span className="text-[14px] text-ink-muted">/ month</span>
                       </div>
                       {billingCycle === "yearly" && plan.pricing?.yearly > 0 && (
-                        <p className="mt-1.5 text-[11.5px] text-emerald-600 font-semibold">
-                          Billed ₹{plan.pricing.yearly.toLocaleString()} annually
+                        <p className="mt-2 text-[13px] font-medium text-brand-700">
+                          Billed ₹{plan.pricing.yearly.toLocaleString()} once a year
                         </p>
                       )}
                       {billingCycle === "monthly" && !plan.isFree && plan.pricing?.yearly > 0 && (
-                        <p className="mt-1 text-[11px] text-slate-400">
-                          or ₹{Math.round(plan.pricing.yearly / 12).toLocaleString()}/mo billed annually
+                        <p className="mt-2 text-[13px] text-ink-muted">
+                          or ₹{Math.round(plan.pricing.yearly / 12).toLocaleString()}/month if you pay yearly
                         </p>
                       )}
                     </div>
 
-                    {/* Feature Bullets */}
-                    <div className="mt-5 space-y-2">
-                      <ul className="space-y-2">
-                        {bullets.included.map((item, i) => (
-                          <FeatureRow key={i}>{item}</FeatureRow>
-                        ))}
-                      </ul>
-                      {bullets.excluded.length > 0 && (
-                        <ul className="mt-3 space-y-1.5 pt-3 border-t border-slate-100">
+                    {/* Feature bullets */}
+                    <ul className="mt-5 space-y-2.5">
+                      {bullets.included.map((item, i) => (
+                        <FeatureRow key={i}>{item}</FeatureRow>
+                      ))}
+                    </ul>
+                    {bullets.excluded.length > 0 && (
+                      <>
+                        <p className="mt-5 border-t border-line pt-4 text-[13px] text-ink-muted">Not included</p>
+                        <ul className="mt-2.5 space-y-2">
                           {bullets.excluded.map((item, i) => (
                             <MissingRow key={i}>{item}</MissingRow>
                           ))}
                         </ul>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* CTA Button */}
-                  <div className="mt-8 pt-4">
-                    {current && setupStatus !== "READY" ? (
-                      <button
-                        type="button"
-                        onClick={() => navigate("/onboarding/whatsapp")}
-                        className="w-full py-3.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 bg-emerald-600 text-white hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-600/25 active:scale-[0.98] shadow-md cursor-pointer"
-                      >
-                        <span>Continue to WhatsApp Onboarding</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={current || selectingPlanId === plan._id}
-                        onClick={() => handleSelectPlan(plan)}
-                        className={`w-full py-3.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 ${
-                          current
-                            ? "bg-emerald-50 text-emerald-700 border-2 border-emerald-400/50 cursor-default shadow-none"
-                            : "bg-slate-900 text-white hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-600/20 active:scale-[0.98]"
-                        }`}
-                      >
-                        {selectingPlanId === plan._id ? (
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                        ) : current ? (
-                          <>
-                            <Check className="h-4 w-4 stroke-[2.5]" />
-                            <span>Current Plan</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>{getPlanCtaLabel(plan)}</span>
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </>
-                        )}
-                      </button>
+                      </>
                     )}
                   </div>
-                </div>
+
+                  {/* CTA */}
+                  <div className="mt-7">
+                    {current && setupStatus !== "READY" ? (
+                      <Button
+                        size="lg"
+                        className="w-full"
+                        rightIcon={ArrowRight}
+                        onClick={() => navigate("/onboarding/whatsapp")}
+                      >
+                        Continue to WhatsApp setup
+                      </Button>
+                    ) : (
+                      <Button
+                        size="lg"
+                        variant={current ? "secondary" : "primary"}
+                        className={cn(
+                          "w-full",
+                          current &&
+                            "border-brand-200 bg-brand-50 text-brand-800 hover:border-brand-200 hover:bg-brand-50 disabled:opacity-100",
+                        )}
+                        disabled={current || selectingPlanId === plan._id}
+                        loading={selectingPlanId === plan._id}
+                        leftIcon={current ? Check : undefined}
+                        rightIcon={current ? undefined : ArrowRight}
+                        onClick={() => handleSelectPlan(plan)}
+                      >
+                        {current ? "Your current plan" : getPlanCtaLabel(plan)}
+                      </Button>
+                    )}
+                  </div>
+                </Card>
               );
             })}
           </div>
         )}
       </div>
 
-      {/* ── Meta Messaging Limits & Platform Separation Notice ─────────── */}
-      <div className="max-w-5xl mx-auto">
-        <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5 sm:p-6">
-          <div className="flex items-start gap-4">
-            <div className="shrink-0 h-10 w-10 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center">
-              <Info className="h-5 w-5 text-blue-700" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-sm font-bold text-blue-950">
-                WhatsApp Messaging & Meta Platform Limits
-              </h3>
-              <p className="text-xs text-blue-900 leading-relaxed">
-                Your Wagenius subscription plan controls access to <strong>Wagenius features and platform resource limits</strong> such as contacts, monthly campaigns, templates, team users, and connected WhatsApp numbers.
-              </p>
-              <p className="text-xs text-blue-800 leading-relaxed">
-                WhatsApp message delivery, business messaging eligibility, account quality requirements, and any applicable Meta limits are controlled independently by Meta and may affect campaign delivery. Meta messaging charges are also billed separately according to Meta's applicable pricing rules and country rate cards.
-              </p>
-              <div className="flex flex-wrap items-center gap-4 pt-1">
-                <a
-                  href="https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits#automatic-scaling"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-800 hover:text-blue-950 underline underline-offset-2"
-                >
-                  Learn about Meta WhatsApp messaging limits
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-                <a
-                  href="https://whatsappbusiness.com/products/platform-pricing/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-800 hover:text-blue-950 underline underline-offset-2"
-                >
-                  View WhatsApp Business Platform Pricing
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
+      {/* ── Wagenius plan vs Meta: plain-language explainer ─────────── */}
+      <Card>
+        <div className="flex items-start gap-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+            <Info className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 space-y-2">
+            <h2 className="text-[17px] font-semibold text-ink">What your plan covers, and what Meta controls</h2>
+            <p className="text-[14px] leading-relaxed text-ink-muted">
+              <span className="font-medium text-ink">Your Wagenius plan</span> decides which Wagenius features you can
+              use and how much you can store: contacts, campaigns, templates, team members and connected WhatsApp
+              numbers.
+            </p>
+            <p className="text-[14px] leading-relaxed text-ink-muted">
+              <span className="font-medium text-ink">Meta (WhatsApp)</span> separately decides who you can message,
+              how many messages you can send per day, and your account quality. These rules can affect campaign
+              delivery. Meta also charges for messages on its own, using its country rate cards.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1">
+              <a
+                href="https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits#automatic-scaling"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[14px] font-medium text-brand-700 underline-offset-2 hover:text-brand-900 hover:underline"
+              >
+                Learn about Meta messaging limits
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <a
+                href="https://whatsappbusiness.com/products/platform-pricing/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[14px] font-medium text-brand-700 underline-offset-2 hover:text-brand-900 hover:underline"
+              >
+                View WhatsApp Business Platform pricing
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* ── Section 3: WhatsApp Messaging Charges (Meta Overview) ───────── */}
-      <div className="max-w-5xl mx-auto rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-emerald-600" />
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">WhatsApp Messaging Charges</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-              Direct Meta Per-Delivered-Message Pricing
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Meta charges separately for WhatsApp Business Platform usage. Charges depend on recipient country and message category.
+      {/* ── WhatsApp message charges (Meta) ──────────────────────────── */}
+      <Card>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-[17px] font-semibold text-ink">WhatsApp message charges (paid to Meta)</h2>
+            <p className="mt-1 max-w-2xl text-[14px] text-ink-muted">
+              Meta charges for each delivered message, separately from your Wagenius plan. The price depends on the
+              customer&apos;s country and the type of message you send.
             </p>
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 shrink-0">
-            <Shield className="h-4 w-4 text-emerald-500" />
-            <span>0% Commission Markup by Wagenius</span>
-          </div>
+          <Badge tone="brand" className="self-start px-3 py-1 text-[13px]">
+            <Shield className="h-3.5 w-3.5" />
+            0% markup from Wagenius
+          </Badge>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-500/10 to-orange-500/10 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-900">Marketing</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                Meta Category
-              </span>
-            </div>
-            <p className="mt-2.5 text-xs text-slate-700 leading-relaxed">
-              Promotions, offers, announcements, retargeting campaigns, and new product launches.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-blue-900">Utility</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                Meta Category
-              </span>
-            </div>
-            <p className="mt-2.5 text-xs text-slate-700 leading-relaxed">
-              Transaction receipts, order confirmations, shipping updates, and account reminders.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-900">Authentication</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
-                Meta Category
-              </span>
-            </div>
-            <p className="mt-2.5 text-xs text-slate-700 leading-relaxed">
-              One-Time Passwords (OTPs), 2-factor authentication codes, and secure account logins.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-900">Service</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                Meta Category
-              </span>
-            </div>
-            <p className="mt-2.5 text-xs text-slate-700 leading-relaxed">
-              User-initiated customer inquiries and support replies within active 24-hour service windows.
-            </p>
-          </div>
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MetaCategory
+            name="Marketing"
+            plain="Messages that sell or promote"
+            examples="Offers, sale announcements, new product launches and follow-ups to past customers."
+          />
+          <MetaCategory
+            name="Utility"
+            plain="Updates about an order or account"
+            examples="Receipts, order confirmations, shipping updates and account reminders."
+          />
+          <MetaCategory
+            name="Authentication"
+            plain="Login and security codes"
+            examples="One-time passwords (OTPs), two-step verification codes and secure logins."
+          />
+          <MetaCategory
+            name="Service"
+            plain="Replies when a customer messages you"
+            examples="Answering customer questions within 24 hours of their last message."
+          />
         </div>
 
-        <div className="mt-6 flex items-start justify-between gap-4 rounded-xl bg-slate-50 border border-slate-200 p-4 text-xs text-slate-600">
-          <div className="space-y-1">
-            <p className="font-semibold text-slate-800">Bring Your Own WhatsApp Business API (BYO-WABA)</p>
-            <p className="text-[11.5px] leading-relaxed">
-              When you connect your WhatsApp number via Embedded Signup, your Meta Business Manager payment method is billed directly by Meta for message deliveries.
+        <div className="mt-5 flex flex-col gap-3 rounded-xl bg-canvas p-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[14px] font-semibold text-ink">Who pays Meta?</p>
+            <p className="mt-0.5 text-[14px] leading-relaxed text-ink-muted">
+              You use your own WhatsApp Business account. Once you connect your number, Meta bills the payment method
+              in your Meta Business account directly for delivered messages.
             </p>
           </div>
           <a
             href="https://whatsappbusiness.com/products/platform-pricing/"
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-900 underline"
+            className="inline-flex shrink-0 items-center gap-1 text-[14px] font-medium text-brand-700 underline-offset-2 hover:text-brand-900 hover:underline"
           >
-            Official Meta Rate Card
-            <ExternalLink className="h-3 w-3" />
+            Official Meta rate card
+            <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </div>
-      </div>
+      </Card>
 
-      {/* ── Section 4: Detailed Comparison Table ────────────────────────── */}
-      <div className="max-w-5xl mx-auto space-y-3">
-        <div className="text-center space-y-1 pb-2">
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Full Feature Comparison</h2>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Compare all limits, tools, and capabilities across Wagenius plans.
-          </p>
-        </div>
+      {/* ── Full feature comparison ──────────────────────────────────── */}
+      <section>
+        <SectionHeading title="Compare all features" description="Every limit, tool and feature across Wagenius plans." />
 
-        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-          {/* Header Row */}
-          <div className="grid grid-cols-4 border-b border-slate-200 bg-slate-50 font-bold">
-            <div className="py-4 px-4 sm:px-6 text-xs text-slate-500 uppercase tracking-wider">
-              Feature
-            </div>
-            <div className="py-4 px-2 text-center text-xs font-black text-slate-900 uppercase">
-              Free
-            </div>
-            <div className="py-4 px-2 text-center text-xs font-black text-slate-900 uppercase">
-              Pro
-            </div>
-            <div className="py-4 px-2 text-center text-xs font-black text-slate-900 uppercase">
-              Enterprise
+        <Card padded={false} className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-[600px]">
+              {/* Header row */}
+              <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr] border-b border-line bg-[#f6f7f6] text-[13px] font-medium text-ink-muted">
+                <div className="px-4 py-3 sm:px-6">Feature</div>
+                <div className="px-2 py-3 text-center text-ink">Free</div>
+                <div className="px-2 py-3 text-center text-ink">Pro</div>
+                <div className="px-2 py-3 text-center text-ink">Enterprise</div>
+              </div>
+
+              {COMPARISON_SECTIONS.map((section, si) => {
+                const Icon = section.icon;
+                return (
+                  <div key={si}>
+                    <div className="flex items-center gap-2 border-t border-line bg-canvas px-4 py-2.5 sm:px-6">
+                      <Icon className="h-4 w-4 text-brand-600" />
+                      <span className="text-[14px] font-semibold text-ink">{section.title}</span>
+                    </div>
+                    {section.rows.map((row, ri) => (
+                      <div
+                        key={ri}
+                        className="grid grid-cols-[1.6fr_1fr_1fr_1fr] border-t border-line transition-colors hover:bg-canvas"
+                      >
+                        <div className="flex items-center px-4 py-3 text-[14px] text-ink sm:px-6">{row.label}</div>
+                        <div className="flex items-center justify-center px-2 py-3 text-center">
+                          <Cell value={row.free} />
+                        </div>
+                        <div className="flex items-center justify-center px-2 py-3 text-center">
+                          <Cell value={row.pro} />
+                        </div>
+                        <div className="flex items-center justify-center px-2 py-3 text-center">
+                          <Cell value={row.enterprise} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
+        </Card>
+      </section>
 
-          {COMPARISON_SECTIONS.map((section, si) => {
-            const Icon = section.icon;
-            return (
-              <div key={si}>
-                <div className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-slate-50/90 border-t border-slate-200/80">
-                  <Icon className="h-3.5 w-3.5 text-slate-500" />
-                  <span className="text-[11px] font-black uppercase tracking-widest text-slate-600">
-                    {section.title}
-                  </span>
-                </div>
-                {section.rows.map((row, ri) => (
-                  <div
-                    key={ri}
-                    className={`grid grid-cols-4 border-t border-slate-100 hover:bg-slate-50/50 transition ${
-                      ri % 2 === 0 ? "" : "bg-slate-50/20"
-                    }`}
-                  >
-                    <div className="px-4 sm:px-6 py-3 text-xs text-slate-700 flex items-center font-medium">
-                      {row.label}
-                    </div>
-                    <div className="py-3 flex items-center justify-center text-center">
-                      <Cell value={row.free} />
-                    </div>
-                    <div className="py-3 flex items-center justify-center text-center">
-                      <Cell value={row.pro} />
-                    </div>
-                    <div className="py-3 flex items-center justify-center text-center">
-                      <Cell value={row.enterprise} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* ── FAQs ─────────────────────────────────────────────────────── */}
+      <section>
+        <SectionHeading
+          title="Common questions"
+          description="What you need to know about Wagenius plans and Meta message charges."
+        />
 
-      {/* ── Section 5: FAQs ─────────────────────────────────────────────── */}
-      <div className="max-w-4xl mx-auto space-y-4">
-        <div className="text-center space-y-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Frequently Asked Questions</h2>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Everything you need to know about Wagenius plans and Meta platform charges.
-          </p>
-        </div>
-
-        <div className="mt-4 space-y-3">
+        <Card padded={false} className="divide-y divide-line overflow-hidden">
           {FAQS.map((faq, index) => {
             const isOpen = openFaq === index;
             return (
-              <div
-                key={index}
-                className="rounded-2xl border border-slate-200 bg-white overflow-hidden transition"
-              >
+              <div key={index}>
                 <button
                   type="button"
+                  aria-expanded={isOpen}
                   onClick={() => setOpenFaq(isOpen ? null : index)}
-                  className="w-full flex items-center justify-between p-4 text-left font-semibold text-slate-800 text-sm hover:bg-slate-50/50"
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-[15px] font-medium text-ink transition-colors hover:bg-canvas sm:px-6"
                 >
                   <span>{faq.q}</span>
                   {isOpen ? (
-                    <ChevronUp className="h-4 w-4 text-slate-400 shrink-0" />
+                    <ChevronUp className="h-4 w-4 shrink-0 text-ink-muted" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
+                    <ChevronDown className="h-4 w-4 shrink-0 text-ink-muted" />
                   )}
                 </button>
-                {isOpen && (
-                  <div className="px-4 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                    {faq.a}
-                  </div>
-                )}
+                {isOpen && <div className="px-5 pb-5 text-[14px] leading-relaxed text-ink-muted sm:px-6">{faq.a}</div>}
               </div>
             );
           })}
-        </div>
-      </div>
+        </Card>
+      </section>
     </div>
   );
 
   /* ── Public (Unauthenticated) Layout ─────────────────────────────────── */
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between pb-8">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-              <div className="h-9 w-9 rounded-xl bg-slate-950 flex items-center justify-center text-white font-black text-sm shadow-md">
-                WA
-              </div>
-              <span className="font-bold text-lg text-slate-900 tracking-tight">Wagenius</span>
-            </div>
-            <button
-              onClick={() => navigate("/login")}
-              className="text-xs font-semibold text-slate-700 hover:text-slate-950 px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 shadow-sm"
-            >
-              Sign In
+      <div className="min-h-screen bg-canvas px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <header className="mb-8 flex items-center justify-between gap-4 border-b border-line pb-5">
+            <button type="button" onClick={() => navigate("/")} className="rounded-lg" aria-label="Wagenius home">
+              <Logo />
             </button>
-          </div>
+            <Button variant="secondary" size="sm" onClick={() => navigate("/login")}>
+              Sign in
+            </Button>
+          </header>
           {content}
         </div>
       </div>
@@ -916,37 +855,33 @@ export default function BillingPage() {
   /* ── Onboarding Layout (PLAN_SELECTION_REQUIRED or WHATSAPP_ONBOARDING_REQUIRED) ── */
   if (setupStatus !== "READY") {
     return (
-      <div className="min-h-screen bg-[#FAF8F5] py-6 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between pb-6 border-b border-slate-200/60 mb-6">
-            <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-slate-950 flex items-center justify-center text-white font-black text-sm shadow-md">
-                WA
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-lg text-slate-900 tracking-tight">Wagenius</span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
-                  Account Setup
-                </span>
-              </div>
+      <div className="min-h-screen bg-canvas px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <header className="mb-8 flex items-center justify-between gap-4 border-b border-line pb-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <Logo />
+              <Badge tone="neutral" className="hidden sm:inline-flex">
+                Account setup
+              </Badge>
             </div>
             <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold text-slate-800">{user?.name || user?.email}</p>
-                <p className="text-[11px] text-slate-500">{user?.email}</p>
+              <div className="hidden text-right sm:block">
+                <p className="text-[14px] font-medium text-ink">{user?.name || user?.email}</p>
+                <p className="text-[13px] text-ink-muted">{user?.email}</p>
               </div>
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={LogOut}
                 onClick={() => {
                   logout();
                   navigate("/login");
                 }}
-                className="text-xs font-semibold text-slate-700 hover:text-red-700 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-red-50 shadow-sm transition"
               >
-                Sign Out
-              </button>
+                Sign out
+              </Button>
             </div>
-          </div>
+          </header>
           {content}
         </div>
       </div>

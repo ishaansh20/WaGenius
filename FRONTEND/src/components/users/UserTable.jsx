@@ -1,11 +1,15 @@
+import { SearchX } from "lucide-react";
+import { Badge } from "../ui";
 import StatusToggle from "./StatusToggle";
 
 const ROLE_CONFIG = {
-  ADMIN: { label: "Admin", className: "bg-violet-50 text-violet-700 border border-violet-200" },
-  TEAM_LEAD: { label: "Team Lead", className: "bg-blue-50 text-blue-700 border border-blue-200" },
-  CAMPAIGN_MANAGER: { label: "Campaign Mgr", className: "bg-amber-50 text-amber-700 border border-amber-200" },
-  SUPPORT_AGENT: { label: "Support Agent", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+  ADMIN: { label: "Admin" },
+  TEAM_LEAD: { label: "Team lead" },
+  CAMPAIGN_MANAGER: { label: "Campaign manager" },
+  SUPPORT_AGENT: { label: "Support agent" },
 };
+
+const COLUMNS = ["User", "Role", "Status", "Last login", "Actions"];
 
 function getInitials(name = "") {
   return name
@@ -34,15 +38,16 @@ function formatLastLogin(value) {
 
 export default function UserTable({ users, onChangeRole, onToggleStatus }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px]">
+    <div className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface shadow-[var(--shadow-card)]">
+      <div className="relative overflow-x-auto">
+        <table className="w-full min-w-[720px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
-              {["User", "Role", "Status", "Last Login", "Actions"].map((col) => (
+            <tr className="border-b border-line bg-[#f6f7f6]">
+              {COLUMNS.map((col) => (
                 <th
                   key={col}
-                  className="px-5 py-3 text-left text-[12.5px] font-semibold uppercase tracking-wide text-slate-600"
+                  scope="col"
+                  className="px-4 py-3 text-left text-[13px] font-medium text-ink-muted"
                 >
                   {col}
                 </th>
@@ -50,37 +55,42 @@ export default function UserTable({ users, onChangeRole, onToggleStatus }) {
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {users.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-5 py-16 text-center">
-                  <p className="text-sm font-medium text-slate-800">No users found</p>
-                  <p className="mt-1 text-[13px] text-slate-400">
-                    Try adjusting your search or filter.
-                  </p>
+                <td colSpan={5} className="p-4">
+                  <div className="flex flex-col items-center justify-center rounded-xl bg-canvas px-6 py-12 text-center">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface text-ink-muted shadow-[var(--shadow-card)]">
+                      <SearchX size={20} />
+                    </span>
+                    <p className="mt-4 text-[15px] font-semibold text-ink">No team members found</p>
+                    <p className="mt-1 max-w-xs text-[14px] text-ink-muted">
+                      Try a different name or email, or change the role and status filters.
+                    </p>
+                  </div>
                 </td>
               </tr>
             ) : (
               users.map((user) => {
-                const role = ROLE_CONFIG[user.role] || { label: user.role, className: "bg-slate-100 text-slate-600 border border-slate-200" };
+                const role = ROLE_CONFIG[user.role] || { label: user.role };
                 const isAdmin = user.role === "ADMIN";
 
                 return (
                   <tr
                     key={user._id || user.id}
-                    className="transition-colors hover:bg-slate-50/70"
+                    className="transition-colors hover:bg-canvas"
                   >
                     {/* User: avatar + name + email */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-600">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[13px] font-semibold text-brand-800">
                           {getInitials(user.name)}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-[13.5px] font-medium text-slate-900">
+                          <p className="truncate text-[14px] font-medium text-ink">
                             {user.name}
                           </p>
-                          <p className="truncate text-[12px] text-slate-400">
+                          <p className="truncate text-[13px] text-ink-muted">
                             {user.email}
                           </p>
                         </div>
@@ -88,51 +98,43 @@ export default function UserTable({ users, onChangeRole, onToggleStatus }) {
                     </td>
 
                     {/* Role badge */}
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${role.className}`}
-                      >
+                    <td className="px-4 py-3.5">
+                      <Badge tone="neutral" className="text-[13px]">
                         {role.label}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Status badge */}
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
-                          user.isActive
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-slate-100 text-slate-500 border border-slate-200"
-                        }`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${user.isActive ? "bg-emerald-500" : "bg-slate-400"}`}
-                        />
+                    <td className="px-4 py-3.5">
+                      <Badge tone={user.isActive ? "brand" : "neutral"} dot className="text-[13px]">
                         {user.isActive ? "Active" : "Inactive"}
-                      </span>
+                      </Badge>
                     </td>
 
                     {/* Last Login */}
-                    <td className="px-5 py-3.5 text-[13px] tabular-nums text-slate-500">
+                    <td className="px-4 py-3.5 text-[14px] tabular-nums text-ink-muted">
                       {formatLastLogin(user.lastLogin)}
                     </td>
 
                     {/* Actions */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-3.5">
                       {isAdmin ? (
-                        <span className="text-[12px] text-slate-300">—</span>
+                        <span className="text-[14px] text-ink-muted" title="Admins can't be changed here">
+                          —
+                        </span>
                       ) : (
                         <div className="flex items-center gap-3">
                           <StatusToggle
                             user={user}
                             onToggleStatus={onToggleStatus}
                           />
-                          <span className="h-4 w-px bg-slate-200" />
+                          <span className="h-5 w-px bg-line" />
                           <button
+                            type="button"
                             onClick={() => onChangeRole(user)}
-                            className="text-[12px] font-medium text-slate-500 underline-offset-2 transition hover:text-emerald-700 hover:underline"
+                            className="h-8 rounded-lg px-2.5 text-[14px] font-medium text-brand-700 transition hover:bg-brand-50 hover:text-brand-900"
                           >
-                            Change Role
+                            Change role
                           </button>
                         </div>
                       )}

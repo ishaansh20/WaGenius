@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Tag, Trash2, Download, Send, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { bulkDeleteContacts, bulkUpdateContactTags } from "../../services/api";
+import { Button } from "../ui";
 
 export default function BulkActionsBar({ selectedContacts, onClearSelection, onChanged, onBroadcast }) {
   const [tagInput, setTagInput] = useState("");
@@ -68,14 +69,17 @@ export default function BulkActionsBar({ selectedContacts, onClearSelection, onC
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
-      <span className="text-[13px] font-medium text-emerald-800">
-        {selectedContacts.length} selected
+    <div className="sticky top-[68px] z-20 flex flex-wrap items-center gap-3 rounded-[var(--radius-card)] border border-line bg-surface px-4 py-3 shadow-[var(--shadow-pop)] sm:px-5 lg:top-4">
+      <span className="inline-flex items-center gap-2 text-[14px] font-medium text-ink">
+        <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-brand-900 px-2 text-[13px] font-semibold tabular-nums text-white">
+          {selectedContacts.length}
+        </span>
+        selected
       </span>
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
         {showTagInput ? (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <input
               autoFocus
               type="text"
@@ -83,70 +87,53 @@ export default function BulkActionsBar({ selectedContacts, onClearSelection, onC
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleTagAction(showTagInput); }}
               placeholder="tag1, tag2"
-              className="h-8 w-40 rounded-lg border border-slate-200 bg-white px-2.5 text-[12.5px] outline-none focus:border-emerald-300"
+              aria-label={showTagInput === "add" ? "Tags to add" : "Tags to remove"}
+              className="h-9 w-44 rounded-lg border border-line-strong bg-surface px-3 text-[14px] text-ink outline-none transition placeholder:text-ink-subtle focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12"
             />
-            <button
-              type="button"
+            <Button
+              size="sm"
+              variant={showTagInput === "add" ? "primary" : "danger"}
               disabled={busy}
               onClick={() => handleTagAction(showTagInput)}
-              className="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-emerald-700"
+              className="h-9"
             >
               {showTagInput === "add" ? "Add" : "Remove"}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              size="icon-sm"
+              variant="ghost"
               onClick={() => { setShowTagInput(null); setTagInput(""); }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white"
+              aria-label="Cancel"
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
+              <X size={16} />
+            </Button>
           </div>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={() => setShowTagInput("add")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              <Tag className="h-3.5 w-3.5" /> Add Tag
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowTagInput("remove")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              <Tag className="h-3.5 w-3.5" /> Remove Tag
-            </button>
-            <button
-              type="button"
-              onClick={handleExport}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              <Download className="h-3.5 w-3.5" /> Export
-            </button>
-            <button
-              type="button"
-              onClick={() => onBroadcast(selectedContacts)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[12.5px] font-medium text-white shadow-sm transition hover:bg-emerald-700"
-            >
-              <Send className="h-3.5 w-3.5" /> Broadcast
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={handleDelete}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-[12.5px] font-medium text-red-600 shadow-sm transition hover:bg-red-50"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Delete
-            </button>
-            <button
-              type="button"
+            <Button size="sm" variant="secondary" leftIcon={Tag} onClick={() => setShowTagInput("add")}>
+              Add tag
+            </Button>
+            <Button size="sm" variant="secondary" leftIcon={Tag} onClick={() => setShowTagInput("remove")}>
+              Remove tag
+            </Button>
+            <Button size="sm" variant="secondary" leftIcon={Download} onClick={handleExport}>
+              Export
+            </Button>
+            <Button size="sm" leftIcon={Send} onClick={() => onBroadcast(selectedContacts)}>
+              Broadcast
+            </Button>
+            <Button size="sm" variant="danger-ghost" leftIcon={Trash2} disabled={busy} onClick={handleDelete}>
+              Delete
+            </Button>
+            <Button
+              size="icon-sm"
+              variant="ghost"
               onClick={onClearSelection}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-emerald-700 hover:bg-white"
               title="Clear selection"
+              aria-label="Clear selection"
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
+              <X size={16} />
+            </Button>
           </>
         )}
       </div>

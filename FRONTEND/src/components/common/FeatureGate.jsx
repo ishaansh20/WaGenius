@@ -1,6 +1,7 @@
 import { Lock, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import usePlan from "../../hooks/usePlan";
+import { Button } from "../ui";
 
 /**
  * Reusable Feature Gate Component:
@@ -35,32 +36,30 @@ export default function FeatureGate({
 
   if (inline) {
     return (
-      <div className="relative inline-flex items-center gap-1.5 opacity-60 cursor-not-allowed">
+      <div
+        className="relative inline-flex cursor-not-allowed items-center gap-1.5 opacity-60"
+        title={`Available on the ${requiredPlan} plan`}
+      >
         {children}
-        <Lock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+        <Lock className="h-3.5 w-3.5 shrink-0 text-ink-muted" />
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-center">
-      <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 border border-amber-200 text-amber-700 mb-2">
-        <Lock className="h-4 w-4" />
-      </div>
-      <h4 className="text-xs font-bold text-slate-800">
-        {title ? `${title} is Locked` : "Feature Locked"}
+    <div className="flex flex-col items-center rounded-xl bg-canvas px-5 py-6 text-center">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-brand-700 shadow-[var(--shadow-card)]">
+        <Lock size={18} />
+      </span>
+      <h4 className="mt-3 text-[15px] font-semibold text-ink">
+        {title ? `${title} is locked` : "This feature is locked"}
       </h4>
-      <p className="mt-1 text-[11px] text-slate-500 max-w-xs mx-auto leading-relaxed">
-        Available on the <strong>{requiredPlan}</strong> plan and above.
+      <p className="mx-auto mt-1 max-w-xs text-[14px] text-ink-muted">
+        Available on the <span className="font-medium text-ink">{requiredPlan}</span> plan and above.
       </p>
-      <button
-        type="button"
-        onClick={() => navigate("/pricing")}
-        className="mt-3 inline-flex items-center gap-1 text-[11.5px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 border border-emerald-200/80 px-3 py-1.5 rounded-lg transition"
-      >
-        <span>View Plans</span>
-        <ArrowRight className="h-3 w-3" />
-      </button>
+      <Button size="sm" className="mt-4" rightIcon={ArrowRight} onClick={() => navigate("/pricing")}>
+        View plans
+      </Button>
     </div>
   );
 }

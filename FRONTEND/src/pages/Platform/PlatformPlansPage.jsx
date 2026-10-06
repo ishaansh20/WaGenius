@@ -116,7 +116,7 @@ function FeatureSection({ form, set }) {
       <span className="block text-xs font-semibold text-[#2A4A68]">Feature Flags</span>
       {sections.map((section) => (
         <div key={section}>
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#8DA3B8] mb-1.5">{section}</p>
+          <p className="text-[12px] font-black uppercase tracking-widest text-[#8DA3B8] mb-1.5">{section}</p>
           <div className="grid grid-cols-2 gap-1.5">
             {FEATURE_FIELDS.filter((f) => f.section === section).map(({ key, label }) => (
               <label
@@ -244,7 +244,7 @@ function PlanFormModal({ open, initial, onClose, onSaved }) {
                 />
                 <div>
                   <span className="text-xs font-semibold text-[#1A3652]">{label}</span>
-                  <p className="text-[11px] text-[#6B8BA5]">{desc}</p>
+                  <p className="text-[13px] text-[#6B8BA5]">{desc}</p>
                 </div>
               </label>
             ))}
@@ -283,7 +283,7 @@ function PlanFormModal({ open, initial, onClose, onSaved }) {
 
           {/* Limits */}
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#8DA3B8] mb-2">Usage Limits</p>
+            <p className="text-[12px] font-black uppercase tracking-widest text-[#8DA3B8] mb-2">Usage Limits</p>
             <div className="grid grid-cols-3 gap-3">
               <Field label="Max Team Members">
                 <input type="number" value={form.users} onChange={(e) => set("users", e.target.value)} className="input" />
@@ -361,13 +361,13 @@ function FeatureChips({ plan }) {
   return (
     <div className="flex flex-wrap gap-1 mt-2">
       {enabled.slice(0, limit).map((label) => (
-        <span key={label} className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+        <span key={label} className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[12px] font-medium text-emerald-700">
           <Check className="h-2.5 w-2.5" />
           {label}
         </span>
       ))}
       {enabled.length > limit && (
-        <span className="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500">
+        <span className="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[12px] text-slate-500">
           +{enabled.length - limit} more
         </span>
       )}
@@ -448,7 +448,7 @@ export default function PlatformPlansPage() {
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                    className={`rounded-full border px-2 py-0.5 text-[12px] font-semibold ${
                       plan.isActive
                         ? "border-[#C5D1DE] bg-[#D9E4EE] text-[#2A4A68]"
                         : "border-[#C5D1DE] bg-[#D4DEE9] text-[#6B8BA5]"
@@ -457,17 +457,17 @@ export default function PlatformPlansPage() {
                     {plan.isActive ? "Active" : "Inactive"}
                   </span>
                   {plan.isFree && (
-                    <span className="rounded-full border border-[#B5C5D5] bg-[#EFF3F8] px-2 py-0.5 text-[9px] font-bold text-[#2A4A68]">
+                    <span className="rounded-full border border-[#B5C5D5] bg-[#EFF3F8] px-2 py-0.5 text-[12px] font-bold text-[#2A4A68]">
                       Free Forever
                     </span>
                   )}
                   {plan.isPopular && (
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700">
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[12px] font-bold text-emerald-700">
                       ⭐ Most Popular
                     </span>
                   )}
                   {plan.isEnterprise && (
-                    <span className="rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[9px] font-bold text-purple-700">
+                    <span className="rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[12px] font-bold text-purple-700">
                       Enterprise
                     </span>
                   )}

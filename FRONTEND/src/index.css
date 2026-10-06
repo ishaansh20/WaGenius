@@ -1,73 +1,167 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: light;
-  --app-bg: #f8fafc;
-  --app-surface: rgba(255, 255, 255, 0.78);
-  --app-border: rgba(203, 213, 225, 0.64);
-  --app-text: #0f172a;
-  --app-muted: #64748b;
-  --app-shadow: 0 30px 120px rgba(15, 23, 42, 0.08);
-  --app-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+/*
+ * Wagenius design tokens.
+ * App: Geist throughout. Public site (.marketing): General Sans headings + Inter.
+ * The emerald scale is remapped to the brand greens so existing
+ * `emerald-*` utilities across the app pick up the brand palette.
+ */
+@theme {
+  /* App UI type: Geist everywhere. The public site opts back into
+     General Sans + Inter via the .marketing scope below. */
+  --font-sans: "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Readability floor: small text is a little larger than Tailwind's default. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.90625rem;
+  --text-sm--line-height: 1.5;
+
+  /* Darker greys so secondary text stays readable (Tailwind's slate-400/500
+     fail contrast on white). Used widely across existing pages. */
+  --color-slate-300: #a3adba;
+  --color-slate-400: #657284;
+  --color-slate-500: #4d5868;
+  --color-slate-600: #3c4656;
+  --color-slate-700: #2a3341;
+
+  --color-brand-50: #eefbf4;
+  --color-brand-100: #ddf5e8;
+  --color-brand-200: #b7eacf;
+  --color-brand-300: #85d8af;
+  --color-brand-400: #4cbf89;
+  --color-brand-500: #22a46d;
+  --color-brand-600: #128c5e;
+  --color-brand-700: #0f704d;
+  --color-brand-800: #0e5940;
+  --color-brand-900: #0b3b2e;
+  --color-brand-950: #062219;
+
+  --color-emerald-50: #eefbf4;
+  --color-emerald-100: #ddf5e8;
+  --color-emerald-200: #b7eacf;
+  --color-emerald-300: #85d8af;
+  --color-emerald-400: #4cbf89;
+  --color-emerald-500: #22a46d;
+  --color-emerald-600: #128c5e;
+  --color-emerald-700: #0f704d;
+  --color-emerald-800: #0e5940;
+  --color-emerald-900: #0b3b2e;
+  --color-emerald-950: #062219;
+
+  --color-accent: #c8f169;
+  --color-accent-soft: #effbd2;
+
+  --color-canvas: #f6f7f6;
+  --color-surface: #ffffff;
+  --color-line: #e6e8e3;
+  --color-line-strong: #d3d7cf;
+  --color-ink: #0f1c17;
+  --color-ink-muted: #4c5953;
+  --color-ink-subtle: #66716c;
+
+  --color-success: #128c5e;
+  --color-success-soft: #ddf5e8;
+  --color-warning: #b45309;
+  --color-warning-soft: #fef3c7;
+  --color-danger: #c62828;
+  --color-danger-soft: #fdecec;
+  --color-info: #1d5fd1;
+  --color-info-soft: #e7efff;
+
+  --radius-card: 16px;
+  --shadow-card: 0 1px 2px rgba(11, 59, 46, 0.04), 0 4px 16px rgba(11, 59, 46, 0.04);
+  --shadow-pop: 0 12px 40px rgba(11, 59, 46, 0.14);
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --app-bg: #0b1220;
-  --app-surface: rgba(15, 23, 42, 0.75);
-  --app-border: rgba(148, 163, 184, 0.12);
-  --app-text: #e2e8f0;
-  --app-muted: #94a3b8;
-  --app-shadow: 0 30px 120px rgba(2, 6, 23, 0.48);
+/* Public marketing pages keep their original type and colours. */
+.marketing {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "General Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --color-canvas: #fafaf7;
+  --color-ink-subtle: #7d8883;
+  font-family: var(--font-sans);
 }
 
-* {
-  box-sizing: border-box;
-}
+/* Base styles live in the base layer so Tailwind utilities can override them. */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
 
-html,
-body,
-#root {
-  min-height: 100%;
-}
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
 
-body {
-  margin: 0;
-  background:
-    linear-gradient(180deg, #ffffff 0%, #f8fafc 42%, #f5f7fb 100%);
-  color: var(--app-text);
-  font-family: var(--app-font);
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  * {
+    box-sizing: border-box;
+  }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
 
-button,
-select {
-  cursor: pointer;
-}
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-button:disabled {
-  cursor: not-allowed;
-}
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+  }
 
-a {
-  color: inherit;
-}
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
 
-::selection {
-  background: rgba(15, 23, 42, 0.12);
-}
+  button,
+  select {
+    cursor: pointer;
+  }
 
-#root {
-  width: 100%;
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--color-brand-100);
+  }
+
+  #root {
+    width: 100%;
+  }
 }
 
 .line-clamp-2 {
@@ -85,17 +179,6 @@ a {
   scrollbar-width: none;
 }
 
-.app-card {
-  border: 1px solid rgba(226, 232, 240, 0.86);
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.045);
-}
-
-.app-card-subtle {
-  border: 1px solid rgba(226, 232, 240, 0.74);
-  background: rgba(248, 250, 252, 0.62);
-}
-
-.ui-hairline {
-  border-color: rgba(226, 232, 240, 0.82);
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

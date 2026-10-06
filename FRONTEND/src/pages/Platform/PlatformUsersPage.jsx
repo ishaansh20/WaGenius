@@ -217,7 +217,7 @@ export default function PlatformUsersPage() {
                 <Users className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Users</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Users</p>
                 <p className="text-xl font-bold text-slate-900">{summary.total}</p>
               </div>
             </div>
@@ -229,7 +229,7 @@ export default function PlatformUsersPage() {
                 <UserCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Accounts</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Active Accounts</p>
                 <p className="text-xl font-bold text-emerald-700">{summary.active}</p>
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function PlatformUsersPage() {
                 <UserX className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Deactivated</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Deactivated</p>
                 <p className="text-xl font-bold text-red-600">{summary.inactive}</p>
               </div>
             </div>
@@ -253,7 +253,7 @@ export default function PlatformUsersPage() {
                 <Crown className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Company Admins</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Company Admins</p>
                 <p className="text-xl font-bold text-purple-700">{summary.admins}</p>
               </div>
             </div>
@@ -340,7 +340,7 @@ export default function PlatformUsersPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400">
+                <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
                   <tr>
                     <th className="px-5 py-3.5">User</th>
                     <th className="px-5 py-3.5">Company Tenant</th>
@@ -362,7 +362,7 @@ export default function PlatformUsersPage() {
                           </div>
                           <div>
                             <p className="font-semibold text-slate-900">{u.name}</p>
-                            <p className="text-[11px] text-slate-400">{u.email}</p>
+                            <p className="text-[13px] text-slate-400">{u.email}</p>
                           </div>
                         </div>
                       </td>
@@ -375,7 +375,7 @@ export default function PlatformUsersPage() {
                               const targetId = typeof u.companyId === "object" ? (u.companyId?._id || u.companyId?.id) : u.companyId;
                               if (targetId && targetId !== "[object Object]") navigate(`/platform/companies/${targetId}`);
                             }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
                           >
                             <Building2 className="h-3 w-3 text-slate-400" />
                             {typeof u.companyId === "object" ? (u.companyId.name || "Company") : "Company"}
@@ -388,7 +388,7 @@ export default function PlatformUsersPage() {
                       {/* ROLE */}
                       <td className="px-5 py-3.5">
                         <span
-                          className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold ${
+                          className={`inline-flex rounded-md border px-2 py-0.5 text-[12px] font-bold ${
                             roleBadges[u.role] || "border-slate-200 bg-slate-50 text-slate-600"
                           }`}
                         >
@@ -400,7 +400,7 @@ export default function PlatformUsersPage() {
                       <td className="px-5 py-3.5">
                         <button
                           onClick={() => handleToggleStatus(u)}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition ${
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold transition ${
                             u.isActive
                               ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                               : "bg-red-50 text-red-600 hover:bg-red-100"
@@ -427,7 +427,7 @@ export default function PlatformUsersPage() {
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             onClick={() => openResetModal(u)}
-                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 px-2 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100"
+                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 px-2 text-[13px] font-medium text-slate-700 transition hover:bg-slate-100"
                             title="Reset user password"
                           >
                             <KeyRound className="h-3 w-3 text-slate-500" />
@@ -435,7 +435,7 @@ export default function PlatformUsersPage() {
                           </button>
                           <button
                             onClick={() => openRoleModal(u)}
-                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 px-2 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100"
+                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 px-2 text-[13px] font-medium text-slate-700 transition hover:bg-slate-100"
                             title="Edit user role"
                           >
                             <Pencil className="h-3 w-3 text-slate-500" />

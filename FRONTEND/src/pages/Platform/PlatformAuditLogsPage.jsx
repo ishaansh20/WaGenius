@@ -101,7 +101,7 @@ export default function PlatformAuditLogsPage() {
                 <Activity className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Audit Events</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Audit Events</p>
                 <p className="text-xl font-bold text-slate-900">{summary.total}</p>
               </div>
             </div>
@@ -113,7 +113,7 @@ export default function PlatformAuditLogsPage() {
                 <Clock className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Logged Today</p>
+                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Logged Today</p>
                 <p className="text-xl font-bold text-purple-700">{summary.today}</p>
               </div>
             </div>
@@ -191,7 +191,7 @@ export default function PlatformAuditLogsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-400">
+                <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
                   <tr>
                     <th className="px-5 py-3.5">Timestamp</th>
                     <th className="px-5 py-3.5">Actor (Super Admin)</th>
@@ -205,19 +205,19 @@ export default function PlatformAuditLogsPage() {
                   {logs.map((log) => (
                     <tr key={log._id} className="transition hover:bg-slate-50/70">
                       {/* TIMESTAMP */}
-                      <td className="px-5 py-3.5 font-mono text-[11px] text-slate-500">
+                      <td className="px-5 py-3.5 font-mono text-[13px] text-slate-500">
                         {formatDateTime(log.createdAt)}
                       </td>
 
                       {/* ACTOR */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-900 text-[10px] font-bold text-white">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-900 text-[12px] font-bold text-white">
                             {log.actorName?.charAt(0)?.toUpperCase() || "A"}
                           </div>
                           <div>
                             <p className="font-semibold text-slate-900">{log.actorName}</p>
-                            <p className="text-[10px] text-slate-400">{log.actorEmail}</p>
+                            <p className="text-[12px] text-slate-400">{log.actorEmail}</p>
                           </div>
                         </div>
                       </td>
@@ -225,7 +225,7 @@ export default function PlatformAuditLogsPage() {
                       {/* ACTION */}
                       <td className="px-5 py-3.5">
                         <span
-                          className={`inline-flex rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold ${
+                          className={`inline-flex rounded-md border px-2 py-0.5 font-mono text-[12px] font-bold ${
                             actionBadges[log.action] || "border-slate-200 bg-slate-50 text-slate-600"
                           }`}
                         >
@@ -236,7 +236,7 @@ export default function PlatformAuditLogsPage() {
                       {/* TARGET */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-600">
                             {log.targetModel}
                           </span>
                           <span className="font-medium text-slate-800">{log.targetName || "—"}</span>
@@ -244,7 +244,7 @@ export default function PlatformAuditLogsPage() {
                       </td>
 
                       {/* IP ADDRESS */}
-                      <td className="px-5 py-3.5 font-mono text-[11px] text-slate-400">
+                      <td className="px-5 py-3.5 font-mono text-[13px] text-slate-400">
                         {log.ipAddress || "127.0.0.1"}
                       </td>
 
@@ -252,7 +252,7 @@ export default function PlatformAuditLogsPage() {
                       <td className="px-5 py-3.5 text-right">
                         <button
                           onClick={() => setSelectedLog(log)}
-                          className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 px-2.5 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100"
+                          className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 px-2.5 text-[13px] font-medium text-slate-700 transition hover:bg-slate-100"
                         >
                           <FileCode className="h-3 w-3 text-slate-500" />
                           View Diff
