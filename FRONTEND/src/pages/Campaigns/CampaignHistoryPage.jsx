@@ -119,7 +119,7 @@ function DeliveryProgress({ sent, failed, total, rate }) {
         {rate !== null && <span className="text-[13px] text-ink-muted">{rate}%</span>}
       </div>
       <div className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-[#eceeed]">
-        <div className="h-full bg-brand-600" style={{ width: `${sentPct}%` }} />
+        <div className="grow-x h-full bg-brand-600" style={{ width: `${sentPct}%` }} />
         {failedPct > 0 && <div className="h-full bg-danger" style={{ width: `${failedPct}%` }} />}
       </div>
     </div>

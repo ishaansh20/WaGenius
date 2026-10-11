@@ -107,6 +107,9 @@ Readable long-form layout (max width ~720px, table of contents), a friendly 404 
 ## Steps 2–12 ✅ done (2026-10-06)
 All company app pages have been redesigned to `docs/APP_DESIGN_SYSTEM.md`: Login, Signup, Billing/Pricing, Onboarding, Inbox, Contacts, Create campaign, Campaign history and analytics, Templates (all screens), Settings and Team, Legal and 404. The palette is brand green plus neutrals, with red for errors only. Presentation only: logic diffed against HEAD by each agent and lint-clean. The build passes, and all routes render without runtime errors.
 
+## Motion pass ✅ done (2026-10-07)
+Shared toolkit in `index.css` (page-enter, stagger, shimmer, pop-in, ripple, typing dots, ai-shimmer, lift), `useCountUp`, `AnimatedNumber`, `Ticks`, `useInView`. Home page: badge removed; hero inbox plays a conversation (typing → AI reply → ticks turn blue); campaign card is a broadcast ripple whose counters are derived from the dots; AI chip shimmers. App: dashboard numbers count up from live data, charts draw in, delivery bars grow, new Inbox messages pop in and read ticks turn blue, shimmer skeletons, modal/page entrances, softer layered shadows. All respect prefers-reduced-motion.
+
 ## Step 13 — Platform admin (13 pages)
 Apply the shell + shared components: dashboard, companies list/detail (split the 1,102-line file into tabs), users, campaigns, templates, WhatsApp, analytics, audit logs, subscriptions, plans, settings. Lower visual polish, high consistency.
 

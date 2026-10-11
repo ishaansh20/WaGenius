@@ -97,7 +97,7 @@ function LoginForm({
 
 function BrandPanel() {
   return (
-    <aside className="hidden bg-brand-900 lg:flex lg:flex-col lg:justify-center lg:px-14 xl:px-20">
+    <aside className="hidden bg-brand-900 lg:order-first lg:flex lg:flex-col lg:justify-center lg:px-14 xl:px-20">
       <div className="max-w-[440px]">
         <h2 className="text-[32px] font-semibold leading-[1.2] tracking-[-0.025em] text-white">
           Talk to every customer on WhatsApp, from one place.

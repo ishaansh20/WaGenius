@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BadgeCheck, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { AiReplyChip, InboxMock, PhoneMock, TemplateMessage } from "./ProductMockups";
 
 const REASSURANCES = ["Free plan available", "Simple monthly pricing in ₹", "Guided WhatsApp setup"];
@@ -21,12 +21,8 @@ export default function Hero() {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="mx-auto max-w-3xl text-center"
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-surface/80 px-3.5 py-1.5 text-[14px] font-medium text-brand-800">
-            <BadgeCheck size={16} className="text-brand-600" />
-            Built on the official WhatsApp Business Platform
-          </span>
 
-          <h1 className="mt-6 text-[40px] font-semibold leading-[1.05] tracking-[-0.025em] text-brand-950 sm:text-[56px] lg:text-[68px]">
+          <h1 className="text-[40px] font-semibold leading-[1.05] tracking-[-0.025em] text-brand-950 sm:text-[56px] lg:text-[68px]">
             Turn WhatsApp chats into <span className="relative whitespace-nowrap text-brand-600">
               repeat sales
               <svg

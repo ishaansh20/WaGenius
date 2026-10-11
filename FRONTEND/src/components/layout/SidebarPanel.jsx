@@ -256,11 +256,14 @@ export default function SidebarPanel({ collapsed = false, onToggleCollapse, onNa
                         setOpenMenus((current) => ({ ...current, [item.id]: !current[item.id] }));
                       }}
                       className={cn(
-                        "group relative flex w-full items-center rounded-lg text-[15px] font-medium transition-colors duration-150",
+                        "group relative flex w-full items-center rounded-lg text-[15px] font-medium transition-[background-color,color,padding] duration-150",
                         collapsed ? "h-10 justify-center" : "h-10 gap-3 px-3",
                         active ? "bg-brand-50 text-brand-900" : "text-[#3a4442] hover:bg-canvas hover:text-ink",
                       )}
                     >
+                      {active && (
+                        <span className="slide-in absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-600" />
+                      )}
                       <Icon size={18} strokeWidth={active ? 2.2 : 1.9} className={active ? "text-brand-700" : "text-ink-muted"} />
                       {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
                       {!collapsed && item.submenu && (

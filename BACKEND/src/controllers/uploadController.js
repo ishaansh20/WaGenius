@@ -1,4 +1,5 @@
 const csv = require("csv-parser");
+const { rowToFields } = require("../utils/sheetFields");
 const fs = require("fs");
 
 const Campaign = require("../models/campaign");
@@ -61,9 +62,11 @@ const uploadCampaign = async (req, res) => {
     stream
       .pipe(csv())
       .on("data", (row) => {
+        const fields = rowToFields(row);
         contacts.push({
-          name: row.name || "Unknown",
-          phone: row.phone,
+          name: fields.name || "Unknown",
+          phone: fields.phone,
+          fields,
         });
       })
       .on("end", async () => {

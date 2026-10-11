@@ -5,6 +5,11 @@ const contactSchema = new mongoose.Schema({
 
   phone: String,
 
+  // Every column from the uploaded sheet, keyed by normalised header
+  // (e.g. { amount: "2500", due_date: "15 Oct" }). Used to fill template
+  // variables per contact via {{col:<key>}}. Absent for older campaigns.
+  fields: { type: mongoose.Schema.Types.Mixed, default: undefined },
+
   status: {
     type: String,
     enum: ["pending", "sent", "delivered", "read", "failed"],

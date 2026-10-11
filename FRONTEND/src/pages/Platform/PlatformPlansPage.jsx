@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Plus, Pencil, Power, X, Check } from "lucide-react";
+import { Plus, Pencil, Power, Check, Layers } from "lucide-react";
 import {
   fetchAllPlans,
   createPlan,
@@ -8,6 +8,7 @@ import {
   togglePlanStatus,
 } from "../../services/platformApi";
 import PlatformLayout from "../../components/layout/PlatformLayout";
+import { Badge, Button, Card, EmptyState, Modal, StatCard, StatusPill } from "../../components/ui";
 
 /* ─── Feature flag definitions — mirrors plan.js features object ──────── */
 const FEATURE_FIELDS = [
@@ -108,29 +109,38 @@ function fromPlan(plan) {
   };
 }
 
+/* ─── Brand switch (checkbox underneath, keeps onChange semantics) ───── */
+function Switch({ checked, onChange, label, desc }) {
+  return (
+    <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-3 transition hover:bg-canvas">
+      <span className="min-w-0">
+        <span className="block text-[14px] font-medium text-ink">{label}</span>
+        {desc && <span className="mt-0.5 block text-[13px] text-ink-muted">{desc}</span>}
+      </span>
+      <span className="relative mt-0.5 inline-flex shrink-0">
+        <input type="checkbox" checked={checked} onChange={onChange} className="peer sr-only" />
+        <span className="h-5 w-9 rounded-full bg-[#d5dad6] transition peer-checked:bg-brand-600 peer-focus-visible:ring-4 peer-focus-visible:ring-brand-600/20" />
+        <span className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition peer-checked:translate-x-4" />
+      </span>
+    </label>
+  );
+}
+
 /* ─── Grouped feature toggles ─────────────────────────────────────────── */
 function FeatureSection({ form, set }) {
   const sections = [...new Set(FEATURE_FIELDS.map((f) => f.section))];
   return (
-    <div className="space-y-3">
-      <span className="block text-xs font-semibold text-[#2A4A68]">Feature Flags</span>
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-[15px] font-semibold text-ink">Features</h3>
+        <p className="mt-0.5 text-[13px] text-ink-muted">Turn on what companies on this plan can use.</p>
+      </div>
       {sections.map((section) => (
         <div key={section}>
-          <p className="text-[12px] font-black uppercase tracking-widest text-[#8DA3B8] mb-1.5">{section}</p>
-          <div className="grid grid-cols-2 gap-1.5">
+          <p className="mb-2 text-[13px] font-medium text-ink-muted">{section}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
             {FEATURE_FIELDS.filter((f) => f.section === section).map(({ key, label }) => (
-              <label
-                key={key}
-                className="flex items-center gap-2 rounded-xl border border-[#C5D1DE] bg-[#F5F8FB] px-3 py-2 text-xs font-medium text-[#3D5F7E] hover:bg-[#EFF3F8] cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={!!form[key]}
-                  onChange={(e) => set(key, e.target.checked)}
-                  className="rounded text-[#1A3652] focus:ring-[#8DA3B8]"
-                />
-                {label}
-              </label>
+              <Switch key={key} label={label} checked={!!form[key]} onChange={(e) => set(key, e.target.checked)} />
             ))}
           </div>
         </div>
@@ -138,6 +148,11 @@ function FeatureSection({ form, set }) {
     </div>
   );
 }
+
+const INPUT =
+  "h-11 w-full rounded-xl border border-line-strong bg-surface px-3.5 text-[14px] text-ink outline-none transition placeholder:text-ink-subtle focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12 disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-subtle";
+const TEXTAREA =
+  "w-full rounded-xl border border-line-strong bg-surface px-3.5 py-3 text-[14px] leading-relaxed text-ink outline-none transition placeholder:text-ink-subtle focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12";
 
 /* ─── Plan Form Modal ─────────────────────────────────────────────────── */
 function PlanFormModal({ open, initial, onClose, onSaved }) {
@@ -175,181 +190,118 @@ function PlanFormModal({ open, initial, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4 py-6 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#C5D1DE] bg-[#F5F8FB] p-6 shadow-2xl">
-        <div className="mb-5 flex items-center justify-between border-b border-[#C5D1DE] pb-3">
-          <div>
-            <h3 className="text-base font-bold text-[#1A3652]">
-              {initial ? "Edit Subscription Plan" : "Create Subscription Plan"}
-            </h3>
-            <p className="text-xs text-[#6B8BA5]">
-              Configure pricing, limits, UI flags, and feature restrictions.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-[#8DA3B8] hover:bg-[#EFF3F8] hover:text-[#3D5F7E]"
-          >
-            <X className="h-4 w-4" />
-          </button>
+    <Modal
+      open={open}
+      onClose={onClose}
+      size="lg"
+      title={initial ? "Edit plan" : "Create plan"}
+      description="Set the price, usage limits and features for this plan."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="platform-plan-form" loading={saving} disabled={saving}>
+            {saving ? "Saving..." : initial ? "Save changes" : "Create plan"}
+          </Button>
+        </>
+      }
+    >
+      <form id="platform-plan-form" onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField label="Plan name">
+            <input required value={form.name} onChange={(e) => set("name", e.target.value)} className={INPUT} placeholder="e.g. Free, Pro" />
+          </FormField>
+          <FormField label="Slug" help="Unique ID used in code and URLs.">
+            <input required value={form.slug} onChange={(e) => set("slug", e.target.value)} className={INPUT} placeholder="e.g. free, pro, enterprise" />
+          </FormField>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Basic info */}
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Plan Name">
-              <input
-                required
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-                className="input"
-                placeholder="e.g. Free, Pro"
-              />
-            </Field>
-            <Field label="Slug (Unique Identifier)">
-              <input
-                required
-                value={form.slug}
-                onChange={(e) => set("slug", e.target.value)}
-                className="input"
-                placeholder="e.g. free, pro, enterprise"
-              />
-            </Field>
+        <FormField label="Description">
+          <textarea
+            value={form.description}
+            onChange={(e) => set("description", e.target.value)}
+            className={TEXTAREA}
+            rows={2}
+            placeholder="Brief summary of who this plan is for"
+          />
+        </FormField>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          {[
+            { key: "isFree", label: "Free forever", desc: "₹0, always free" },
+            { key: "isTrial", label: "Includes free trial", desc: "Trial period before billing" },
+            { key: "isPopular", label: "Most popular badge", desc: "Highlighted on pricing page" },
+            { key: "isEnterprise", label: "Enterprise tier", desc: "Marks this as the Enterprise plan" },
+          ].map(({ key, label, desc }) => (
+            <Switch key={key} label={label} desc={desc} checked={!!form[key]} onChange={(e) => set(key, e.target.checked)} />
+          ))}
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-[15px] font-semibold text-ink">Pricing</h3>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <FormField label="Monthly price (₹)">
+              <input type="number" value={form.monthly} onChange={(e) => set("monthly", e.target.value)} className={INPUT} disabled={form.isFree} />
+            </FormField>
+            <FormField label="Yearly price (₹)">
+              <input type="number" value={form.yearly} onChange={(e) => set("yearly", e.target.value)} className={INPUT} disabled={form.isFree} />
+            </FormField>
+            <FormField label="Trial days">
+              <input type="number" value={form.trialDays} onChange={(e) => set("trialDays", e.target.value)} className={INPUT} placeholder="0" />
+            </FormField>
           </div>
+        </div>
 
-          <Field label="Description">
-            <textarea
-              value={form.description}
-              onChange={(e) => set("description", e.target.value)}
-              className="input"
-              rows={2}
-              placeholder="Brief summary of who this plan is for"
-            />
-          </Field>
-
-          {/* UI / plan-type flags */}
-          <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#C5D1DE] bg-[#EFF3F8] p-3">
-            {[
-              { key: "isFree",       label: "Free Forever",       desc: "₹0, always free" },
-              { key: "isTrial",      label: "Includes Free Trial", desc: "Trial period before billing" },
-              { key: "isPopular",    label: "Most Popular Badge",  desc: "Highlighted on pricing page" },
-              { key: "isEnterprise", label: "Enterprise Tier",     desc: "Designates Enterprise tier plan" },
-            ].map(({ key, label, desc }) => (
-              <label key={key} className="flex cursor-pointer items-start gap-2.5">
-                <input
-                  type="checkbox"
-                  checked={!!form[key]}
-                  onChange={(e) => set(key, e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-[#B5C5D5] text-[#1A3652] focus:ring-[#8DA3B8]"
-                />
-                <div>
-                  <span className="text-xs font-semibold text-[#1A3652]">{label}</span>
-                  <p className="text-[13px] text-[#6B8BA5]">{desc}</p>
-                </div>
-              </label>
-            ))}
-          </div>
-
-          {/* Pricing */}
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Monthly Price (₹)">
+        <div className="space-y-3">
+          <h3 className="text-[15px] font-semibold text-ink">Usage limits</h3>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <FormField label="Team members">
+              <input type="number" value={form.users} onChange={(e) => set("users", e.target.value)} className={INPUT} />
+            </FormField>
+            <FormField label="Contacts">
+              <input type="number" value={form.contacts} onChange={(e) => set("contacts", e.target.value)} className={INPUT} />
+            </FormField>
+            <FormField label="Campaigns / month">
+              <input type="number" value={form.campaigns} onChange={(e) => set("campaigns", e.target.value)} className={INPUT} />
+            </FormField>
+            <FormField label="Templates">
+              <input type="number" value={form.templates} onChange={(e) => set("templates", e.target.value)} className={INPUT} />
+            </FormField>
+            <FormField label="WhatsApp numbers" help="Use -1 for multiple / custom.">
               <input
                 type="number"
-                value={form.monthly}
-                onChange={(e) => set("monthly", e.target.value)}
-                className="input"
-                disabled={form.isFree}
+                value={form.whatsappNumbers}
+                onChange={(e) => set("whatsappNumbers", e.target.value)}
+                className={INPUT}
+                title="-1 = multiple/custom (Enterprise)"
               />
-            </Field>
-            <Field label="Yearly Price (₹)">
-              <input
-                type="number"
-                value={form.yearly}
-                onChange={(e) => set("yearly", e.target.value)}
-                className="input"
-                disabled={form.isFree}
-              />
-            </Field>
-            <Field label="Trial Days">
-              <input
-                type="number"
-                value={form.trialDays}
-                onChange={(e) => set("trialDays", e.target.value)}
-                className="input"
-                placeholder="0"
-              />
-            </Field>
+            </FormField>
           </div>
+        </div>
 
-          {/* Limits */}
-          <div>
-            <p className="text-[12px] font-black uppercase tracking-widest text-[#8DA3B8] mb-2">Usage Limits</p>
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Max Team Members">
-                <input type="number" value={form.users} onChange={(e) => set("users", e.target.value)} className="input" />
-              </Field>
-              <Field label="Max Contacts">
-                <input type="number" value={form.contacts} onChange={(e) => set("contacts", e.target.value)} className="input" />
-              </Field>
-              <Field label="Campaigns / month">
-                <input type="number" value={form.campaigns} onChange={(e) => set("campaigns", e.target.value)} className="input" />
-              </Field>
-              <Field label="Max Templates">
-                <input type="number" value={form.templates} onChange={(e) => set("templates", e.target.value)} className="input" />
-              </Field>
-              <Field label="WhatsApp Numbers">
-                <input
-                  type="number"
-                  value={form.whatsappNumbers}
-                  onChange={(e) => set("whatsappNumbers", e.target.value)}
-                  className="input"
-                  title="-1 = multiple/custom (Enterprise)"
-                />
-              </Field>
-            </div>
-          </div>
+        <FeatureSection form={form} set={set} />
 
-          {/* Feature flags — grouped by section */}
-          <FeatureSection form={form} set={set} />
-
-          {/* Restrictions / custom bullets */}
-          <Field label="Custom Feature Bullets (one per line, optional)">
-            <textarea
-              value={form.restrictions}
-              onChange={(e) => set("restrictions", e.target.value)}
-              className="input font-mono text-xs"
-              rows={3}
-              placeholder={"e.g.\n500 Contacts Limit\nStandard WhatsApp Cloud API"}
-            />
-          </Field>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-xl border border-[#C5D1DE] bg-[#EFF3F8] py-2.5 text-xs font-semibold text-[#4A6580] transition hover:bg-[#D4DEE9]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 rounded-xl bg-[#2E5C8A] py-2.5 text-xs font-semibold text-white transition hover:bg-[#1E4A73] disabled:opacity-50"
-            >
-              {saving ? "Saving..." : initial ? "Save Changes" : "Create Plan"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <FormField label="Custom feature bullets" help="Optional. One per line, shown on the pricing page.">
+          <textarea
+            value={form.restrictions}
+            onChange={(e) => set("restrictions", e.target.value)}
+            className={`${TEXTAREA} font-mono`}
+            rows={3}
+            placeholder={"e.g.\n500 Contacts Limit\nStandard WhatsApp Cloud API"}
+          />
+        </FormField>
+      </form>
+    </Modal>
   );
 }
 
-function Field({ label, children }) {
+function FormField({ label, help, children }) {
   return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-[#4A6580]">{label}</span>
+    <label className="block space-y-1.5">
+      <span className="block text-[13px] font-medium text-ink">{label}</span>
       {children}
+      {help && <span className="block text-[13px] text-ink-muted">{help}</span>}
     </label>
   );
 }
@@ -358,19 +310,27 @@ function Field({ label, children }) {
 function FeatureChips({ plan }) {
   const enabled = FEATURE_FIELDS.filter(({ key }) => plan.features?.[key]).map((f) => f.label);
   const limit = 4;
+  if (enabled.length === 0) {
+    return <p className="text-[13px] text-ink-muted">No features turned on</p>;
+  }
   return (
-    <div className="flex flex-wrap gap-1 mt-2">
+    <div className="flex flex-wrap gap-1.5">
       {enabled.slice(0, limit).map((label) => (
-        <span key={label} className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[12px] font-medium text-emerald-700">
-          <Check className="h-2.5 w-2.5" />
+        <Badge key={label} tone="brand">
+          <Check size={12} />
           {label}
-        </span>
+        </Badge>
       ))}
-      {enabled.length > limit && (
-        <span className="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[12px] text-slate-500">
-          +{enabled.length - limit} more
-        </span>
-      )}
+      {enabled.length > limit && <Badge>+{enabled.length - limit} more</Badge>}
+    </div>
+  );
+}
+
+function LimitRow({ label, value }) {
+  return (
+    <div className="flex items-center justify-between py-2 text-[14px]">
+      <span className="text-ink-muted">{label}</span>
+      <span className="font-medium tabular-nums text-ink">{value}</span>
     </div>
   );
 }
@@ -408,120 +368,121 @@ export default function PlatformPlansPage() {
     }
   }
 
+  const activeCount = plans.filter((p) => p.isActive).length;
+
   return (
     <PlatformLayout
-      title="Plans & Tiers"
-      description="Configure subscription tiers, usage limits, pricing, and feature flags. Changes take effect immediately for new subscriptions."
+      title="Plans"
+      description="Set pricing, usage limits and features for each plan. Changes apply to new subscriptions right away."
       actions={
-        <button
+        <Button
+          leftIcon={Plus}
           onClick={() => {
             setEditingPlan(null);
             setModalOpen(true);
           }}
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#2E5C8A] px-3.5 text-xs font-semibold text-white transition hover:bg-[#1E4A73] shadow-sm"
         >
-          <Plus className="h-3.5 w-3.5" />
-          Create Plan
-        </button>
+          Create plan
+        </Button>
       }
     >
-      <style>{`.input{width:100%;border:1px solid #C5D1DE;background:#EFF3F8;border-radius:0.75rem;padding:0.5rem 0.75rem;font-size:0.8125rem;outline:none;color:#2E5C8A}.input:focus{border-color:#2E5C8A;background:#fff}`}</style>
-
       {loading ? (
         <div className="flex min-h-[300px] items-center justify-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#C5D1DE] border-t-[#2E5C8A]" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-brand-600" />
         </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <div
-              key={plan._id}
-              className={`rounded-2xl border bg-[#F5F8FB] p-5 shadow-sm transition hover:border-[#B5C5D5] ${
-                plan.isPopular ? "border-emerald-300 ring-1 ring-emerald-200" : "border-[#C5D1DE]"
-              }`}
+      ) : plans.length === 0 ? (
+        <EmptyState
+          icon={Layers}
+          title="No plans yet"
+          description="Create your first plan so companies can subscribe."
+          action={
+            <Button
+              leftIcon={Plus}
+              onClick={() => {
+                setEditingPlan(null);
+                setModalOpen(true);
+              }}
             >
-              {/* Header */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-[#1A3652]">{plan.name}</h3>
-                  <p className="text-xs text-[#8DA3B8]">{plan.slug}</p>
+              Create plan
+            </Button>
+          }
+        />
+      ) : (
+        <div className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard label="Total plans" value={plans.length} icon={Layers} />
+            <StatCard label="Active plans" value={activeCount} icon={Power} />
+            <StatCard label="Inactive plans" value={plans.length - activeCount} icon={Power} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {plans.map((plan) => (
+              <Card
+                key={plan._id}
+                className={`flex flex-col ${plan.isPopular ? "border-brand-600 ring-1 ring-brand-600/30" : ""} ${plan.isActive ? "" : "bg-canvas"}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="truncate text-[17px] font-semibold text-ink">{plan.name}</h2>
+                    <p className="mt-0.5 truncate font-mono text-[13px] text-ink-muted">{plan.slug}</p>
+                  </div>
+                  <StatusPill status={plan.isActive ? "active" : "inactive"} />
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-[12px] font-semibold ${
-                      plan.isActive
-                        ? "border-[#C5D1DE] bg-[#D9E4EE] text-[#2A4A68]"
-                        : "border-[#C5D1DE] bg-[#D4DEE9] text-[#6B8BA5]"
-                    }`}
+
+                {(plan.isFree || plan.isPopular || plan.isEnterprise) && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {plan.isFree && <Badge>Free forever</Badge>}
+                    {plan.isPopular && <Badge tone="brand">Most popular</Badge>}
+                    {plan.isEnterprise && <Badge>Enterprise</Badge>}
+                  </div>
+                )}
+
+                <p className="mt-4 text-[30px] font-semibold tracking-[-0.02em] tabular-nums text-ink">
+                  {plan.isFree || plan.pricing?.monthly === 0
+                    ? "₹0"
+                    : `₹${(plan.pricing?.monthly ?? 0).toLocaleString()}`}
+                  <span className="ml-1 text-[14px] font-normal tracking-normal text-ink-muted">/month</span>
+                </p>
+
+                <div className="mt-4 divide-y divide-line border-y border-line">
+                  <LimitRow label="Team members" value={plan.limits?.users ?? 1} />
+                  <LimitRow label="Contacts" value={(plan.limits?.contacts ?? 0).toLocaleString()} />
+                  <LimitRow label="Campaigns / month" value={plan.limits?.campaigns ?? 0} />
+                  <LimitRow label="Templates" value={plan.limits?.templates ?? 0} />
+                  <LimitRow
+                    label={`WhatsApp number${plan.limits?.whatsappNumbers !== 1 ? "s" : ""}`}
+                    value={plan.limits?.whatsappNumbers === -1 ? "Multiple" : plan.limits?.whatsappNumbers ?? 1}
+                  />
+                </div>
+
+                <div className="mt-4 flex-1">
+                  <FeatureChips plan={plan} />
+                </div>
+
+                <div className="mt-5 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    leftIcon={Pencil}
+                    className="flex-1"
+                    onClick={() => {
+                      setEditingPlan(plan);
+                      setModalOpen(true);
+                    }}
                   >
-                    {plan.isActive ? "Active" : "Inactive"}
-                  </span>
-                  {plan.isFree && (
-                    <span className="rounded-full border border-[#B5C5D5] bg-[#EFF3F8] px-2 py-0.5 text-[12px] font-bold text-[#2A4A68]">
-                      Free Forever
-                    </span>
-                  )}
-                  {plan.isPopular && (
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[12px] font-bold text-emerald-700">
-                      ⭐ Most Popular
-                    </span>
-                  )}
-                  {plan.isEnterprise && (
-                    <span className="rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[12px] font-bold text-purple-700">
-                      Enterprise
-                    </span>
-                  )}
+                    Edit plan
+                  </Button>
+                  <Button
+                    variant={plan.isActive ? "danger-ghost" : "secondary"}
+                    leftIcon={Power}
+                    className="flex-1"
+                    onClick={() => handleToggle(plan)}
+                  >
+                    {plan.isActive ? "Deactivate" : "Activate"}
+                  </Button>
                 </div>
-              </div>
-
-              {/* Price */}
-              <p className="mt-3 text-2xl font-bold tracking-tight text-[#0F2940]">
-                {plan.isFree || plan.pricing?.monthly === 0
-                  ? "₹0"
-                  : `₹${(plan.pricing?.monthly ?? 0).toLocaleString()}`}
-                <span className="text-xs font-normal text-[#6B8BA5]">/month</span>
-              </p>
-
-              {/* Limits summary */}
-              <ul className="mt-3 space-y-1 text-xs text-[#4A6580]">
-                <li><strong className="text-[#1A3652]">{plan.limits?.users ?? 1}</strong> Team Members</li>
-                <li><strong className="text-[#1A3652]">{(plan.limits?.contacts ?? 0).toLocaleString()}</strong> Contacts</li>
-                <li><strong className="text-[#1A3652]">{plan.limits?.campaigns ?? 0}</strong> Campaigns/mo</li>
-                <li><strong className="text-[#1A3652]">{plan.limits?.templates ?? 0}</strong> Templates</li>
-                <li>
-                  <strong className="text-[#1A3652]">
-                    {plan.limits?.whatsappNumbers === -1 ? "Multiple" : plan.limits?.whatsappNumbers ?? 1}
-                  </strong>{" "}
-                  WhatsApp Number{plan.limits?.whatsappNumbers !== 1 ? "s" : ""}
-                </li>
-              </ul>
-
-              {/* Feature flags summary */}
-              <FeatureChips plan={plan} />
-
-              {/* Actions */}
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => { setEditingPlan(plan); setModalOpen(true); }}
-                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#C5D1DE] bg-[#EFF3F8] py-2 text-xs font-medium text-[#3D5F7E] hover:bg-[#D4DEE9]"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleToggle(plan)}
-                  className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-medium ${
-                    plan.isActive
-                      ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                      : "border-[#C5D1DE] bg-[#EFF3F8] text-[#2A4A68] hover:bg-[#D4DEE9]"
-                  }`}
-                >
-                  <Power className="h-3.5 w-3.5" />
-                  {plan.isActive ? "Deactivate" : "Activate"}
-                </button>
-              </div>
-            </div>
-          ))}
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 

@@ -4,9 +4,9 @@ import { cn } from "../../utils/cn";
 
 const VARIANTS = {
   primary:
-    "bg-brand-900 text-white hover:bg-brand-800 active:bg-brand-950 shadow-[0_1px_2px_rgba(11,59,46,0.2)]",
+    "bg-brand-900 text-white hover:bg-brand-800 active:bg-brand-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_1px_2px_rgba(11,59,46,0.25)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_6px_16px_-6px_rgba(11,59,46,0.5)]",
   brand:
-    "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-[0_1px_2px_rgba(11,59,46,0.2)]",
+    "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_1px_2px_rgba(11,59,46,0.25)]",
   secondary:
     "border border-line-strong bg-surface text-ink hover:bg-canvas hover:border-ink-subtle",
   ghost: "text-ink-muted hover:bg-brand-50 hover:text-brand-900",
@@ -46,7 +46,7 @@ const Button = forwardRef(function Button(
       type={type}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center whitespace-nowrap font-display font-medium transition-colors duration-150 disabled:opacity-55",
+        "inline-flex shrink-0 items-center justify-center whitespace-nowrap font-display font-medium transition-[background-color,box-shadow,transform,border-color] duration-150 active:translate-y-px active:scale-[0.985] disabled:opacity-55 disabled:active:scale-100",
         VARIANTS[variant],
         SIZES[size],
         className,

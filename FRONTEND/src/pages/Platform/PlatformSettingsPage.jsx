@@ -14,6 +14,50 @@ import {
   updatePlatformSettings,
 } from "../../services/platformApi";
 import PlatformLayout from "../../components/layout/PlatformLayout";
+import { Button, Card } from "../../components/ui";
+
+const fieldCls =
+  "h-11 w-full rounded-lg border border-line-strong bg-surface px-3.5 text-[14px] text-ink outline-none transition placeholder:text-ink-subtle focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
+const labelCls = "mb-1.5 block text-[13px] font-medium text-ink";
+
+function Switch({ checked, onChange, label }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-100 ${
+        checked ? "bg-brand-600" : "bg-[#d5d9d4]"
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-[22px]" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
+function SectionHeader({ icon: Icon, title, description, tone = "brand" }) {
+  return (
+    <div className="mb-5 flex items-start gap-3 border-b border-line pb-4">
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+          tone === "warning" ? "bg-warning-soft text-warning" : "bg-brand-50 text-brand-700"
+        }`}
+      >
+        <Icon className="h-[18px] w-[18px]" />
+      </div>
+      <div>
+        <h2 className="text-[17px] font-semibold text-ink">{title}</h2>
+        <p className="mt-1 text-[14px] text-ink-muted">{description}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function PlatformSettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -90,39 +134,32 @@ export default function PlatformSettingsPage() {
 
   return (
     <PlatformLayout
-      title="Platform Settings"
-      description="Global runtime configurations, default AI models, trial durations, and system controls."
+      title="Platform settings"
+      description="Default AI models, trial length, Meta API version and maintenance controls for every company."
       actions={
-        <button
-          onClick={loadSettings}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F5F8FB] px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        <Button variant="secondary" onClick={loadSettings}>
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           Reload
-        </button>
+        </Button>
       }
     >
       {loading ? (
         <div className="flex h-60 items-center justify-center">
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600" />
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-line border-t-brand-600" />
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* AI & GROQ LLM CONFIGURATION */}
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-6 shadow-sm">
-            <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <Bot className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">AI Auto-Reply & Groq Engine Defaults</h3>
-                <p className="text-xs text-slate-400">Controls default LLM inference parameters for multi-tenant bots</p>
-              </div>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* AI defaults */}
+          <Card>
+            <SectionHeader
+              icon={Bot}
+              title="AI auto-reply defaults"
+              description="Default Groq model settings used by every company's auto-reply bot."
+            />
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Primary Groq LLM Model</label>
+                <label className={labelCls}>Main model</label>
                 <select
                   value={form.groq.defaultModel}
                   onChange={(e) =>
@@ -131,7 +168,7 @@ export default function PlatformSettingsPage() {
                       groq: { ...form.groq, defaultModel: e.target.value },
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+                  className={fieldCls}
                 >
                   <option value="llama-3.3-70b-versatile">LLaMA 3.3 70B Versatile (Recommended)</option>
                   <option value="llama-3.1-8b-instant">LLaMA 3.1 8B Instant (Ultra-Fast)</option>
@@ -140,7 +177,7 @@ export default function PlatformSettingsPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Fallback LLM Model</label>
+                <label className={labelCls}>Backup model</label>
                 <select
                   value={form.groq.fallbackModel}
                   onChange={(e) =>
@@ -149,17 +186,20 @@ export default function PlatformSettingsPage() {
                       groq: { ...form.groq, fallbackModel: e.target.value },
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+                  className={fieldCls}
                 >
                   <option value="llama-3.1-8b-instant">LLaMA 3.1 8B Instant (Fallback)</option>
                   <option value="llama-3.3-70b-versatile">LLaMA 3.3 70B Versatile</option>
                 </select>
+                <p className="mt-1.5 text-[13px] text-ink-muted">Used when the main model is unavailable.</p>
               </div>
 
               <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-700">Temperature (Creativity)</label>
-                  <span className="font-mono text-xs font-bold text-slate-700">{form.groq.temperature}</span>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="text-[13px] font-medium text-ink">Temperature (creativity)</label>
+                  <span className="rounded-md bg-brand-50 px-2 py-0.5 font-mono text-[13px] font-medium text-brand-800">
+                    {form.groq.temperature}
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -173,12 +213,13 @@ export default function PlatformSettingsPage() {
                       groq: { ...form.groq, temperature: parseFloat(e.target.value) },
                     })
                   }
-                  className="w-full accent-emerald-600"
+                  className="mt-2 w-full accent-brand-600"
                 />
+                <p className="mt-1.5 text-[13px] text-ink-muted">Lower is more predictable, higher is more creative.</p>
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Max Tokens Limit</label>
+                <label className={labelCls}>Max tokens per reply</label>
                 <input
                   type="number"
                   min="256"
@@ -191,29 +232,24 @@ export default function PlatformSettingsPage() {
                       groq: { ...form.groq, maxTokens: parseInt(e.target.value, 10) },
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+                  className={fieldCls}
                 />
               </div>
             </div>
-          </div>
+          </Card>
 
-          {/* ONBOARDING & META DEFAULTS */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* ONBOARDING */}
-            <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-6 shadow-sm">
-              <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                  <UserPlus className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Tenant Onboarding Rules</h3>
-                  <p className="text-xs text-slate-400">Default trials and registration gates</p>
-                </div>
-              </div>
+          <div className="grid gap-5 lg:grid-cols-2">
+            {/* Onboarding */}
+            <Card>
+              <SectionHeader
+                icon={UserPlus}
+                title="New company sign-up"
+                description="Default free trial and whether new companies can register."
+              />
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">Default Free Trial Duration (Days)</label>
+                  <label className={labelCls}>Free trial length (days)</label>
                   <input
                     type="number"
                     min="0"
@@ -228,47 +264,42 @@ export default function PlatformSettingsPage() {
                         },
                       })
                     }
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+                    className={fieldCls}
                   />
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 p-3.5">
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-line bg-canvas p-4">
                   <div>
-                    <p className="text-xs font-semibold text-slate-900">Allow Self-Serve Signups</p>
-                    <p className="text-[13px] text-slate-400">Permit new companies to register via /signup</p>
+                    <p className="text-[14px] font-medium text-ink">Allow self-serve sign-ups</p>
+                    <p className="mt-0.5 text-[13px] text-ink-muted">Let new companies register from the /signup page.</p>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Switch
+                    label="Allow self-serve sign-ups"
                     checked={form.onboarding.allowNewSignups}
-                    onChange={(e) =>
+                    onChange={(checked) =>
                       setForm({
                         ...form,
                         onboarding: {
                           ...form.onboarding,
-                          allowNewSignups: e.target.checked,
+                          allowNewSignups: checked,
                         },
                       })
                     }
-                    className="h-4 w-4 rounded accent-emerald-600"
                   />
                 </div>
               </div>
-            </div>
+            </Card>
 
-            {/* META GRAPH API */}
-            <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-6 shadow-sm">
-              <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                  <Radio className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Meta Graph API Settings</h3>
-                  <p className="text-xs text-slate-400">WhatsApp Cloud API version target</p>
-                </div>
-              </div>
+            {/* Meta */}
+            <Card>
+              <SectionHeader
+                icon={Radio}
+                title="Meta Graph API"
+                description="The WhatsApp Cloud API version the platform calls."
+              />
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Default Graph API Version</label>
+                <label className={labelCls}>Default Graph API version</label>
                 <select
                   value={form.meta.defaultApiVersion}
                   onChange={(e) =>
@@ -277,37 +308,34 @@ export default function PlatformSettingsPage() {
                       meta: { ...form.meta, defaultApiVersion: e.target.value },
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+                  className={fieldCls}
                 >
-                  <option value="v21.0">v21.0 (Current Standard)</option>
+                  <option value="v21.0">v21.0 (Current standard)</option>
                   <option value="v22.0">v22.0 (Latest)</option>
                   <option value="v20.0">v20.0 (Legacy)</option>
                 </select>
-                <p className="mt-1.5 text-[13px] text-slate-400">
-                  Used by webhooks and message dispatchers for Meta Cloud API calls.
+                <p className="mt-1.5 text-[13px] text-ink-muted">
+                  Used by webhooks and message sending for Meta Cloud API calls.
                 </p>
               </div>
-            </div>
+            </Card>
           </div>
 
-          {/* SYSTEM MAINTENANCE & BANNER */}
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-6 shadow-sm">
-            <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">System Broadcast & Maintenance Banner</h3>
-                <p className="text-xs text-slate-400">Announce global platform maintenance to tenant users</p>
-              </div>
-            </div>
+          {/* Maintenance */}
+          <Card>
+            <SectionHeader
+              icon={AlertTriangle}
+              tone="warning"
+              title="Announcement and maintenance"
+              description="Show a message or a maintenance warning to every company's users."
+            />
 
             <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Global Announcement Banner Message</label>
+                <label className={labelCls}>Announcement banner message</label>
                 <input
                   type="text"
-                  placeholder="e.g. Scheduled platform maintenance on Sunday at 02:00 AM UTC."
+                  placeholder="e.g. Scheduled maintenance on Sunday at 02:00 AM UTC."
                   value={form.system.bannerMessage}
                   onChange={(e) =>
                     setForm({
@@ -315,40 +343,41 @@ export default function PlatformSettingsPage() {
                       system: { ...form.system, bannerMessage: e.target.value },
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+                  className={fieldCls}
                 />
+                <p className="mt-1.5 text-[13px] text-ink-muted">Leave empty to hide the banner.</p>
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-amber-100 bg-amber-50/40 p-3.5">
+              <div
+                className={`flex items-center justify-between gap-4 rounded-xl border p-4 ${
+                  form.system.maintenanceMode ? "border-warning/30 bg-warning-soft" : "border-line bg-canvas"
+                }`}
+              >
                 <div>
-                  <p className="text-xs font-semibold text-amber-900">Maintenance Mode</p>
-                  <p className="text-[13px] text-amber-700">Show maintenance warning banner across all tenant dashboards</p>
+                  <p className="text-[14px] font-medium text-ink">Maintenance mode</p>
+                  <p className="mt-0.5 text-[13px] text-ink-muted">
+                    Show a maintenance warning banner on every company dashboard.
+                  </p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  label="Maintenance mode"
                   checked={form.system.maintenanceMode}
-                  onChange={(e) =>
+                  onChange={(checked) =>
                     setForm({
                       ...form,
-                      system: { ...form.system, maintenanceMode: e.target.checked },
+                      system: { ...form.system, maintenanceMode: checked },
                     })
                   }
-                  className="h-4 w-4 rounded accent-amber-600"
                 />
               </div>
             </div>
-          </div>
+          </Card>
 
-          {/* SAVE BUTTON */}
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#2E5C8A] px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#1E4A73] disabled:opacity-50"
-            >
-              <Save className="h-4 w-4" />
-              {saving ? "Saving Changes..." : "Save Platform Settings"}
-            </button>
+          {/* Save */}
+          <div className="sticky bottom-0 -mx-1 flex justify-end border-t border-line bg-canvas/95 px-1 py-4">
+            <Button type="submit" size="lg" loading={saving} leftIcon={Save}>
+              {saving ? "Saving..." : "Save settings"}
+            </Button>
           </div>
         </form>
       )}

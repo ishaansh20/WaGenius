@@ -21,6 +21,7 @@ import {
   updateCompanyStatus,
 } from "../../services/platformApi";
 import PlatformLayout from "../../components/layout/PlatformLayout";
+import { Badge, Button, Card, StatusPill, Tabs } from "../../components/ui";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -31,19 +32,6 @@ function formatDate(value) {
   });
 }
 
-function getStatusLabel(status) {
-  if (status === "active") return "Active";
-  if (status === "suspended") return "Suspended";
-  return status || "Unknown";
-}
-
-function getStatusClasses(status) {
-  if (status === "active")
-    return "border-[#B5C5D5] bg-[#D9E4EE] text-[#1A3652]";
-  if (status === "suspended") return "border-red-200 bg-red-50 text-red-600";
-  return "border-[#C5D1DE] bg-[#EFF3F8] text-[#6B8BA5]";
-}
-
 function getPlanLabel(company) {
   return (
     company?.subscription?.planId?.name ||
@@ -51,24 +39,6 @@ function getPlanLabel(company) {
     company?.plan ||
     company?.pricingPlan ||
     "—"
-  );
-}
-
-function getSubscriptionStatusBadge(company) {
-  const status = company?.subscription?.status;
-  if (!status) return null;
-  const map = {
-    TRIAL: "border-amber-200 bg-amber-50 text-amber-800",
-    ACTIVE: "border-[#B5C5D5] bg-[#D9E4EE] text-[#1A3652]",
-    PENDING: "border-[#C5D1DE] bg-[#EFF3F8] text-[#6B8BA5]",
-    SUSPENDED: "border-red-200 bg-red-50 text-red-600",
-    CANCELLED: "border-red-200 bg-red-50 text-red-600",
-    EXPIRED: "border-red-200 bg-red-50 text-red-600",
-  };
-  return (
-    <span className={`inline-flex rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${map[status] || "border-[#C5D1DE] bg-[#EFF3F8] text-[#6B8BA5]"}`}>
-      {status}
-    </span>
   );
 }
 
@@ -161,170 +131,141 @@ function getContactCount(company) {
   return company?.statistics?.contacts?.total ?? company?.contactCount ?? 0;
 }
 
+const SELECT_CLASS =
+  "h-10 rounded-lg border border-line-strong bg-surface px-3 text-[14px] text-ink outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
+
+function ExpiryCell({ expiryInfo }) {
+  if (expiryInfo.status === "none" || expiryInfo.label === "—") {
+    return <span className="text-[14px] text-ink-muted">—</span>;
+  }
+  if (expiryInfo.isFree) {
+    return <Badge tone="neutral">Lifetime</Badge>;
+  }
+  const warnAt = expiryInfo.isTrial ? 3 : 7;
+  const tone = expiryInfo.isExpired
+    ? "danger"
+    : expiryInfo.daysLeft !== null && expiryInfo.daysLeft <= warnAt
+    ? "warning"
+    : expiryInfo.isTrial
+    ? "warning"
+    : "neutral";
+  const textClass = expiryInfo.isExpired
+    ? "text-danger"
+    : expiryInfo.daysLeft !== null && expiryInfo.daysLeft <= warnAt
+    ? "text-warning"
+    : "text-ink";
+
+  let pill = null;
+  if (expiryInfo.isTrial) {
+    pill = expiryInfo.isExpired ? "Trial expired" : `${expiryInfo.daysLeft}d left`;
+  } else if (expiryInfo.daysLeft !== null) {
+    pill = expiryInfo.isExpired
+      ? "Expired"
+      : expiryInfo.daysLeft === 0
+      ? "Expires today"
+      : `${expiryInfo.daysLeft}d left`;
+  }
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <span className={`text-[14px] font-medium ${textClass}`}>{expiryInfo.label}</span>
+      {pill && (
+        <Badge tone={tone}>
+          {expiryInfo.isTrial && <Clock className="h-3 w-3" />}
+          {pill}
+        </Badge>
+      )}
+    </div>
+  );
+}
+
 function CompanyRow({ company, onView, onToggleStatus, updatingId }) {
   const isActive = company.status === "active";
   const isUpdating = updatingId === company._id;
   const expiryInfo = getPlanExpiryInfo(company);
 
   return (
-    <tr className="border-b border-[#D9E4EE] transition hover:bg-[#EFF3F8]">
-      <td className="px-5 py-4">
+    <tr className="transition-colors hover:bg-canvas">
+      <td className="px-4 py-3.5">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#C5D1DE] bg-[#EFF3F8] text-[#2A4A68]">
-            <Building2 className="h-4 w-4 text-[#2A4A68]" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+            <Building2 className="h-4 w-4" />
           </div>
-          <div>
+          <div className="min-w-0">
             <button
+              type="button"
               onClick={() => onView(company)}
-              className="text-left font-bold text-[#1A3652] transition hover:underline block"
+              className="block text-left text-[14px] font-semibold text-ink transition hover:text-brand-700 hover:underline"
             >
               {company.name}
             </button>
-            <p className="text-xs text-[#8DA3B8]">{company.slug || company._id}</p>
+            <p className="text-[13px] text-ink-muted">{company.slug || company._id}</p>
           </div>
         </div>
       </td>
 
-      <td className="px-5 py-4">
-        <div className="flex items-center gap-2 text-[13.5px] text-slate-600">
-          <Users className="h-3.5 w-3.5 text-slate-400" />
+      <td className="px-4 py-3.5">
+        <div className="flex items-center gap-2 text-[14px] text-ink tabular-nums">
+          <Users className="h-3.5 w-3.5 text-ink-muted" />
           {getUserCount(company).toLocaleString()}
         </div>
       </td>
 
-      <td className="px-5 py-4">
+      <td className="px-4 py-3.5">
         <div className="flex flex-col items-start gap-1">
-          <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-semibold uppercase text-slate-700">
-            {getPlanLabel(company)}
-          </span>
-          {getSubscriptionStatusBadge(company)}
+          <Badge tone="brand">{getPlanLabel(company)}</Badge>
+          {company?.subscription?.status && (
+            <StatusPill status={company.subscription.status} />
+          )}
         </div>
       </td>
 
-      {/* PLAN EXPIRY COLUMN */}
-      <td className="px-5 py-4">
-        {expiryInfo.status === "none" || expiryInfo.label === "—" ? (
-          <span className="text-[13.5px] text-slate-400">—</span>
-        ) : expiryInfo.isFree ? (
-          <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[13px] font-semibold text-slate-600">
-            Lifetime
-          </span>
-        ) : expiryInfo.isTrial ? (
-          <div className="flex flex-col items-start gap-0.5">
-            <span
-              className={`text-[13.5px] font-semibold ${
-                expiryInfo.isExpired
-                  ? "text-rose-600"
-                  : expiryInfo.daysLeft <= 3
-                  ? "text-amber-600"
-                  : "text-slate-700"
-              }`}
-            >
-              {expiryInfo.label}
-            </span>
-            <span
-              className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] font-semibold ${
-                expiryInfo.isExpired
-                  ? "border-rose-200 bg-rose-50 text-rose-600"
-                  : expiryInfo.daysLeft <= 3
-                  ? "border-amber-200 bg-amber-50 text-amber-700"
-                  : "border-amber-100 bg-amber-50/80 text-amber-800"
-              }`}
-            >
-              <Clock className="h-2.5 w-2.5" />
-              {expiryInfo.isExpired
-                ? "Trial Expired"
-                : `${expiryInfo.daysLeft}d left`}
-            </span>
-          </div>
-        ) : (
-          <div className="flex flex-col items-start gap-0.5">
-            <span
-              className={`text-[13.5px] font-semibold ${
-                expiryInfo.isExpired
-                  ? "text-rose-600"
-                  : expiryInfo.daysLeft !== null && expiryInfo.daysLeft <= 7
-                  ? "text-amber-600"
-                  : "text-slate-700"
-              }`}
-            >
-              {expiryInfo.label}
-            </span>
-            {expiryInfo.daysLeft !== null && (
-              <span
-                className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] font-semibold ${
-                  expiryInfo.isExpired
-                    ? "border-rose-200 bg-rose-50 text-rose-600"
-                    : expiryInfo.daysLeft <= 7
-                    ? "border-amber-200 bg-amber-50 text-amber-700"
-                    : "border-slate-200 bg-slate-50 text-slate-500"
-                }`}
-              >
-                {expiryInfo.isExpired
-                  ? "Expired"
-                  : expiryInfo.daysLeft === 0
-                  ? "Expires today"
-                  : `${expiryInfo.daysLeft}d left`}
-              </span>
-            )}
-          </div>
-        )}
+      <td className="px-4 py-3.5">
+        <ExpiryCell expiryInfo={expiryInfo} />
       </td>
 
-      <td className="px-5 py-4 text-[13.5px] text-slate-600">
+      <td className="px-4 py-3.5 text-[14px] text-ink tabular-nums">
         {getCampaignCount(company).toLocaleString()}
       </td>
-
-      <td className="px-5 py-4 text-[13.5px] text-slate-600">
+      <td className="px-4 py-3.5 text-[14px] text-ink tabular-nums">
         {getTemplateCount(company).toLocaleString()}
       </td>
-
-      <td className="px-5 py-4 text-[13.5px] text-slate-600">
+      <td className="px-4 py-3.5 text-[14px] text-ink tabular-nums">
         {getContactCount(company).toLocaleString()}
       </td>
 
-      <td className="px-5 py-4">
+      <td className="px-4 py-3.5">
         {company.whatsapp?.connected ? (
-          <span className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-emerald-600">
-            <CheckCircle2 className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-brand-700">
+            <CheckCircle2 className="h-4 w-4" />
             Connected
           </span>
         ) : (
-          <span className="text-[13.5px] text-slate-400">Not connected</span>
+          <span className="inline-flex items-center gap-1.5 text-[14px] text-ink-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-ink-subtle" />
+            Not connected
+          </span>
         )}
       </td>
 
-      <td className="px-5 py-4">
-        <span
-          className={`rounded-full border px-2.5 py-1 text-[12px] font-semibold ${getStatusClasses(company.status)}`}
-        >
-          {getStatusLabel(company.status)}
-        </span>
+      <td className="px-4 py-3.5">
+        <StatusPill status={company.status || "unknown"} />
       </td>
 
-      <td className="whitespace-nowrap px-5 py-4 text-[13.5px] text-slate-400">
+      <td className="whitespace-nowrap px-4 py-3.5 text-[14px] text-ink-muted">
         {formatDate(company.createdAt)}
       </td>
 
-      <td className="px-5 py-4">
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => onView(company._id)}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-[13px] font-medium text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
-          >
+      <td className="px-4 py-3.5">
+        <div className="flex items-center justify-end gap-1.5">
+          <Button variant="secondary" size="sm" onClick={() => onView(company._id)}>
             View
-          </button>
-
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={isActive ? "danger-ghost" : "secondary"}
+            size="sm"
             disabled={isUpdating}
             onClick={() => onToggleStatus(company)}
-            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-50 ${
-              isActive
-                ? "border-red-200 text-red-500 hover:bg-red-50"
-                : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"
-            }`}
             title={isActive ? "Suspend company" : "Reactivate company"}
           >
             {isUpdating ? (
@@ -334,7 +275,8 @@ function CompanyRow({ company, onView, onToggleStatus, updatingId }) {
             ) : (
               <PlayCircle className="h-3.5 w-3.5" />
             )}
-          </button>
+            {isActive ? "Suspend" : "Activate"}
+          </Button>
         </div>
       </td>
     </tr>
@@ -482,226 +424,208 @@ export default function PlatformCompaniesPage() {
     }
   }
 
+
+  const statusTabs = [
+    { value: "all", label: "All", count: companies.length },
+    { value: "active", label: "Active", count: companies.filter((c) => c.status === "active").length },
+    { value: "suspended", label: "Suspended", count: companies.filter((c) => c.status === "suspended").length },
+  ];
+
   return (
     <PlatformLayout
-      title="Company Management"
+      title="Companies"
       description="Manage every company registered on the Wagenius platform."
       actions={
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={() => loadCompanies(true)}
           disabled={refreshing}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
         >
-          <RefreshCw
-            className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`}
-          />
+          <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
           Refresh
-        </button>
+        </Button>
       }
     >
-      {/* FILTER BAR */}
-      <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-4 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search company name or ID..."
-              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-9 text-[13.5px] text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:bg-[#F5F8FB]"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
+      <div className="space-y-5">
+        {/* Toolbar */}
+        <Card className="!p-4 sm:!p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search company name or ID"
+                className="h-10 w-full rounded-lg border border-line-strong bg-surface pl-9 pr-9 text-[14px] text-ink outline-none transition placeholder:text-ink-subtle focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <Tabs items={statusTabs} value={statusFilter} onChange={setStatusFilter} />
           </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-600 outline-none focus:border-emerald-400"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-          </select>
-
-          <select
-            value={whatsappFilter}
-            onChange={(e) => setWhatsappFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-600 outline-none focus:border-emerald-400"
-          >
-            <option value="all">All WhatsApp</option>
-            <option value="connected">Connected</option>
-            <option value="not_connected">Not Connected</option>
-          </select>
-
-          <select
-            value={planFilter}
-            onChange={(e) => setPlanFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-600 outline-none focus:border-emerald-400"
-          >
-            <option value="all">All Plans</option>
-            {availablePlans.map((plan) => (
-              <option key={plan} value={plan}>
-                {plan}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={expiryFilter}
-            onChange={(e) => setExpiryFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-[13.5px] text-slate-600 outline-none focus:border-emerald-400"
-          >
-            <option value="all">All Expiry</option>
-            <option value="active">Active / Valid</option>
-            <option value="expiring_soon">Expiring Soon (≤ 7d)</option>
-            <option value="expired">Expired Plans</option>
-            <option value="trial">In Trial</option>
-            <option value="lifetime">Lifetime / Free</option>
-          </select>
-
-          {hasFilters && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[13px] font-medium text-slate-500 transition hover:bg-slate-50"
+          <div className="mt-3 flex flex-wrap items-center gap-2.5">
+            <select
+              value={whatsappFilter}
+              onChange={(e) => setWhatsappFilter(e.target.value)}
+              className={SELECT_CLASS}
+              aria-label="WhatsApp filter"
             >
-              <Filter className="h-3.5 w-3.5" />
-              Clear
-            </button>
-          )}
-        </div>
+              <option value="all">All WhatsApp</option>
+              <option value="connected">Connected</option>
+              <option value="not_connected">Not connected</option>
+            </select>
 
-        <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-          <p className="text-[13px] text-slate-400">
-            Showing{" "}
-            <span className="font-medium text-slate-600">
-              {filteredCompanies.length}
-            </span>{" "}
-            of{" "}
-            <span className="font-medium text-slate-600">
-              {companies.length}
-            </span>{" "}
-            companies
-          </p>
-          {hasFilters && (
-            <p className="text-[13px] text-emerald-600">Filters applied</p>
-          )}
-        </div>
-      </div>
+            <select
+              value={planFilter}
+              onChange={(e) => setPlanFilter(e.target.value)}
+              className={SELECT_CLASS}
+              aria-label="Plan filter"
+            >
+              <option value="all">All plans</option>
+              {availablePlans.map((plan) => (
+                <option key={plan} value={plan}>
+                  {plan}
+                </option>
+              ))}
+            </select>
 
-      {/* TABLE */}
-      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-[#F5F8FB] shadow-sm">
-        {loading ? (
-          <div className="flex min-h-[350px] items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600" />
-          </div>
-        ) : filteredCompanies.length === 0 ? (
-          <div className="flex min-h-[350px] flex-col items-center justify-center px-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50">
-              <Building2 className="h-5 w-5 text-slate-400" />
-            </div>
-            <h3 className="mt-4 text-sm font-semibold text-slate-700">
-              No companies found
-            </h3>
-            <p className="mt-1 max-w-sm text-[13.5px] text-slate-400">
-              No company matches the current search or filters.
-            </p>
+            <select
+              value={expiryFilter}
+              onChange={(e) => setExpiryFilter(e.target.value)}
+              className={SELECT_CLASS}
+              aria-label="Plan expiry filter"
+            >
+              <option value="all">All expiry</option>
+              <option value="active">Active / valid</option>
+              <option value="expiring_soon">Expiring soon (7 days or less)</option>
+              <option value="expired">Expired plans</option>
+              <option value="trial">In trial</option>
+              <option value="lifetime">Lifetime / free</option>
+            </select>
+
             {hasFilters && (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="mt-4 text-[13.5px] font-medium text-emerald-600 hover:underline"
-              >
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <Filter className="h-3.5 w-3.5" />
                 Clear filters
-              </button>
+              </Button>
             )}
+
+            <p className="ml-auto text-[13px] text-ink-muted">
+              Showing{" "}
+              <span className="font-medium text-ink">{filteredCompanies.length}</span>{" "}
+              of <span className="font-medium text-ink">{companies.length}</span> companies
+              {hasFilters && <span className="text-brand-700"> · filters applied</span>}
+            </p>
           </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1250px]">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/60">
-                    {[
-                      "Company",
-                      "Users",
-                      "Plan",
-                      "Plan Expiry",
-                      "Campaigns",
-                      "Templates",
-                      "Contacts",
-                      "WhatsApp",
-                      "Status",
-                      "Created",
-                      "",
-                    ].map((label, i) => (
-                      <th
-                        key={label + i}
-                        className={`px-5 py-3 text-[12px] font-semibold uppercase tracking-wider text-slate-400 ${
-                          i === 10 ? "text-right" : "text-left"
-                        }`}
-                      >
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedCompanies.map((company) => (
-                    <CompanyRow
-                      key={company._id}
-                      company={company}
-                      onView={(id) => {
-                        const compId = typeof id === "object" ? (id?._id || id?.id) : id;
-                        if (compId && compId !== "[object Object]") navigate(`/platform/companies/${compId}`);
-                      }}
-                      onToggleStatus={handleToggleStatus}
-                      updatingId={updatingId}
-                    />
-                  ))}
-                </tbody>
-              </table>
+        </Card>
+
+        {/* Table */}
+        <Card padded={false} className="overflow-hidden">
+          {loading ? (
+            <div className="flex min-h-[350px] items-center justify-center">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-brand-600" />
             </div>
-
-            <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-              <p className="text-[13px] text-slate-400">
-                Page <span className="text-slate-600">{page}</span> of{" "}
-                <span className="text-slate-600">{totalPages}</span>
-              </p>
-
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={page === 1}
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  disabled={page === totalPages}
-                  onClick={() =>
-                    setPage((current) => Math.min(totalPages, current + 1))
-                  }
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
+          ) : filteredCompanies.length === 0 ? (
+            <div className="m-5 flex min-h-[300px] flex-col items-center justify-center rounded-xl bg-canvas px-6 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface shadow-[var(--shadow-card)]">
+                <Building2 className="h-5 w-5 text-brand-700" />
               </div>
+              <h3 className="mt-4 text-[15px] font-semibold text-ink">No companies found</h3>
+              <p className="mt-1 max-w-sm text-[14px] text-ink-muted">
+                No company matches the current search or filters.
+              </p>
+              {hasFilters && (
+                <Button variant="secondary" className="mt-4" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              )}
             </div>
-          </>
-        )}
+          ) : (
+            <>
+              <div className="relative overflow-x-auto">
+                <table className="w-full min-w-[1250px]">
+                  <thead>
+                    <tr className="bg-[#f6f7f6]">
+                      {[
+                        "Company",
+                        "Users",
+                        "Plan",
+                        "Plan expiry",
+                        "Campaigns",
+                        "Templates",
+                        "Contacts",
+                        "WhatsApp",
+                        "Status",
+                        "Created",
+                        "Actions",
+                      ].map((label, i) => (
+                        <th
+                          key={label}
+                          className={`whitespace-nowrap px-4 py-3 text-[13px] font-medium text-ink-muted ${
+                            i === 10 ? "text-right" : "text-left"
+                          }`}
+                        >
+                          {label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {paginatedCompanies.map((company) => (
+                      <CompanyRow
+                        key={company._id}
+                        company={company}
+                        onView={(id) => {
+                          const compId = typeof id === "object" ? (id?._id || id?.id) : id;
+                          if (compId && compId !== "[object Object]") navigate(`/platform/companies/${compId}`);
+                        }}
+                        onToggleStatus={handleToggleStatus}
+                        updatingId={updatingId}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-line px-4 py-3">
+                <p className="text-[13px] text-ink-muted">
+                  Page <span className="font-medium text-ink">{page}</span> of{" "}
+                  <span className="font-medium text-ink">{totalPages}</span>
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="secondary"
+                    size="icon-sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon-sm"
+                    disabled={page === totalPages}
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </Card>
       </div>
     </PlatformLayout>
   );

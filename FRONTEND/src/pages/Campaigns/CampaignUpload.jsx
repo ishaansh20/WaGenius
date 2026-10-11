@@ -17,7 +17,18 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { extractVariableTokens, mergeCategories } from "../../constants/templates";
-import { EMPTY_CSV_ANALYSIS, parseCsvAnalysis } from "../../utils/csvAnalysis";
+import {
+  EMPTY_SHEET,
+  columnToken,
+  parseSheet,
+  phoneColumn,
+  requiredKeysFor,
+  resolveForRow,
+  sheetToCsvFile,
+  suggestMapping,
+  validateSheet,
+} from "../../utils/contactSheet";
+import { ContactSheetEditor, SheetPreview, VariableSourceInput } from "../../components/campaigns/ContactSheet";
 import { fetchSegments, fetchTemplateCategories } from "../../services/api";
 import { fetchSegmentAsCsvFile } from "../../utils/segmentToCsv";
 import usePlan from "../../hooks/usePlan";
@@ -121,7 +132,11 @@ export default function CampaignUpload() {
   const [dbTemplates, setDbTemplates] = useState([]);
   const [templateSearch, setTemplateSearch] = useState("");
   const [selectedNormalTemplateId, setSelectedNormalTemplateId] = useState("");
-  const [csvAnalysis, setCsvAnalysis] = useState(EMPTY_CSV_ANALYSIS);
+  // The uploaded file parsed into editable rows. Edits made in the review
+  // table live here, and this (not the original file) is what gets sent.
+  const [sheet, setSheet] = useState(EMPTY_SHEET);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorFilter, setEditorFilter] = useState("all");
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
 
   const [useMetaTemplate, setUseMetaTemplate] = useState(false);
@@ -163,7 +178,45 @@ export default function CampaignUpload() {
     .filter(({ button }) => button.type === "URL" && /\{\{1\}\}/.test(button.url || ""))
     .map(({ index }) => index);
 
-  const hasMessage = message.trim().length > 0;
+
+  // Columns the message depends on — their cells must not be empty.
+  const usedVariableValues = useMetaTemplate
+    ? [
+        ...templateVariableValues.slice(0, metaVariableCount),
+        ...dynamicButtonIndexes.map((i) => buttonVariableValues[i]),
+      ]
+    : [...message.matchAll(/\{\{(?:contact_name|col:[a-z0-9_]+)\}\}/g)].map((m) => m[0]);
+  const requiredKeys = requiredKeysFor(usedVariableValues);
+  const validation = validateSheet(sheet, requiredKeys);
+  const sampleRow = sheet.rows.find((r) => !validation.issues.has(r.id)) || sheet.rows[0];
+  const metaTokens = selectedMetaTemplate ? extractVariableTokens(selectedMetaTemplate.description) : [];
+
+  // What the first contact will actually receive.
+  const previewText = (() => {
+    if (useMetaTemplate) {
+      if (!selectedMetaTemplate) return "";
+      let text = selectedMetaTemplate.description || "";
+      metaTokens.forEach((token, i) => {
+        const filled = resolveForRow(templateVariableValues[i] || "", sheet, sampleRow);
+        text = text.split(`{{${token}}}`).join(filled || `{{${i + 1}}}`);
+      });
+      return text;
+    }
+    const nameCol = sheet.columns.find((c) => c.role === "name");
+    const firstName = (sampleRow && nameCol && sampleRow.cells[nameCol.key]) || "Customer";
+    return resolveForRow(message, sheet, sampleRow).replace(/\{\{1\}\}/g, firstName);
+  })();
+  const hasPreview = previewText.trim().length > 0;
+
+  function autoMatchVariables() {
+    if (!sheet.columns.length || !selectedMetaTemplate) return;
+    setTemplateVariableValues(suggestMapping(sheet, metaTokens));
+  }
+
+  function openEditor(filter = "all") {
+    setEditorFilter(filter);
+    setEditorOpen(true);
+  }
 
   async function fetchCategories() {
     try { setCategories(await fetchTemplateCategories()); }
@@ -262,8 +315,15 @@ export default function CampaignUpload() {
     } else if (!message.trim()) {
       return toast.error("Message cannot be empty");
     }
-    if (csvAnalysis.duplicateContacts > 0) return toast.error(`${csvAnalysis.duplicateContacts} duplicate contacts found`);
-    if (csvAnalysis.invalidContacts > 0) return toast.error(`${csvAnalysis.invalidContacts} invalid contacts found`);
+    if (!sheet.rows.length) return toast.error("Your contact list is empty");
+    if (!phoneColumn(sheet)) {
+      openEditor("all");
+      return toast.error("Choose which column has the phone numbers");
+    }
+    if (validation.counts.needsAttention > 0) {
+      openEditor("attention");
+      return toast.error(`${validation.counts.needsAttention} contact${validation.counts.needsAttention === 1 ? " needs" : "s need"} attention before sending`);
+    }
 
     let scheduleAt = null;
     if (isScheduled) {
@@ -273,7 +333,7 @@ export default function CampaignUpload() {
 
     const payload = buildMessagePayload();
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", sheetToCsvFile(sheet, file.name || "contacts.csv"));
     formData.append("campaignName", campaignName);
     formData.append("campaignType", campaignType);
     formData.append("scheduleAt", scheduleAt || "");
@@ -320,7 +380,17 @@ export default function CampaignUpload() {
     try {
       setTestSending(true);
       localStorage.setItem("campaignTestPhone", testPhone.trim());
-      await api.post("api/campaigns/test-send", { ...buildMessagePayload(), phone: testPhone.trim() });
+      const payload = buildMessagePayload();
+      const usesSheet = usedVariableValues.some((v) => /\{\{col:/.test(v || ""));
+      if (usesSheet && !sampleRow) {
+        toast.error("Add contacts first so the test can use real values");
+        return;
+      }
+      const fill = (v) => resolveForRow(v, sheet, sampleRow);
+      const resolved = payload.useMetaTemplate
+        ? { ...payload, templateVariables: payload.templateVariables.map(fill), buttonVariables: (payload.buttonVariables || []).map((v) => (v ? fill(v) : v)) }
+        : { ...payload, message: fill(payload.message) };
+      await api.post("api/campaigns/test-send", { ...resolved, phone: testPhone.trim() });
       toast.success("Test message sent — check WhatsApp");
     } catch (err) {
       toast.error(err?.response?.data?.message || "Test send failed");
@@ -332,12 +402,12 @@ export default function CampaignUpload() {
   useEffect(() => {
     let active = true;
     (async () => {
-      if (!file) { setCsvAnalysis(EMPTY_CSV_ANALYSIS); return; }
+      if (!file) { setSheet(EMPTY_SHEET); return; }
       try {
         const text = await file.text();
         if (!active) return;
-        setCsvAnalysis(parseCsvAnalysis(text));
-      } catch { if (!active) return; setCsvAnalysis(EMPTY_CSV_ANALYSIS); }
+        setSheet(parseSheet(text));
+      } catch { if (!active) return; setSheet(EMPTY_SHEET); }
     })();
     return () => { active = false; };
   }, [file]);
@@ -359,6 +429,17 @@ export default function CampaignUpload() {
   useEffect(() => {
     loadSegments();
   }, []);
+
+  // Pre-fill variable mapping when a template and a sheet are both present
+  // and nothing has been chosen yet. Always editable afterwards.
+  const sheetColumnsSignature = sheet.columns.map((c) => `${c.key}:${c.role}`).join("|");
+  useEffect(() => {
+    if (!useMetaTemplate || !selectedMetaTemplate || !sheet.columns.length) return;
+    setTemplateVariableValues((current) => {
+      const empty = current.slice(0, metaVariableCount).every((v) => !v);
+      return empty ? suggestMapping(sheet, extractVariableTokens(selectedMetaTemplate.description)) : current;
+    });
+  }, [selectedMetaTemplateId, sheetColumnsSignature, useMetaTemplate]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -505,62 +586,64 @@ export default function CampaignUpload() {
 
                         {metaVariableCount > 0 && (
                           <div className="mt-4 border-t border-line pt-4">
-                            <p className="text-[13px] font-medium text-ink">Fill in the blanks</p>
-                            <p className="mt-0.5 text-[13px] text-ink-muted">
-                              Each value replaces a {"{{number}}"} in the template text above.
-                            </p>
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div>
+                                <p className="text-[14px] font-medium text-ink">Fill in the blanks</p>
+                                <p className="mt-0.5 text-[13px] text-ink-muted">
+                                  Pick a column from your sheet so each contact gets their own value, or type text that is the same for everyone.
+                                </p>
+                              </div>
+                              {sheet.columns.length > 0 && (
+                                <Button variant="ghost" size="sm" onClick={autoMatchVariables}>
+                                  Match columns automatically
+                                </Button>
+                              )}
+                            </div>
                             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                               {Array.from({ length: metaVariableCount }, (_, i) => (
-                                <div key={i}>
-                                  <input
-                                    type="text"
-                                    value={templateVariableValues[i] || ""}
-                                    onChange={(e) => {
-                                      const next = [...templateVariableValues];
-                                      next[i] = e.target.value;
-                                      setTemplateVariableValues(next);
-                                    }}
-                                    placeholder={`Value for {{${i + 1}}}`}
-                                    aria-label={`Value for {{${i + 1}}}`}
-                                    className={controlCls}
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const next = [...templateVariableValues];
-                                      next[i] = "{{contact_name}}";
-                                      setTemplateVariableValues(next);
-                                    }}
-                                    className="mt-1.5 text-[13px] font-medium text-brand-700 hover:underline"
-                                  >
-                                    Use contact name
-                                  </button>
-                                </div>
+                                <VariableSourceInput
+                                  key={`${selectedMetaTemplateId}-${i}`}
+                                  index={i}
+                                  value={templateVariableValues[i] || ""}
+                                  onChange={(v) => {
+                                    const next = [...templateVariableValues];
+                                    next[i] = v;
+                                    setTemplateVariableValues(next);
+                                  }}
+                                  sheet={sheet}
+                                  sampleRow={sampleRow}
+                                />
                               ))}
                             </div>
                           </div>
                         )}
 
                         {dynamicButtonIndexes.length > 0 && (
-                          <div className="mt-4 grid grid-cols-1 gap-3 border-t border-line pt-4 sm:grid-cols-2">
-                            {dynamicButtonIndexes.map((i) => (
-                              <div key={i}>
-                                <label className="mb-1.5 block text-[13px] font-medium text-ink">
-                                  Link value for "{selectedMetaTemplate.buttons[i].text}" button
-                                </label>
-                                <input
-                                  type="text"
-                                  value={buttonVariableValues[i] || ""}
-                                  onChange={(e) => {
-                                    const next = [...buttonVariableValues];
-                                    next[i] = e.target.value;
-                                    setButtonVariableValues(next);
-                                  }}
-                                  placeholder="e.g. 48213"
-                                  className={controlCls}
-                                />
-                              </div>
-                            ))}
+                          <div className="mt-4 border-t border-line pt-4">
+                            <p className="text-[14px] font-medium text-ink">Button links</p>
+                            <p className="mt-0.5 text-[13px] text-ink-muted">
+                              The end of the button web address, for example an order or invoice number.
+                            </p>
+                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              {dynamicButtonIndexes.map((i) => (
+                                <div key={`${selectedMetaTemplateId}-btn-${i}`}>
+                                  <p className="mb-1.5 text-[13px] font-medium text-ink">
+                                    &ldquo;{selectedMetaTemplate.buttons[i].text}&rdquo; button
+                                  </p>
+                                  <VariableSourceInput
+                                    index={i}
+                                    value={buttonVariableValues[i] || ""}
+                                    onChange={(v) => {
+                                      const next = [...buttonVariableValues];
+                                      next[i] = v;
+                                      setButtonVariableValues(next);
+                                    }}
+                                    sheet={sheet}
+                                    sampleRow={sampleRow}
+                                  />
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -656,6 +739,23 @@ export default function CampaignUpload() {
                       rows={6}
                       inputClassName="resize-none text-[14px]"
                     />
+                    {sheet.columns.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                        <span className="mr-1 text-[13px] text-ink-muted">Insert from your sheet:</span>
+                        {sheet.columns
+                          .filter((c) => c.role !== "phone")
+                          .map((col) => (
+                            <button
+                              key={col.key}
+                              type="button"
+                              onClick={() => setMessage((m) => `${m}${m && !m.endsWith(" ") ? " " : ""}${columnToken(col)}`)}
+                              className="rounded-full border border-brand-100 bg-brand-50 px-2.5 py-0.5 text-[13px] font-medium text-brand-800 transition-colors hover:border-brand-300"
+                            >
+                              + {col.label}
+                            </button>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -807,7 +907,43 @@ export default function CampaignUpload() {
                       <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
                     </div>
                   )}
+
+                  {file && sheet.columns.length > 0 && !phoneColumn(sheet) && (
+                    <Note tone="warning" icon={AlertTriangle}>
+                      We could not tell which column has phone numbers.{" "}
+                      <button type="button" onClick={() => openEditor("all")} className="font-semibold underline">
+                        Choose it in the review table
+                      </button>
+                      .
+                    </Note>
+                  )}
+
+                  {file && sheet.rows.length > 0 && (
+                    <SheetPreview
+                      sheet={sheet}
+                      validation={validation}
+                      onReview={() => openEditor("all")}
+                      onReviewIssues={() => openEditor("attention")}
+                    />
+                  )}
+
+                  {file && sheet.columns.length > 0 && sheet.rows.length === 0 && (
+                    <Note tone="warning" icon={AlertTriangle}>
+                      This file has column headers but no contacts.
+                    </Note>
+                  )}
                 </div>
+
+                {editorOpen && (
+                  <ContactSheetEditor
+                    open={editorOpen}
+                    onClose={() => setEditorOpen(false)}
+                    sheet={sheet}
+                    onChange={setSheet}
+                    validation={validation}
+                    initialFilter={editorFilter}
+                  />
+                )}
               </FormSection>
 
               {/* 4 · When to send */}
@@ -881,7 +1017,11 @@ export default function CampaignUpload() {
               {/* WhatsApp Preview */}
               <Card>
                 <h2 className="text-[17px] font-semibold text-ink">Preview</h2>
-                <p className="mt-1 text-[14px] text-ink-muted">How your message will look on WhatsApp.</p>
+                <p className="mt-1 text-[14px] text-ink-muted">
+                  {sampleRow && usedVariableValues.some(Boolean)
+                    ? "What your first contact will receive."
+                    : "How your message will look on WhatsApp."}
+                </p>
                 <div className="mt-4 overflow-hidden rounded-xl border border-line">
                   <div className="flex items-center gap-2.5 bg-brand-900 px-3.5 py-2.5">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-[12px] font-semibold text-white">
@@ -896,7 +1036,7 @@ export default function CampaignUpload() {
                   </div>
                   <div className="min-h-[160px] bg-[#efeae2] p-3.5">
                     <div className="flex justify-end">
-                      {hasMessage ? (
+                      {hasPreview ? (
                         <div className="max-w-[92%] rounded-xl rounded-tr-sm bg-[#d9fdd3] px-3 py-2 shadow-[0_1px_1px_rgba(15,28,23,0.12)]">
                           {!useMetaTemplate && selectedNormalTemplate?.mediaUrl && (
                             <img
@@ -921,7 +1061,7 @@ export default function CampaignUpload() {
                             ) : null;
                           })()}
                           <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-ink">
-                            {message}
+                            {previewText}
                           </p>
                           <div className="mt-0.5 flex justify-end">
                             <CheckCheck className="h-4 w-4 text-brand-600" aria-hidden="true" />
@@ -969,28 +1109,35 @@ export default function CampaignUpload() {
                   ) : (
                     <div className="mt-3 flex flex-col gap-3">
                       <div className="grid grid-cols-2 gap-2.5">
-                        <StatTile label="Total" value={csvAnalysis.totalContacts} tone="default" />
-                        <StatTile label="Valid" value={csvAnalysis.validContacts} tone="brand" />
-                        <StatTile label="Invalid" value={csvAnalysis.invalidContacts} tone={csvAnalysis.invalidContacts > 0 ? "danger" : "default"} />
-                        <StatTile label="Duplicates" value={csvAnalysis.duplicateContacts} tone={csvAnalysis.duplicateContacts > 0 ? "warning" : "default"} />
+                        <StatTile label="Total" value={validation.counts.total} tone="default" />
+                        <StatTile label="Ready" value={validation.counts.ready} tone="brand" />
+                        <StatTile label="Need attention" value={validation.counts.needsAttention} tone={validation.counts.needsAttention > 0 ? "danger" : "default"} />
+                        <StatTile label="Duplicates" value={validation.counts.duplicates} tone={validation.counts.duplicates > 0 ? "warning" : "default"} />
                       </div>
 
-                      {csvAnalysis.duplicateContacts > 0 && (
+                      {validation.counts.needsAttention > 0 && (
                         <Note tone="warning" icon={AlertTriangle}>
-                          {csvAnalysis.duplicateContacts} duplicate{csvAnalysis.duplicateContacts > 1 ? "s" : ""} found — please deduplicate before launching.
+                          {validation.counts.needsAttention} contact{validation.counts.needsAttention === 1 ? " needs" : "s need"} fixing.{" "}
+                          <button type="button" onClick={() => openEditor("attention")} className="font-semibold underline">
+                            Review now
+                          </button>
                         </Note>
                       )}
 
-                      {csvAnalysis.columns.length > 0 && (
+                      {sheet.columns.length > 0 && (
                         <div>
-                          <p className="mb-1.5 text-[13px] text-ink-muted">Detected columns</p>
+                          <p className="mb-1.5 text-[13px] text-ink-muted">Columns in your sheet</p>
                           <div className="flex flex-wrap gap-1.5">
-                            {csvAnalysis.columns.map((col) => (
+                            {sheet.columns.map((col) => (
                               <span
-                                key={col}
-                                className="rounded-full border border-line bg-canvas px-2.5 py-0.5 text-[13px] font-medium text-ink"
+                                key={col.key}
+                                className={cn(
+                                  "rounded-full border px-2.5 py-0.5 text-[13px] font-medium",
+                                  col.role === "data" ? "border-line bg-canvas text-ink" : "border-brand-100 bg-brand-50 text-brand-800",
+                                )}
                               >
-                                {col}
+                                {col.label}
+                                {col.role === "phone" ? " · phone" : col.role === "name" ? " · name" : ""}
                               </span>
                             ))}
                           </div>

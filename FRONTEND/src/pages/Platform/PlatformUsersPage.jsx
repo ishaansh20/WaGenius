@@ -5,7 +5,6 @@ import {
   Users,
   Search,
   Building2,
-  Shield,
   KeyRound,
   Pencil,
   Copy,
@@ -14,10 +13,10 @@ import {
   EyeOff,
   Sparkles,
   RefreshCw,
-  X,
   UserCheck,
   UserX,
   Crown,
+  ChevronDown,
 } from "lucide-react";
 
 import {
@@ -28,6 +27,7 @@ import {
   fetchCompanies,
 } from "../../services/platformApi";
 import PlatformLayout from "../../components/layout/PlatformLayout";
+import { Badge, Button, Card, EmptyState, Modal, Select, StatCard, Tabs } from "../../components/ui";
 
 function formatDate(value) {
   if (!value) return "Never";
@@ -47,12 +47,35 @@ function generateRandomPassword() {
   return pass;
 }
 
-const roleBadges = {
-  ADMIN: "border-purple-200 bg-purple-50 text-purple-700",
-  CAMPAIGN_MANAGER: "border-blue-200 bg-blue-50 text-blue-700",
-  SUPPORT_AGENT: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  TEAM_LEAD: "border-amber-200 bg-amber-50 text-amber-700",
+
+const ROLE_LABELS = {
+  ADMIN: "Admin",
+  CAMPAIGN_MANAGER: "Campaign manager",
+  SUPPORT_AGENT: "Support agent",
+  TEAM_LEAD: "Team lead",
 };
+
+const STATUS_TABS = [
+  { value: "", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
+
+function ToolbarSelect({ value, onChange, children, label }) {
+  return (
+    <div className="relative">
+      <select
+        aria-label={label}
+        value={value}
+        onChange={onChange}
+        className="h-10 appearance-none rounded-lg border border-line-strong bg-surface pl-3 pr-9 text-[14px] text-ink outline-none transition focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12"
+      >
+        {children}
+      </select>
+      <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+    </div>
+  );
+}
 
 export default function PlatformUsersPage() {
   const navigate = useNavigate();
@@ -196,251 +219,163 @@ export default function PlatformUsersPage() {
 
   return (
     <PlatformLayout
-      title="Platform Users"
-      description="Central multi-tenant directory of all user accounts across companies."
+      title="Platform users"
+      description="Every user account across all companies."
       actions={
-        <button
-          onClick={loadUsers}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        <Button variant="secondary" onClick={loadUsers} leftIcon={RefreshCw} className={loading ? "[&>svg]:animate-spin" : ""}>
           Refresh
-        </button>
+        </Button>
       }
     >
-      <div className="space-y-6">
-        {/* SUMMARY CARDS */}
-        <div className="grid gap-4 sm:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                <Users className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Users</p>
-                <p className="text-xl font-bold text-slate-900">{summary.total}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <UserCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Active Accounts</p>
-                <p className="text-xl font-bold text-emerald-700">{summary.active}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
-                <UserX className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Deactivated</p>
-                <p className="text-xl font-bold text-red-600">{summary.inactive}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                <Crown className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Company Admins</p>
-                <p className="text-xl font-bold text-purple-700">{summary.admins}</p>
-              </div>
-            </div>
-          </div>
+      <div className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Total users" value={summary.total} icon={Users} />
+          <StatCard label="Active accounts" value={summary.active} icon={UserCheck} />
+          <StatCard label="Deactivated" value={summary.inactive} icon={UserX} />
+          <StatCard label="Company admins" value={summary.admins} icon={Crown} />
         </div>
 
-        {/* SEARCH & FILTERS BAR */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-[#F5F8FB] p-4 shadow-sm">
-          <div className="flex flex-1 flex-wrap items-center gap-3">
-            {/* Search */}
+        <Card className="p-4 sm:p-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative min-w-[240px] flex-1">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-subtle" />
               <input
                 type="text"
-                placeholder="Search user by name or email..."
+                placeholder="Search by name or email"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-4 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+                className="h-10 w-full rounded-lg border border-line-strong bg-surface pl-10 pr-4 text-[14px] text-ink outline-none transition placeholder:text-ink-subtle focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12"
               />
             </div>
 
-            {/* Company Filter */}
-            <select
+            <ToolbarSelect
+              label="Filter by company"
               value={companyId}
               onChange={(e) => {
                 setCompanyId(e.target.value);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
             >
-              <option value="">All Companies</option>
+              <option value="">All companies</option>
               {companies.map((comp) => (
                 <option key={comp._id} value={comp._id}>
                   {comp.name}
                 </option>
               ))}
-            </select>
+            </ToolbarSelect>
 
-            {/* Role Filter */}
-            <select
+            <ToolbarSelect
+              label="Filter by role"
               value={role}
               onChange={(e) => {
                 setRole(e.target.value);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
             >
-              <option value="">All Roles</option>
-              <option value="ADMIN">ADMIN</option>
-              <option value="CAMPAIGN_MANAGER">CAMPAIGN_MANAGER</option>
-              <option value="SUPPORT_AGENT">SUPPORT_AGENT</option>
-              <option value="TEAM_LEAD">TEAM_LEAD</option>
-            </select>
+              <option value="">All roles</option>
+              <option value="ADMIN">Admin</option>
+              <option value="CAMPAIGN_MANAGER">Campaign manager</option>
+              <option value="SUPPORT_AGENT">Support agent</option>
+              <option value="TEAM_LEAD">Team lead</option>
+            </ToolbarSelect>
 
-            {/* Status Filter */}
-            <select
+            <Tabs
+              items={STATUS_TABS}
               value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
+              onChange={(v) => {
+                setStatus(v);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
-            >
-              <option value="">All Statuses</option>
-              <option value="active">Active Only</option>
-              <option value="inactive">Inactive Only</option>
-            </select>
+            />
           </div>
-        </div>
+        </Card>
 
-        {/* USERS DATA TABLE */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#F5F8FB] shadow-sm">
+        <Card padded={false} className="overflow-hidden">
           {loading ? (
             <div className="flex h-60 items-center justify-center">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600" />
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-line border-t-brand-600" />
             </div>
           ) : users.length === 0 ? (
-            <div className="py-16 text-center text-sm text-slate-400">
-              No users matched your search criteria.
+            <div className="p-5">
+              <EmptyState icon={Users} title="No users found" description="No users matched your search. Try a different name, company or filter." />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
+            <div className="relative overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-[#f6f7f6] text-[13px] text-ink-muted">
                   <tr>
-                    <th className="px-5 py-3.5">User</th>
-                    <th className="px-5 py-3.5">Company Tenant</th>
-                    <th className="px-5 py-3.5">Role</th>
-                    <th className="px-5 py-3.5">Status</th>
-                    <th className="px-5 py-3.5">Last Login</th>
-                    <th className="px-5 py-3.5">Joined</th>
-                    <th className="px-5 py-3.5 text-right">Actions</th>
+                    <th className="px-4 py-3 font-medium">User</th>
+                    <th className="px-4 py-3 font-medium">Company</th>
+                    <th className="px-4 py-3 font-medium">Role</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Last login</th>
+                    <th className="px-4 py-3 font-medium">Joined</th>
+                    <th className="px-4 py-3 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-line text-[14px] text-ink">
                   {users.map((u) => (
-                    <tr key={u._id} className="transition hover:bg-slate-50/70">
-                      {/* USER NAME & EMAIL */}
-                      <td className="px-5 py-3.5">
+                    <tr key={u._id} className="transition hover:bg-canvas">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-xs font-bold text-white shadow-sm">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[13px] font-semibold text-brand-800">
                             {u.name?.charAt(0)?.toUpperCase() || "U"}
                           </div>
-                          <div>
-                            <p className="font-semibold text-slate-900">{u.name}</p>
-                            <p className="text-[13px] text-slate-400">{u.email}</p>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-ink">{u.name}</p>
+                            <p className="truncate text-[13px] text-ink-muted">{u.email}</p>
                           </div>
                         </div>
                       </td>
 
-                      {/* COMPANY TENANT */}
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-3.5">
                         {u.companyId ? (
                           <button
                             onClick={() => {
                               const targetId = typeof u.companyId === "object" ? (u.companyId?._id || u.companyId?.id) : u.companyId;
                               if (targetId && targetId !== "[object Object]") navigate(`/platform/companies/${targetId}`);
                             }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-brand-700 hover:underline"
                           >
-                            <Building2 className="h-3 w-3 text-slate-400" />
+                            <Building2 size={14} />
                             {typeof u.companyId === "object" ? (u.companyId.name || "Company") : "Company"}
                           </button>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-ink-muted">—</span>
                         )}
                       </td>
 
-                      {/* ROLE */}
-                      <td className="px-5 py-3.5">
-                        <span
-                          className={`inline-flex rounded-md border px-2 py-0.5 text-[12px] font-bold ${
-                            roleBadges[u.role] || "border-slate-200 bg-slate-50 text-slate-600"
-                          }`}
-                        >
-                          {u.role}
-                        </span>
+                      <td className="px-4 py-3.5">
+                        <Badge tone={u.role === "ADMIN" ? "brand" : "neutral"}>{ROLE_LABELS[u.role] || u.role}</Badge>
                       </td>
 
-                      {/* STATUS */}
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-3.5">
                         <button
                           onClick={() => handleToggleStatus(u)}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold transition ${
-                            u.isActive
-                              ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                              : "bg-red-50 text-red-600 hover:bg-red-100"
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-medium transition hover:opacity-80 ${
+                            u.isActive ? "bg-success-soft text-success" : "bg-danger-soft text-danger"
                           }`}
                           title="Click to toggle status"
                         >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              u.isActive ? "bg-emerald-600" : "bg-red-500"
-                            }`}
-                          />
+                          <span className={`h-1.5 w-1.5 rounded-full ${u.isActive ? "bg-success" : "bg-danger"}`} />
                           {u.isActive ? "Active" : "Inactive"}
                         </button>
                       </td>
 
-                      {/* LAST LOGIN */}
-                      <td className="px-5 py-3.5 text-slate-500">{formatDate(u.lastLogin)}</td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-ink-muted">{formatDate(u.lastLogin)}</td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-ink-muted">{formatDate(u.createdAt)}</td>
 
-                      {/* JOINED */}
-                      <td className="px-5 py-3.5 text-slate-500">{formatDate(u.createdAt)}</td>
-
-                      {/* ACTIONS */}
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="inline-flex items-center gap-1.5">
-                          <button
-                            onClick={() => openResetModal(u)}
-                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 px-2 text-[13px] font-medium text-slate-700 transition hover:bg-slate-100"
-                            title="Reset user password"
-                          >
-                            <KeyRound className="h-3 w-3 text-slate-500" />
-                            Reset Pass
-                          </button>
-                          <button
-                            onClick={() => openRoleModal(u)}
-                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 px-2 text-[13px] font-medium text-slate-700 transition hover:bg-slate-100"
-                            title="Edit user role"
-                          >
-                            <Pencil className="h-3 w-3 text-slate-500" />
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="inline-flex items-center gap-1">
+                          <Button variant="ghost" size="sm" leftIcon={KeyRound} onClick={() => openResetModal(u)} title="Reset user password">
+                            Reset password
+                          </Button>
+                          <Button variant="ghost" size="sm" leftIcon={Pencil} onClick={() => openRoleModal(u)} title="Edit user role">
                             Role
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -450,157 +385,102 @@ export default function PlatformUsersPage() {
             </div>
           )}
 
-          {/* PAGINATION */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+            <div className="flex items-center justify-between border-t border-line px-4 py-3 text-[13px] text-ink-muted">
               <p>Page {page} of {totalPages}</p>
               <div className="flex gap-2">
-                <button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded-lg border border-slate-200 px-3 py-1 font-medium transition hover:bg-slate-50 disabled:opacity-40"
-                >
+                <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
                   Previous
-                </button>
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="rounded-lg border border-slate-200 px-3 py-1 font-medium transition hover:bg-slate-50 disabled:opacity-40"
-                >
+                </Button>
+                <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
-      {/* PASSWORD RESET MODAL */}
-      {resetModalUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-[#F5F8FB] p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                  <KeyRound className="h-4 w-4" />
+      <Modal
+        open={!!resetModalUser}
+        onClose={() => setResetModalUser(null)}
+        title="Reset password"
+        description={resetModalUser ? `Set a new password for ${resetModalUser.name} (${resetModalUser.email}).` : undefined}
+        size="sm"
+      >
+        {resetModalUser && (
+          <form onSubmit={handleResetPassword} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-medium text-ink">New password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="h-11 w-full rounded-xl border border-line-strong bg-surface px-3.5 pr-20 font-mono text-[14px] text-ink outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12"
+                />
+                <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="rounded-md p-1.5 text-ink-muted hover:bg-canvas hover:text-ink"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCopyPassword}
+                    className="rounded-md p-1.5 text-ink-muted hover:bg-canvas hover:text-ink"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? <Check size={16} className="text-brand-600" /> : <Copy size={16} />}
+                  </button>
                 </div>
-                <h3 className="text-base font-semibold text-slate-900">Reset Password</h3>
               </div>
-              <button
-                onClick={() => setResetModalUser(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <p className="text-[13px] text-ink-muted">At least 6 characters. Share it with the user securely.</p>
             </div>
 
-            <p className="text-xs text-slate-500">
-              Directly set a new password for <span className="font-semibold text-slate-800">{resetModalUser.name}</span> ({resetModalUser.email}).
-            </p>
-
-            <form onSubmit={handleResetPassword} className="mt-5 space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-700">New Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-20 text-xs font-mono text-slate-900 outline-none focus:border-emerald-500 focus:bg-[#F5F8FB]"
-                  />
-                  <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="rounded p-1 text-slate-400 hover:text-slate-600"
-                    >
-                      {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCopyPassword}
-                      className="rounded p-1 text-slate-400 hover:text-slate-600"
-                      title="Copy to clipboard"
-                    >
-                      {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setNewPassword(generateRandomPassword())}
-                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                  Generate Random
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingPassword}
-                  className="inline-flex flex-1 items-center justify-center rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
-                >
-                  {savingPassword ? "Resetting..." : "Save Password"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT ROLE MODAL */}
-      {roleModalUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-[#F5F8FB] p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
-                  <Shield className="h-4 w-4" />
-                </div>
-                <h3 className="text-base font-semibold text-slate-900">Change User Role</h3>
-              </div>
-              <button
-                onClick={() => setRoleModalUser(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"
-              >
-                <X className="h-4 w-4" />
-              </button>
+            <div className="flex justify-end gap-2 border-t border-line pt-4">
+              <Button variant="secondary" leftIcon={Sparkles} onClick={() => setNewPassword(generateRandomPassword())}>
+                Generate random
+              </Button>
+              <Button type="submit" loading={savingPassword} disabled={savingPassword}>
+                {savingPassword ? "Resetting..." : "Save password"}
+              </Button>
             </div>
+          </form>
+        )}
+      </Modal>
 
-            <p className="text-xs text-slate-500">
-              Update permissions role for <span className="font-semibold text-slate-800">{roleModalUser.name}</span>.
-            </p>
-
-            <form onSubmit={handleUpdateRole} className="mt-5 space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-700">Select Role</label>
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:border-emerald-500 focus:bg-[#F5F8FB]"
-                >
-                  <option value="ADMIN">ADMIN — Full management & billing control</option>
-                  <option value="CAMPAIGN_MANAGER">CAMPAIGN_MANAGER — Create & broadcast campaigns</option>
-                  <option value="SUPPORT_AGENT">SUPPORT_AGENT — Inbox chat & customer support</option>
-                  <option value="TEAM_LEAD">TEAM_LEAD — Analytics, assignments, and supervision</option>
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                disabled={savingRole}
-                className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
-              >
-                {savingRole ? "Updating..." : "Save Role"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={!!roleModalUser}
+        onClose={() => setRoleModalUser(null)}
+        title="Change user role"
+        description={roleModalUser ? `Update what ${roleModalUser.name} can do.` : undefined}
+        size="sm"
+      >
+        {roleModalUser && (
+          <form onSubmit={handleUpdateRole} className="space-y-5">
+            <Select label="Role" value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)}>
+              <option value="ADMIN">Admin — full management and billing</option>
+              <option value="CAMPAIGN_MANAGER">Campaign manager — create and send campaigns</option>
+              <option value="SUPPORT_AGENT">Support agent — inbox chat and customer support</option>
+              <option value="TEAM_LEAD">Team lead — analytics, assignments and supervision</option>
+            </Select>
+            <div className="flex justify-end gap-2 border-t border-line pt-4">
+              <Button variant="secondary" onClick={() => setRoleModalUser(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={savingRole} disabled={savingRole}>
+                {savingRole ? "Updating..." : "Save role"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </PlatformLayout>
   );
 }

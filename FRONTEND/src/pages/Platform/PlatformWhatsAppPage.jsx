@@ -15,6 +15,19 @@ import {
   fetchAllPlatformWhatsAppAccounts,
 } from "../../services/platformApi";
 import PlatformLayout from "../../components/layout/PlatformLayout";
+import { Badge, Button, Card, StatCard, Tabs } from "../../components/ui";
+
+const STATUS_TABS = [
+  { value: "", label: "All" },
+  { value: "connected", label: "Connected" },
+  { value: "disconnected", label: "Not connected" },
+];
+
+const TOKEN_TABS = [
+  { value: "", label: "Any setup" },
+  { value: "embedded_signup", label: "Embedded signup" },
+  { value: "manual", label: "Manual token" },
+];
 
 export default function PlatformWhatsAppPage() {
   const navigate = useNavigate();
@@ -65,212 +78,151 @@ export default function PlatformWhatsAppPage() {
 
   return (
     <PlatformLayout
-      title="WhatsApp Business Accounts (WABA)"
-      description="Multi-tenant monitor for connected phone numbers, WABA IDs, and webhook activity."
+      title="WhatsApp accounts"
+      description="Connection status, phone number IDs and WABA IDs for every company."
       actions={
-        <button
-          onClick={loadAccounts}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        <Button variant="secondary" onClick={loadAccounts}>
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           Refresh
-        </button>
+        </Button>
       }
     >
-      <div className="space-y-6">
-        {/* SUMMARY CARDS */}
-        <div className="grid gap-4 sm:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                <Radio className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Companies</p>
-                <p className="text-xl font-bold text-slate-900">{summary.total}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Active WABAs</p>
-                <p className="text-xl font-bold text-emerald-700">{summary.connected}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
-                <XCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Disconnected</p>
-                <p className="text-xl font-bold text-rose-600">{summary.disconnected}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Embedded Signups</p>
-                <p className="text-xl font-bold text-purple-700">{summary.embeddedSignup}</p>
-              </div>
-            </div>
-          </div>
+      <div className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Total companies" value={summary.total} icon={Radio} />
+          <StatCard label="Connected" value={summary.connected} icon={CheckCircle2} />
+          <StatCard
+            label="Not connected"
+            value={<span className={summary.disconnected > 0 ? "text-danger" : ""}>{summary.disconnected}</span>}
+            icon={XCircle}
+          />
+          <StatCard label="Embedded signups" value={summary.embeddedSignup} icon={Sparkles} />
         </div>
 
-        {/* SEARCH & FILTERS BAR */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-[#F5F8FB] p-4 shadow-sm">
-          <div className="flex flex-1 flex-wrap items-center gap-3">
-            {/* Search */}
-            <div className="relative min-w-[240px] flex-1">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        {/* Toolbar */}
+        <Card className="p-4 sm:p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
               <input
                 type="text"
-                placeholder="Search company name, Phone ID, or WABA ID..."
+                placeholder="Search company, phone number ID or WABA ID"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-4 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+                className="h-10 w-full rounded-lg border border-line-strong bg-surface pl-10 pr-3 text-[14px] text-ink outline-none transition placeholder:text-ink-subtle focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
-
-            {/* Status Filter */}
-            <select
+            <Tabs
+              items={STATUS_TABS}
               value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
+              onChange={(v) => {
+                setStatus(v);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
-            >
-              <option value="">All Connection Statuses</option>
-              <option value="connected">Connected WABAs</option>
-              <option value="disconnected">Disconnected Accounts</option>
-            </select>
-
-            {/* Token Type Filter */}
-            <select
+            />
+            <Tabs
+              items={TOKEN_TABS}
               value={tokenType}
-              onChange={(e) => {
-                setTokenType(e.target.value);
+              onChange={(v) => {
+                setTokenType(v);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
-            >
-              <option value="">All Token Types</option>
-              <option value="embedded_signup">Embedded Signup</option>
-              <option value="manual">Manual Token</option>
-            </select>
+            />
           </div>
-        </div>
+        </Card>
 
-        {/* WABA ACCOUNTS TABLE */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#F5F8FB] shadow-sm">
+        {/* Table */}
+        <Card padded={false} className="overflow-hidden">
           {loading ? (
             <div className="flex h-60 items-center justify-center">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600" />
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-line border-t-brand-600" />
             </div>
           ) : accounts.length === 0 ? (
-            <div className="py-16 text-center text-sm text-slate-400">
-              No WhatsApp accounts match your search criteria.
+            <div className="m-5 rounded-xl bg-canvas px-6 py-12 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface text-brand-700 shadow-[var(--shadow-card)]">
+                <Radio className="h-5 w-5" />
+              </div>
+              <p className="mt-3 text-[15px] font-semibold text-ink">No accounts found</p>
+              <p className="mt-1 text-[14px] text-ink-muted">No WhatsApp accounts match your search or filters.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
+            <div className="relative overflow-x-auto">
+              <table className="w-full min-w-[1000px] text-left text-[14px]">
+                <thead className="bg-[#f6f7f6] text-[13px] text-ink-muted">
                   <tr>
-                    <th className="px-5 py-3.5">Company Tenant</th>
-                    <th className="px-5 py-3.5">Connection Status</th>
-                    <th className="px-5 py-3.5">Phone Number ID</th>
-                    <th className="px-5 py-3.5">WABA ID</th>
-                    <th className="px-5 py-3.5">Token Type</th>
-                    <th className="px-5 py-3.5">Traffic Volume</th>
-                    <th className="px-5 py-3.5">Onboarding State</th>
+                    <th className="px-4 py-3 font-medium">Company</th>
+                    <th className="px-4 py-3 font-medium">Connection</th>
+                    <th className="px-4 py-3 font-medium">Phone number ID</th>
+                    <th className="px-4 py-3 font-medium">WABA ID</th>
+                    <th className="px-4 py-3 font-medium">Setup type</th>
+                    <th className="px-4 py-3 font-medium">Traffic</th>
+                    <th className="px-4 py-3 font-medium">Onboarding</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-line text-ink">
                   {accounts.map((comp) => {
                     const wa = comp.whatsapp || {};
                     const isConnected = wa.connected === true;
                     return (
-                      <tr key={comp._id} className="transition hover:bg-slate-50/70">
-                        {/* COMPANY */}
-                        <td className="px-5 py-3.5">
+                      <tr
+                        key={comp._id}
+                        className={`transition-colors hover:bg-canvas ${isConnected ? "" : "bg-danger-soft/30"}`}
+                      >
+                        <td className="px-4 py-3.5">
                           <button
                             onClick={() => navigate(`/platform/companies/${comp._id}`)}
-                            className="inline-flex items-center gap-1.5 font-semibold text-slate-900 transition hover:text-emerald-700 hover:underline"
+                            className="inline-flex items-center gap-1.5 font-medium text-ink transition hover:text-brand-700 hover:underline"
                           >
-                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                            <Building2 className="h-3.5 w-3.5 text-ink-muted" />
                             {comp.name}
                           </button>
-                          <p className="font-mono text-[12px] text-slate-400">{comp.slug}</p>
+                          <p className="font-mono text-[12px] text-ink-muted">{comp.slug}</p>
                         </td>
 
-                        {/* STATUS */}
-                        <td className="px-5 py-3.5">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-bold ${
-                              isConnected
-                                ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                : "border border-red-200 bg-red-50 text-red-600"
-                            }`}
-                          >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                isConnected ? "bg-emerald-600" : "bg-red-500"
-                              }`}
-                            />
-                            {isConnected ? "Connected" : "Not Connected"}
-                          </span>
+                        <td className="px-4 py-3.5">
+                          <Badge tone={isConnected ? "brand" : "danger"} dot>
+                            {isConnected ? "Connected" : "Not connected"}
+                          </Badge>
                         </td>
 
-                        {/* PHONE NUMBER ID */}
-                        <td className="px-5 py-3.5 font-mono text-slate-800">
-                          {wa.phoneNumberId || <span className="text-slate-400">—</span>}
+                        <td className="px-4 py-3.5 font-mono text-[13px] text-ink">
+                          {wa.phoneNumberId || <span className="text-ink-muted">—</span>}
                         </td>
 
-                        {/* WABA ID */}
-                        <td className="px-5 py-3.5 font-mono text-slate-800">
-                          {wa.wabaId || <span className="text-slate-400">—</span>}
+                        <td className="px-4 py-3.5 font-mono text-[13px] text-ink">
+                          {wa.wabaId || <span className="text-ink-muted">—</span>}
                         </td>
 
-                        {/* TOKEN TYPE */}
-                        <td className="px-5 py-3.5">
-                          <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-semibold uppercase text-slate-600">
-                            {wa.tokenType || "manual"}
-                          </span>
+                        <td className="px-4 py-3.5">
+                          <Badge tone="neutral">
+                            {(wa.tokenType || "manual") === "embedded_signup"
+                              ? "Embedded signup"
+                              : (wa.tokenType || "manual") === "manual"
+                                ? "Manual token"
+                                : wa.tokenType}
+                          </Badge>
                         </td>
 
-                        {/* TRAFFIC VOLUME */}
-                        <td className="px-5 py-3.5 text-slate-700">
-                          <p className="font-semibold">{comp.statistics?.messages ?? 0} msgs</p>
-                          <p className="text-[12px] text-slate-400">{comp.statistics?.conversations ?? 0} conversations</p>
+                        <td className="px-4 py-3.5">
+                          <p className="font-medium tabular-nums">{comp.statistics?.messages ?? 0} messages</p>
+                          <p className="text-[13px] text-ink-muted tabular-nums">
+                            {comp.statistics?.conversations ?? 0} conversations
+                          </p>
                         </td>
 
-                        {/* ONBOARDING STATE */}
-                        <td className="px-5 py-3.5 text-slate-500">
+                        <td className="px-4 py-3.5">
                           {wa.onboardingCompletedAt ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            <span className="inline-flex items-center gap-1.5 font-medium text-brand-700">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
                               Completed
                             </span>
                           ) : isConnected ? (
-                            <span className="text-amber-700 font-medium">Active</span>
+                            <Badge tone="warning">Active, not finished</Badge>
                           ) : (
-                            <span className="text-slate-400">Pending</span>
+                            <span className="text-ink-muted">Pending</span>
                           )}
                         </td>
                       </tr>
@@ -281,29 +233,30 @@ export default function PlatformWhatsAppPage() {
             </div>
           )}
 
-          {/* PAGINATION */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+            <div className="flex items-center justify-between border-t border-line px-4 py-3 text-[13px] text-ink-muted">
               <p>Page {page} of {totalPages}</p>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded-lg border border-slate-200 px-3 py-1 font-medium transition hover:bg-slate-50 disabled:opacity-40"
                 >
                   Previous
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="rounded-lg border border-slate-200 px-3 py-1 font-medium transition hover:bg-slate-50 disabled:opacity-40"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </PlatformLayout>
   );

@@ -18,6 +18,7 @@ import {
   fetchCompanies,
 } from "../../services/platformApi";
 import PlatformLayout from "../../components/layout/PlatformLayout";
+import { Badge, Button, Card, StatCard, StatusPill, Tabs } from "../../components/ui";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -28,14 +29,17 @@ function formatDate(value) {
   });
 }
 
-const metaStatusClasses = {
-  APPROVED: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  PENDING: "border-amber-200 bg-amber-50 text-amber-700",
-  REJECTED: "border-rose-200 bg-rose-50 text-rose-700",
-  PAUSED: "border-yellow-200 bg-yellow-50 text-yellow-700",
-  DISABLED: "border-slate-200 bg-slate-50 text-slate-600",
-  not_submitted: "border-slate-200 bg-slate-50 text-slate-500",
-};
+const META_STATUS_TABS = [
+  { value: "", label: "All" },
+  { value: "APPROVED", label: "Approved" },
+  { value: "PENDING", label: "Pending" },
+  { value: "REJECTED", label: "Rejected" },
+  { value: "PAUSED", label: "Paused" },
+  { value: "DISABLED", label: "Disabled" },
+];
+
+const inputCls =
+  "h-10 rounded-lg border border-line-strong bg-surface text-[14px] text-ink outline-none transition placeholder:text-ink-subtle focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
 
 export default function PlatformTemplatesPage() {
   const navigate = useNavigate();
@@ -103,241 +107,169 @@ export default function PlatformTemplatesPage() {
 
   return (
     <PlatformLayout
-      title="Platform Message Templates"
-      description="Cross-company feed of WhatsApp templates submitted to Meta with approval diagnostics."
+      title="Message templates"
+      description="WhatsApp templates every company has sent to Meta, with approval status and rejection reasons."
       actions={
-        <button
-          onClick={loadTemplates}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        <Button variant="secondary" onClick={loadTemplates}>
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           Refresh
-        </button>
+        </Button>
       }
     >
-      <div className="space-y-6">
-        {/* SUMMARY CARDS */}
-        <div className="grid gap-4 sm:grid-cols-5">
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                <FileText className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Templates</p>
-                <p className="text-xl font-bold text-slate-900">{summary.total}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Approved</p>
-                <p className="text-xl font-bold text-emerald-700">{summary.approved}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                <Clock className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Pending Review</p>
-                <p className="text-xl font-bold text-amber-700">{summary.pending}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
-                <XCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Rejected</p>
-                <p className="text-xl font-bold text-rose-600">{summary.rejected}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                <Percent className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Approval Rate</p>
-                <p className="text-xl font-bold text-purple-700">{summary.approvalRate}%</p>
-              </div>
-            </div>
-          </div>
+      <div className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard label="Total templates" value={summary.total} icon={FileText} />
+          <StatCard label="Approved" value={summary.approved} icon={CheckCircle2} />
+          <StatCard label="Pending review" value={summary.pending} icon={Clock} />
+          <StatCard
+            label="Rejected"
+            value={<span className={summary.rejected > 0 ? "text-danger" : ""}>{summary.rejected}</span>}
+            icon={XCircle}
+          />
+          <StatCard label="Approval rate" value={`${summary.approvalRate}%`} icon={Percent} />
         </div>
 
-        {/* SEARCH & FILTERS BAR */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-[#F5F8FB] p-4 shadow-sm">
-          <div className="flex flex-1 flex-wrap items-center gap-3">
-            {/* Search */}
-            <div className="relative min-w-[240px] flex-1">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search template name or Meta slug..."
-                value={search}
+        {/* Toolbar */}
+        <Card className="p-4 sm:p-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="relative min-w-[220px] flex-1">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+                <input
+                  type="text"
+                  placeholder="Search template name or Meta name"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  className={`${inputCls} w-full pl-10 pr-3`}
+                />
+              </div>
+
+              <select
+                value={companyId}
                 onChange={(e) => {
-                  setSearch(e.target.value);
+                  setCompanyId(e.target.value);
                   setPage(1);
                 }}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-4 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
-              />
+                className={`${inputCls} px-3`}
+              >
+                <option value="">All companies</option>
+                {companies.map((comp) => (
+                  <option key={comp._id} value={comp._id}>
+                    {comp.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setPage(1);
+                }}
+                className={`${inputCls} px-3`}
+              >
+                <option value="">All categories</option>
+                <option value="MARKETING">Marketing</option>
+                <option value="UTILITY">Utility</option>
+                <option value="AUTHENTICATION">Authentication</option>
+              </select>
             </div>
 
-            {/* Company Filter */}
-            <select
-              value={companyId}
-              onChange={(e) => {
-                setCompanyId(e.target.value);
-                setPage(1);
-              }}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
-            >
-              <option value="">All Companies</option>
-              {companies.map((comp) => (
-                <option key={comp._id} value={comp._id}>
-                  {comp.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Meta Status Filter */}
-            <select
+            <Tabs
+              items={META_STATUS_TABS}
               value={metaStatus}
-              onChange={(e) => {
-                setMetaStatus(e.target.value);
+              onChange={(v) => {
+                setMetaStatus(v);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
-            >
-              <option value="">All Meta Statuses</option>
-              <option value="APPROVED">APPROVED</option>
-              <option value="PENDING">PENDING</option>
-              <option value="REJECTED">REJECTED</option>
-              <option value="PAUSED">PAUSED</option>
-              <option value="DISABLED">DISABLED</option>
-            </select>
-
-            {/* Category Filter */}
-            <select
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setPage(1);
-              }}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
-            >
-              <option value="">All Categories</option>
-              <option value="MARKETING">MARKETING</option>
-              <option value="UTILITY">UTILITY</option>
-              <option value="AUTHENTICATION">AUTHENTICATION</option>
-            </select>
+            />
           </div>
-        </div>
+        </Card>
 
-        {/* TEMPLATES TABLE */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#F5F8FB] shadow-sm">
+        {/* Table */}
+        <Card padded={false} className="overflow-hidden">
           {loading ? (
             <div className="flex h-60 items-center justify-center">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600" />
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-line border-t-brand-600" />
             </div>
           ) : templates.length === 0 ? (
-            <div className="py-16 text-center text-sm text-slate-400">
-              No message templates match your search criteria.
+            <div className="m-5 rounded-xl bg-canvas px-6 py-12 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface text-brand-700 shadow-[var(--shadow-card)]">
+                <FileText className="h-5 w-5" />
+              </div>
+              <p className="mt-3 text-[15px] font-semibold text-ink">No templates found</p>
+              <p className="mt-1 text-[14px] text-ink-muted">No message templates match your search or filters.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
+            <div className="relative overflow-x-auto">
+              <table className="w-full min-w-[1000px] text-left text-[14px]">
+                <thead className="bg-[#f6f7f6] text-[13px] text-ink-muted">
                   <tr>
-                    <th className="px-5 py-3.5">Template</th>
-                    <th className="px-5 py-3.5">Company Tenant</th>
-                    <th className="px-5 py-3.5">Meta Status</th>
-                    <th className="px-5 py-3.5">Category</th>
-                    <th className="px-5 py-3.5">Language</th>
-                    <th className="px-5 py-3.5">Diagnostics / Rejection Reason</th>
-                    <th className="px-5 py-3.5">Created</th>
+                    <th className="px-4 py-3 font-medium">Template</th>
+                    <th className="px-4 py-3 font-medium">Company</th>
+                    <th className="px-4 py-3 font-medium">Meta status</th>
+                    <th className="px-4 py-3 font-medium">Category</th>
+                    <th className="px-4 py-3 font-medium">Language</th>
+                    <th className="px-4 py-3 font-medium">Rejection reason</th>
+                    <th className="px-4 py-3 font-medium">Created</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-line text-ink">
                   {templates.map((t) => (
-                    <tr key={t._id} className="transition hover:bg-slate-50/70">
-                      {/* TEMPLATE NAME */}
-                      <td className="px-5 py-3.5">
-                        <p className="font-semibold text-slate-900">{t.name}</p>
+                    <tr key={t._id} className="transition-colors hover:bg-canvas">
+                      <td className="px-4 py-3.5">
+                        <p className="font-medium text-ink">{t.name}</p>
                         {t.metaTemplateName && (
-                          <p className="font-mono text-[12px] text-slate-400">{t.metaTemplateName}</p>
+                          <p className="font-mono text-[12px] text-ink-muted">{t.metaTemplateName}</p>
                         )}
                       </td>
 
-                      {/* COMPANY */}
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-3.5">
                         {t.companyId ? (
                           <button
                             onClick={() => {
                               const targetId = typeof t.companyId === "object" ? (t.companyId?._id || t.companyId?.id) : t.companyId;
                               if (targetId && targetId !== "[object Object]") navigate(`/platform/companies/${targetId}`);
                             }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[14px] font-medium text-brand-700 transition hover:bg-brand-50"
                           >
-                            <Building2 className="h-3 w-3 text-slate-400" />
+                            <Building2 className="h-3.5 w-3.5" />
                             {typeof t.companyId === "object" ? (t.companyId.name || "Company") : "Company"}
                           </button>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-ink-muted">—</span>
                         )}
                       </td>
 
-                      {/* META STATUS */}
-                      <td className="px-5 py-3.5">
-                        <span
-                          className={`inline-flex rounded-full border px-2.5 py-0.5 text-[12px] font-bold uppercase ${
-                            metaStatusClasses[t.metaStatus] || metaStatusClasses.not_submitted
-                          }`}
-                        >
-                          {t.metaStatus || "not_submitted"}
-                        </span>
+                      <td className="px-4 py-3.5">
+                        <StatusPill status={t.metaStatus || "not_submitted"} />
                       </td>
 
-                      {/* CATEGORY */}
-                      <td className="px-5 py-3.5">
-                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[12px] font-semibold text-slate-700">
-                          {t.metaCategory || t.category || "—"}
-                        </span>
+                      <td className="px-4 py-3.5">
+                        <Badge tone="neutral" className="capitalize">
+                          {String(t.metaCategory || t.category || "—").toLowerCase()}
+                        </Badge>
                       </td>
 
-                      {/* LANGUAGE */}
-                      <td className="px-5 py-3.5 uppercase text-slate-700">{t.language || "en_US"}</td>
+                      <td className="px-4 py-3.5 text-ink-muted">{t.language || "en_US"}</td>
 
-                      {/* REJECTION REASON */}
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-3.5">
                         {t.rejectionReason ? (
-                          <div className="flex items-center gap-1.5 text-rose-600">
+                          <div className="flex items-center gap-1.5 text-danger">
                             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                            <span className="max-w-xs truncate font-medium" title={t.rejectionReason}>
+                            <span className="max-w-xs truncate text-[13px] font-medium" title={t.rejectionReason}>
                               {t.rejectionReason}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-ink-muted">—</span>
                         )}
                       </td>
 
-                      {/* CREATED */}
-                      <td className="px-5 py-3.5 text-slate-500">{formatDate(t.createdAt)}</td>
+                      <td className="whitespace-nowrap px-4 py-3.5 text-ink-muted">{formatDate(t.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -345,29 +277,30 @@ export default function PlatformTemplatesPage() {
             </div>
           )}
 
-          {/* PAGINATION */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+            <div className="flex items-center justify-between border-t border-line px-4 py-3 text-[13px] text-ink-muted">
               <p>Page {page} of {totalPages}</p>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded-lg border border-slate-200 px-3 py-1 font-medium transition hover:bg-slate-50 disabled:opacity-40"
                 >
                   Previous
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="rounded-lg border border-slate-200 px-3 py-1 font-medium transition hover:bg-slate-50 disabled:opacity-40"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </PlatformLayout>
   );

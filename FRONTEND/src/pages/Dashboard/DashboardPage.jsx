@@ -29,7 +29,7 @@ import {
 } from "recharts";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import { Button, Card, StatusPill, Skeleton } from "../../components/ui";
+import { AnimatedNumber, Button, Card, StatusPill, Skeleton } from "../../components/ui";
 import useAuthStore from "../../store/authStore";
 import api, {
   API_BASE_URL,
@@ -150,8 +150,7 @@ function KpiCard({ label, value, caption, icon: Icon, onClick, tone = "default" 
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "group flex flex-col rounded-[var(--radius-card)] border border-line bg-surface p-5 text-left shadow-[var(--shadow-card)] transition",
-        onClick && "hover:border-line-strong hover:shadow-[0_8px_24px_rgba(15,28,23,0.08)]",
+        "lift group flex flex-col rounded-[var(--radius-card)] border border-line bg-surface p-5 text-left shadow-[var(--shadow-card)]",
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -444,11 +443,11 @@ function DashboardPage() {
     <DashboardLayout title="Dashboard">
       {header}
 
-      <div className="space-y-5">
+      <div className="stagger space-y-5">
         {/* ── Account status ── */}
         <Card padded={false} className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-line [&>*:nth-child(-n+2)]:border-b [&>*:nth-child(-n+2)]:border-line lg:[&>*:nth-child(-n+2)]:border-b-0">
           <div className="flex items-center gap-3 px-5 py-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+            <span className="live-dot flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
               <CheckCircle2 size={20} />
             </span>
             <div className="min-w-0">
@@ -466,29 +465,29 @@ function DashboardPage() {
         </Card>
 
         {/* ── Key numbers ── */}
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        <section className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
           <KpiCard
             label="Campaigns"
-            value={stats.totalCampaigns}
+            value={<AnimatedNumber value={stats.totalCampaigns} />}
             caption={`Created in the last ${periodLabel}`}
             icon={Megaphone}
             onClick={() => navigate("/campaigns/history")}
           />
           <KpiCard
             label="Delivered"
-            value={formatNumber(stats.delivered)}
+            value={<AnimatedNumber value={stats.delivered} format={formatNumber} />}
             caption={`${stats.successRate}% of attempted messages`}
             icon={Send}
           />
           <KpiCard
             label="People reached"
-            value={formatNumber(stats.audience)}
+            value={<AnimatedNumber value={stats.audience} format={formatNumber} />}
             caption="Unique contacts messaged"
             icon={Users}
           />
           <KpiCard
             label="Failed"
-            value={formatNumber(stats.failed)}
+            value={<AnimatedNumber value={stats.failed} format={formatNumber} />}
             caption={`${stats.failureRate}% of all sends`}
             icon={XCircle}
             tone={stats.failed > 0 ? "danger" : "default"}
@@ -535,6 +534,9 @@ function DashboardPage() {
                     <Tooltip contentStyle={tooltipStyle} labelStyle={{ fontWeight: 600, color: "#0f1c17" }} />
                     <Area
                       type="monotone"
+                      isAnimationActive
+                      animationDuration={1200}
+                      animationEasing="ease-out"
                       dataKey="sent"
                       name="Delivered"
                       stroke={COLORS.delivered}
@@ -564,6 +566,8 @@ function DashboardPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
+                        isAnimationActive
+                        animationDuration={1100}
                         data={deliveryData}
                         dataKey="value"
                         nameKey="name"
@@ -580,7 +584,7 @@ function DashboardPage() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-[26px] font-semibold leading-none text-ink tabular-nums">{stats.successRate}%</span>
+                    <span className="text-[26px] font-semibold leading-none text-ink tabular-nums"><AnimatedNumber value={stats.successRate} />%</span>
                     <span className="mt-1 text-[13px] text-ink-muted">success rate</span>
                   </div>
                 </div>

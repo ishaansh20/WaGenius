@@ -610,7 +610,7 @@ export default function CampaignAnalyticsPage() {
                             </p>
                             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#eceeed]">
                               <div
-                                className={cn("h-full rounded-full", isFailed ? "bg-danger" : "bg-brand-600")}
+                                className={cn("grow-x h-full rounded-full", isFailed ? "bg-danger" : "bg-brand-600")}
                                 style={{ width: `${percent}%` }}
                               />
                             </div>

@@ -1,4 +1,5 @@
 const prepareMessage = require("./prepareMessage");
+const { resolveValue } = require("../../utils/sheetFields");
 const { sendTextMessage, sendImageMessage } = require("../whatsapp/whatsappService");
 const { sendTemplateMessage } = require("../whatsapp/templateService");
 const { getCompanyWhatsAppCredentials } = require("../whatsapp/companyCredentials");
@@ -79,7 +80,9 @@ async function runWithConcurrency(items, concurrency, handler) {
 // same sentinel the same way a real send would, using a name of its choosing
 // (real sends pass the real contact's name; a test-send passes a fixed
 // placeholder like "Test Contact").
-const resolvePlaceholder = (value, name) => (value === "{{contact_name}}" ? name || "Customer" : value);
+// `contact` is the campaign contact (name, phone, fields) or a plain name
+// string for test sends. See utils/sheetFields.js for the supported tokens.
+const resolvePlaceholder = (value, contact) => resolveValue(value, contact);
 
 // Sends to a single contact and records the outcome. Never throws — a
 // failure here is recorded as that contact's status, not surfaced to the
@@ -91,10 +94,10 @@ const sendToContact = async (credentials, campaign, template, contact) => {
 
     if (template) {
       const variableValues = (campaign.templateVariables || []).map((value) =>
-        resolvePlaceholder(value, contact.name),
+        resolvePlaceholder(value, contact),
       );
       const buttonValues = (campaign.buttonVariables || []).map((value) =>
-        resolvePlaceholder(value, contact.name),
+        resolvePlaceholder(value, contact),
       );
 
       metaResponse = await sendTemplateMessage(credentials, contact.phone, template, variableValues, buttonValues);

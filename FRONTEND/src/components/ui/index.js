@@ -10,3 +10,5 @@ export { default as Modal } from "./Modal";
 export { default as Skeleton } from "./Skeleton";
 export { default as Table } from "./Table";
 export { default as Logo, LogoMark } from "./Logo";
+export { default as AnimatedNumber } from "./AnimatedNumber";
+export { default as Ticks } from "./Ticks";

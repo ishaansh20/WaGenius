@@ -7,7 +7,7 @@ export default function StatCard({ label, value, icon: Icon, hint, trend, classN
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)]",
+        "lift rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)]",
         className,
       )}
     >

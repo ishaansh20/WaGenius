@@ -11,6 +11,7 @@ import {
 
 import { fetchPlatformAuditLogs } from "../../services/platformApi";
 import PlatformLayout from "../../components/layout/PlatformLayout";
+import { Badge, Button, Card, StatCard } from "../../components/ui";
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -24,17 +25,17 @@ function formatDateTime(value) {
   });
 }
 
-const actionBadges = {
-  COMPANY_STATUS_UPDATED: "border-amber-200 bg-amber-50 text-amber-800",
-  SUBSCRIPTION_UPDATED: "border-[#B5C5D5] bg-[#D9E4EE] text-[#1A3652]",
-  PLAN_CREATED: "border-[#B5C5D5] bg-[#D9E4EE] text-[#1A3652]",
-  PLAN_UPDATED: "border-[#C5D1DE] bg-[#EFF3F8] text-[#2A4A68]",
-  PLAN_STATUS_TOGGLED: "border-[#B5C5D5] bg-[#D4DEE9] text-[#3D5F7E]",
-  USER_STATUS_TOGGLED: "border-rose-200 bg-rose-50 text-rose-800",
-  USER_ROLE_UPDATED: "border-[#B5C5D5] bg-[#D4DEE9] text-[#2A4A68]",
-  USER_PASSWORD_RESET: "border-red-200 bg-red-50 text-red-700",
-  PLATFORM_SETTINGS_UPDATED: "border-[#C5D1DE] bg-[#EFF3F8] text-[#2A4A68]",
-};
+// Destructive / security-sensitive actions get a red badge; everything else stays neutral.
+const DANGER_ACTIONS = new Set(["USER_PASSWORD_RESET"]);
+
+function humanizeAction(action) {
+  if (!action) return "—";
+  const s = String(action).toLowerCase().replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+const inputCls =
+  "h-10 rounded-lg border border-line-strong bg-surface text-[14px] text-ink outline-none transition placeholder:text-ink-subtle focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
 
 export default function PlatformAuditLogsPage() {
   const [logs, setLogs] = useState([]);
@@ -80,183 +81,142 @@ export default function PlatformAuditLogsPage() {
 
   return (
     <PlatformLayout
-      title="Platform Audit Logs"
-      description="Immutable security ledger tracking administrative overrides, subscriptions, and security events."
+      title="Audit log"
+      description="A permanent record of admin changes to companies, plans, subscriptions, users and settings."
       actions={
-        <button
-          onClick={loadLogs}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        <Button variant="secondary" onClick={loadLogs}>
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           Refresh
-        </button>
+        </Button>
       }
     >
-      <div className="space-y-6">
-        {/* SUMMARY CARDS */}
+      <div className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                <Activity className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Audit Events</p>
-                <p className="text-xl font-bold text-slate-900">{summary.total}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                <Clock className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Logged Today</p>
-                <p className="text-xl font-bold text-purple-700">{summary.today}</p>
-              </div>
-            </div>
-          </div>
+          <StatCard label="Total events" value={summary.total} icon={Activity} />
+          <StatCard label="Logged today" value={summary.today} icon={Clock} />
         </div>
 
-        {/* SEARCH & FILTERS BAR */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-[#F5F8FB] p-4 shadow-sm">
-          <div className="flex flex-1 flex-wrap items-center gap-3">
-            {/* Search */}
-            <div className="relative min-w-[240px] flex-1">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        {/* Toolbar */}
+        <Card className="p-4 sm:p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
               <input
                 type="text"
-                placeholder="Search actor name, email, target, or action..."
+                placeholder="Search admin name, email, target or action"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pl-9 pr-4 text-xs text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+                className={`${inputCls} w-full pl-10 pr-3`}
               />
             </div>
 
-            {/* Action Filter */}
             <select
               value={action}
               onChange={(e) => {
                 setAction(e.target.value);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+              className={`${inputCls} px-3`}
             >
-              <option value="">All Action Types</option>
-              <option value="COMPANY_STATUS_UPDATED">Company Status</option>
-              <option value="SUBSCRIPTION_UPDATED">Subscription Modified</option>
-              <option value="PLAN_CREATED">Plan Created</option>
-              <option value="PLAN_UPDATED">Plan Updated</option>
-              <option value="PLAN_STATUS_TOGGLED">Plan Toggled</option>
-              <option value="USER_STATUS_TOGGLED">User Status</option>
-              <option value="USER_ROLE_UPDATED">User Role</option>
-              <option value="USER_PASSWORD_RESET">Password Reset</option>
-              <option value="PLATFORM_SETTINGS_UPDATED">Settings Updated</option>
+              <option value="">All actions</option>
+              <option value="COMPANY_STATUS_UPDATED">Company status</option>
+              <option value="SUBSCRIPTION_UPDATED">Subscription changed</option>
+              <option value="PLAN_CREATED">Plan created</option>
+              <option value="PLAN_UPDATED">Plan updated</option>
+              <option value="PLAN_STATUS_TOGGLED">Plan turned on/off</option>
+              <option value="USER_STATUS_TOGGLED">User status</option>
+              <option value="USER_ROLE_UPDATED">User role</option>
+              <option value="USER_PASSWORD_RESET">Password reset</option>
+              <option value="PLATFORM_SETTINGS_UPDATED">Settings updated</option>
             </select>
 
-            {/* Target Model Filter */}
             <select
               value={targetModel}
               onChange={(e) => {
                 setTargetModel(e.target.value);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-[#F5F8FB]"
+              className={`${inputCls} px-3`}
             >
-              <option value="">All Target Resources</option>
+              <option value="">All targets</option>
               <option value="Company">Company</option>
               <option value="Subscription">Subscription</option>
               <option value="Plan">Plan</option>
               <option value="User">User</option>
-              <option value="PlatformConfig">Platform Settings</option>
+              <option value="PlatformConfig">Platform settings</option>
             </select>
           </div>
-        </div>
+        </Card>
 
-        {/* AUDIT LOG TABLE */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#F5F8FB] shadow-sm">
+        {/* Table */}
+        <Card padded={false} className="overflow-hidden">
           {loading ? (
             <div className="flex h-60 items-center justify-center">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600" />
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-line border-t-brand-600" />
             </div>
           ) : logs.length === 0 ? (
-            <div className="py-16 text-center text-sm text-slate-400">
-              No audit logs match your search criteria.
+            <div className="m-5 rounded-xl bg-canvas px-6 py-12 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface text-brand-700 shadow-[var(--shadow-card)]">
+                <Activity className="h-5 w-5" />
+              </div>
+              <p className="mt-3 text-[15px] font-semibold text-ink">No events found</p>
+              <p className="mt-1 text-[14px] text-ink-muted">No audit log entries match your search or filters.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[12px] uppercase tracking-wider text-slate-400">
+            <div className="relative overflow-x-auto">
+              <table className="w-full min-w-[960px] text-left text-[14px]">
+                <thead className="bg-[#f6f7f6] text-[13px] text-ink-muted">
                   <tr>
-                    <th className="px-5 py-3.5">Timestamp</th>
-                    <th className="px-5 py-3.5">Actor (Super Admin)</th>
-                    <th className="px-5 py-3.5">Action Executed</th>
-                    <th className="px-5 py-3.5">Target Resource</th>
-                    <th className="px-5 py-3.5">IP Address</th>
-                    <th className="px-5 py-3.5 text-right">Details</th>
+                    <th className="px-4 py-3 font-medium">Time</th>
+                    <th className="px-4 py-3 font-medium">Admin</th>
+                    <th className="px-4 py-3 font-medium">Action</th>
+                    <th className="px-4 py-3 font-medium">Target</th>
+                    <th className="px-4 py-3 font-medium">IP address</th>
+                    <th className="px-4 py-3 text-right font-medium">Details</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-line text-ink">
                   {logs.map((log) => (
-                    <tr key={log._id} className="transition hover:bg-slate-50/70">
-                      {/* TIMESTAMP */}
-                      <td className="px-5 py-3.5 font-mono text-[13px] text-slate-500">
+                    <tr key={log._id} className="transition-colors hover:bg-canvas">
+                      <td className="whitespace-nowrap px-4 py-3.5 text-[13px] text-ink-muted tabular-nums">
                         {formatDateTime(log.createdAt)}
                       </td>
 
-                      {/* ACTOR */}
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-900 text-[12px] font-bold text-white">
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[13px] font-semibold text-brand-800">
                             {log.actorName?.charAt(0)?.toUpperCase() || "A"}
                           </div>
-                          <div>
-                            <p className="font-semibold text-slate-900">{log.actorName}</p>
-                            <p className="text-[12px] text-slate-400">{log.actorEmail}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium text-ink">{log.actorName}</p>
+                            <p className="text-[13px] text-ink-muted">{log.actorEmail}</p>
                           </div>
                         </div>
                       </td>
 
-                      {/* ACTION */}
-                      <td className="px-5 py-3.5">
-                        <span
-                          className={`inline-flex rounded-md border px-2 py-0.5 font-mono text-[12px] font-bold ${
-                            actionBadges[log.action] || "border-slate-200 bg-slate-50 text-slate-600"
-                          }`}
-                        >
-                          {log.action}
-                        </span>
+                      <td className="px-4 py-3.5">
+                        <Badge tone={DANGER_ACTIONS.has(log.action) ? "danger" : "neutral"}>
+                          <span title={log.action}>{humanizeAction(log.action)}</span>
+                        </Badge>
                       </td>
 
-                      {/* TARGET */}
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-600">
-                            {log.targetModel}
-                          </span>
-                          <span className="font-medium text-slate-800">{log.targetName || "—"}</span>
-                        </div>
+                      <td className="px-4 py-3.5">
+                        <p className="font-medium text-ink">{log.targetName || "—"}</p>
+                        <p className="text-[13px] text-ink-muted">{log.targetModel}</p>
                       </td>
 
-                      {/* IP ADDRESS */}
-                      <td className="px-5 py-3.5 font-mono text-[13px] text-slate-400">
+                      <td className="px-4 py-3.5 font-mono text-[13px] text-ink-muted">
                         {log.ipAddress || "127.0.0.1"}
                       </td>
 
-                      {/* DETAILS BUTTON */}
-                      <td className="px-5 py-3.5 text-right">
-                        <button
-                          onClick={() => setSelectedLog(log)}
-                          className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 px-2.5 text-[13px] font-medium text-slate-700 transition hover:bg-slate-100"
-                        >
-                          <FileCode className="h-3 w-3 text-slate-500" />
-                          View Diff
-                        </button>
+                      <td className="px-4 py-3.5 text-right">
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedLog(log)}>
+                          <FileCode size={14} />
+                          View details
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -265,78 +225,78 @@ export default function PlatformAuditLogsPage() {
             </div>
           )}
 
-          {/* PAGINATION */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+            <div className="flex items-center justify-between border-t border-line px-4 py-3 text-[13px] text-ink-muted">
               <p>Page {page} of {totalPages}</p>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded-lg border border-slate-200 px-3 py-1 font-medium transition hover:bg-slate-50 disabled:opacity-40"
                 >
                   Previous
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="rounded-lg border border-slate-200 px-3 py-1 font-medium transition hover:bg-slate-50 disabled:opacity-40"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
-      {/* JSON DIFF MODAL */}
+      {/* Details modal */}
       {selectedLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6">
-          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-[#F5F8FB] p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(11,20,16,0.45)] px-4 py-6">
+          <div className="w-full max-w-2xl rounded-2xl bg-surface p-6 shadow-[0_24px_60px_rgba(11,20,16,0.25)]">
+            <div className="mb-4 flex items-start justify-between gap-3 border-b border-line pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
                   <FileCode className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">{selectedLog.action}</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-[18px] font-semibold text-ink">{humanizeAction(selectedLog.action)}</h3>
+                  <p className="text-[13px] text-ink-muted">
                     By {selectedLog.actorName} on {formatDateTime(selectedLog.createdAt)}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"
+                aria-label="Close"
+                className="rounded-lg p-1.5 text-ink-muted hover:bg-canvas hover:text-ink"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs text-slate-600">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[14px] text-ink-muted">
                 <span>
-                  Target: <strong className="text-slate-900">{selectedLog.targetModel}</strong> ({selectedLog.targetName})
+                  Target: <strong className="font-medium text-ink">{selectedLog.targetModel}</strong> ({selectedLog.targetName})
                 </span>
-                <span className="font-mono text-slate-400">ID: {selectedLog.targetId || "N/A"}</span>
+                <span className="font-mono text-[13px]">ID: {selectedLog.targetId || "N/A"}</span>
               </div>
+              <p className="font-mono text-[12px] text-ink-muted">{selectedLog.action}</p>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Payload / Mutation Details</label>
-                <pre className="max-h-80 overflow-y-auto rounded-xl bg-slate-950 p-4 font-mono text-xs text-emerald-400">
+                <label className="mb-1.5 block text-[13px] font-medium text-ink">Change details</label>
+                <pre className="max-h-80 overflow-auto rounded-xl border border-line bg-canvas p-4 font-mono text-[13px] text-ink">
                   {JSON.stringify(selectedLog.details, null, 2)}
                 </pre>
               </div>
             </div>
 
             <div className="mt-5 flex justify-end">
-              <button
-                onClick={() => setSelectedLog(null)}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
+              <Button variant="secondary" onClick={() => setSelectedLog(null)}>
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         </div>

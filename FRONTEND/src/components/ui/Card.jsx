@@ -1,11 +1,12 @@
 import { cn } from "../../utils/cn";
 
-export default function Card({ as: Tag = "div", className, padded = true, children, ...props }) {
+export default function Card({ as: Tag = "div", className, padded = true, interactive = false, children, ...props }) {
   return (
     <Tag
       className={cn(
         "rounded-[var(--radius-card)] border border-line bg-surface shadow-[var(--shadow-card)]",
         padded && "p-5 sm:p-6",
+        interactive && "lift cursor-pointer",
         className,
       )}
       {...props}

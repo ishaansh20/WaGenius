@@ -52,12 +52,8 @@ const SPOTLIGHTS = [
     body: "Upload a CSV or pick a contact group, choose an approved template, and send now or schedule it. Watch it get delivered and read, live.",
     points: ["CSV upload or saved groups", "Schedule for the right time", "Delivery & read tracking"],
     visual: (
-      <div className="relative mx-auto max-w-[460px] py-6">
+      <div className="relative mx-auto max-w-[460px] py-2">
         <CampaignMock />
-        <div className="absolute -bottom-4 -right-3 rounded-2xl border border-line bg-surface px-4 py-3 shadow-[var(--shadow-pop)] sm:-right-8">
-          <p className="text-[11px] text-ink-muted">Read rate</p>
-          <p className="font-display text-[22px] font-semibold text-brand-700">78%</p>
-        </div>
       </div>
     ),
   },

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Check, CheckCheck, AlertCircle } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { resolveMediaUrl } from "../../utils/media";
@@ -34,6 +35,11 @@ function getSenderLabel(message) {
 export function MessageBubble({ message, searchQuery, isCurrentMatch, showSenderLabel }) {
   const isIncoming = message.sender === "user";
   const senderLabel = !isIncoming && showSenderLabel ? getSenderLabel(message) : null;
+  // Only messages that just arrived animate in; loading history stays still.
+  const [isFresh] = useState(() => {
+    const createdMs = new Date(message.createdAt).getTime();
+    return Boolean(message.optimistic) || (Number.isFinite(createdMs) && Date.now() - createdMs < 8000);
+  });
 
   return (
     <div
@@ -54,6 +60,7 @@ export function MessageBubble({ message, searchQuery, isCurrentMatch, showSender
         <div
           className={cn(
             "min-w-[88px] rounded-2xl px-3.5 pb-1.5 pt-2.5 shadow-[0_1px_1px_rgba(15,28,23,0.06)] transition-shadow",
+            isFresh && "pop-in",
             isIncoming
               ? "rounded-tl-md border border-line bg-surface text-ink"
               : "rounded-tr-md border border-[#c6e9be] bg-[#dcf5d6] text-ink",
@@ -78,11 +85,11 @@ export function MessageBubble({ message, searchQuery, isCurrentMatch, showSender
             {!isIncoming && !message.optimistic && (
               <>
                 {message.status === "sent" && (
-                  <Check className="h-3.5 w-3.5" aria-label="Sent" />
+                  <Check className="h-3.5 w-3.5 transition-colors duration-500" aria-label="Sent" />
                 )}
                 {(message.status === "delivered" || message.status === "read") && (
                   <CheckCheck
-                    className={cn("h-3.5 w-3.5", message.status === "read" && "text-brand-600")}
+                    className={cn("h-3.5 w-3.5 transition-colors duration-500", message.status === "read" && "text-[#34b7f1]")}
                     aria-label={message.status === "read" ? "Read" : "Delivered"}
                   />
                 )}

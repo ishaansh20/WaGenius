@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
 import {
   LayoutDashboard,
   Building2,
@@ -14,52 +13,62 @@ import {
   CreditCard,
   Layers,
   LogOut,
-  ShieldCheck,
   Menu,
   X,
 } from "lucide-react";
 import { cn } from "../../utils/cn";
 import usePlatformAuthStore from "../../store/platformAuthStore";
+import { Logo } from "../ui";
 
-const navItems = [
-  { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/platform/dashboard" },
-  { id: "companies", icon: Building2, label: "Companies", path: "/platform/companies" },
-  { id: "users", icon: Users, label: "Users", path: "/platform/users" },
-  { id: "campaigns", icon: Megaphone, label: "Broadcasts", path: "/platform/campaigns" },
-  { id: "templates", icon: FileText, label: "Templates", path: "/platform/templates" },
-  { id: "whatsapp", icon: Radio, label: "WhatsApp", path: "/platform/whatsapp" },
-  { id: "analytics", icon: BarChart3, label: "Analytics", path: "/platform/analytics" },
-  { id: "audit-logs", icon: Activity, label: "Audit Logs", path: "/platform/audit-logs" },
-  { id: "subscriptions", icon: CreditCard, label: "Subscriptions", path: "/platform/subscriptions" },
-  { id: "plans", icon: Layers, label: "Plans", path: "/platform/plans" },
-  { id: "settings", icon: Sliders, label: "Settings", path: "/platform/settings" },
+const navGroups = [
+  {
+    label: "Overview",
+    items: [
+      { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/platform/dashboard" },
+      { id: "analytics", icon: BarChart3, label: "Analytics", path: "/platform/analytics" },
+    ],
+  },
+  {
+    label: "Customers",
+    items: [
+      { id: "companies", icon: Building2, label: "Companies", path: "/platform/companies" },
+      { id: "users", icon: Users, label: "Users", path: "/platform/users" },
+      { id: "subscriptions", icon: CreditCard, label: "Subscriptions", path: "/platform/subscriptions" },
+      { id: "plans", icon: Layers, label: "Plans", path: "/platform/plans" },
+    ],
+  },
+  {
+    label: "Activity",
+    items: [
+      { id: "campaigns", icon: Megaphone, label: "Campaigns", path: "/platform/campaigns" },
+      { id: "templates", icon: FileText, label: "Templates", path: "/platform/templates" },
+      { id: "whatsapp", icon: Radio, label: "WhatsApp", path: "/platform/whatsapp" },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { id: "audit-logs", icon: Activity, label: "Audit logs", path: "/platform/audit-logs" },
+      { id: "settings", icon: Sliders, label: "Settings", path: "/platform/settings" },
+    ],
+  },
 ];
 
 function NavButton({ item, active, onClick }) {
   const Icon = item.icon;
-
   return (
-    <motion.button
-      whileHover={{ x: 2 }}
-      whileTap={{ scale: 0.98 }}
+    <button
+      type="button"
       onClick={onClick}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[13px] font-medium transition-all duration-150",
-        active
-          ? "bg-[#2E5C8A] text-[#E8F0FA] shadow-sm"
-          : "text-[#4A6580] hover:bg-[#D4DEE9] hover:text-[#1A3652]",
+        "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[14px] font-medium transition-colors",
+        active ? "bg-brand-50 text-brand-900" : "text-ink-muted hover:bg-canvas hover:text-ink",
       )}
     >
-      <span
-        className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-lg transition",
-          active ? "bg-[#1E4A73] text-[#C5D8E8]" : "bg-[#CEDAE6] text-[#4A6580] group-hover:bg-[#BFD0DF] group-hover:text-[#1A3652]",
-        )}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
+      <Icon size={18} className={active ? "text-brand-700" : "text-ink-muted"} />
       <span>{item.label}</span>
-    </motion.button>
+    </button>
   );
 }
 
@@ -76,63 +85,56 @@ export default function PlatformLayout({ title, description, actions, children }
   }
 
   const isActive = (item) => location.pathname.startsWith(item.path);
+  const initial = platformUser?.name?.charAt(0)?.toUpperCase() || "A";
 
   const SidebarContent = (
-    <div className="flex h-full flex-col justify-between">
-      <div className="flex min-h-0 flex-1 flex-col">
-        {/* Header Branding */}
-        <div className="flex shrink-0 items-center gap-3 px-4 pt-1">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2E5C8A] shadow-sm border border-[#1E4A73]">
-            <ShieldCheck className="h-4.5 w-4.5 text-[#C5D8E8]" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#6B8BA5]">
-              Wagenius
-            </p>
-            <p className="truncate text-sm font-semibold tracking-tight text-[#1A3652]">
-              Super Admin
-            </p>
-          </div>
-        </div>
-
-        {/* Scrollable Navigation List */}
-        <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-3 space-y-1">
-          {navItems.map((item) => (
-            <NavButton
-              key={item.id}
-              item={item}
-              active={isActive(item)}
-              onClick={() => {
-                setMobileOpen(false);
-                navigate(item.path);
-              }}
-            />
-          ))}
-        </div>
+    <div className="flex h-full w-full flex-col">
+      <div className="flex shrink-0 flex-col gap-2 px-5 pb-4 pt-5">
+        <Logo />
+        <span className="inline-flex w-fit items-center rounded-full border border-brand-100 bg-brand-50 px-2.5 py-0.5 text-[12px] font-medium text-brand-800">
+          Admin console
+        </span>
       </div>
 
-      {/* Bottom Profile & Sign out */}
-      <div className="shrink-0 space-y-2 border-t border-[#C5D1DE] px-3 pt-3">
-        <div className="rounded-xl border border-[#C5D1DE] bg-[#D4DEE9] p-2.5">
-          <div className="flex items-center justify-between">
-            <p className="truncate text-xs font-semibold text-[#1A3652]">
-              {platformUser?.name || "Super Admin"}
-            </p>
-            <span className="text-[12px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#C5D8E8] text-[#2E5C8A]">
-              Root
-            </span>
+      <nav className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-2">
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            <p className="px-3 pb-1.5 text-[13px] font-medium text-ink-muted">{group.label}</p>
+            <div className="space-y-0.5">
+              {group.items.map((item) => (
+                <NavButton
+                  key={item.id}
+                  item={item}
+                  active={isActive(item)}
+                  onClick={() => {
+                    setMobileOpen(false);
+                    navigate(item.path);
+                  }}
+                />
+              ))}
+            </div>
           </div>
-          <p className="truncate text-[13px] text-[#6B8BA5] mt-0.5">
-            {platformUser?.email}
-          </p>
-        </div>
+        ))}
+      </nav>
 
+      <div className="shrink-0 space-y-2 border-t border-line p-3">
+        <div className="flex items-center gap-3 p-2">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-900 text-[14px] font-semibold text-white">
+            {initial}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[14px] font-medium text-ink">
+              {platformUser?.name || "Super admin"}
+            </span>
+            <span className="block truncate text-[13px] text-ink-muted">{platformUser?.email}</span>
+          </span>
+        </div>
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#C5D1DE] bg-[#EFF3F8] py-2 text-xs font-medium text-[#4A6580] transition hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[14px] font-medium text-ink-muted transition-colors hover:bg-danger-soft hover:text-danger"
         >
-          <LogOut className="h-3.5 w-3.5" />
+          <LogOut size={18} />
           Sign out
         </button>
       </div>
@@ -140,64 +142,55 @@ export default function PlatformLayout({ title, description, actions, children }
   );
 
   return (
-    <div className="min-h-screen bg-[#EFF3F8] text-[#1A3652] font-sans antialiased">
+    <div className="min-h-screen bg-canvas text-ink antialiased">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[240px] border-r border-[#C5D1DE] bg-[#E1E8F0]/95 py-5 backdrop-blur-xl lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] border-r border-line bg-surface lg:flex">
         {SidebarContent}
       </aside>
 
-      {/* Mobile sidebar */}
+      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="absolute inset-0 bg-[#1A3652]/30 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="absolute inset-y-0 left-0 flex w-[240px] flex-col border-r border-[#C5D1DE] bg-[#E1E8F0] py-5 shadow-2xl">
+          <div className="absolute inset-0 bg-ink/30" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute inset-y-0 left-0 flex w-[272px] max-w-[85vw] border-r border-line bg-surface shadow-xl">
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-[#8DA3B8] hover:bg-[#D4DEE9] hover:text-[#2E5C8A]"
+              aria-label="Close menu"
+              className="absolute right-3 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted hover:bg-canvas hover:text-ink"
             >
-              <X className="h-4 w-4" />
+              <X size={18} />
             </button>
             {SidebarContent}
           </aside>
         </div>
       )}
 
-      <main className="min-h-screen lg:ml-[240px]">
-        <header className="sticky top-0 z-30 border-b border-[#C5D1DE] bg-[#EFF3F8]/90 px-5 py-4 backdrop-blur-xl sm:px-8">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+      <main className="min-h-screen lg:ml-[248px]">
+        <header className="sticky top-0 z-30 border-b border-line bg-surface px-4 py-4 sm:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setMobileOpen(true)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#C5D1DE] bg-[#E1E8F0] text-[#4A6580] lg:hidden"
+                aria-label="Open menu"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line text-ink-muted hover:bg-canvas hover:text-ink lg:hidden"
               >
-                <Menu className="h-4 w-4" />
+                <Menu size={18} />
               </button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold tracking-tight text-[#1A3652] sm:text-xl">
-                    {title}
-                  </h1>
-                </div>
-                {description && (
-                  <p className="mt-0.5 text-xs text-[#6B8BA5] sm:text-sm">
-                    {description}
-                  </p>
-                )}
+              <div className="min-w-0">
+                <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-ink sm:text-[24px]">
+                  {title}
+                </h1>
+                {description && <p className="mt-0.5 text-[14px] text-ink-muted">{description}</p>}
               </div>
             </div>
 
-            {actions && <div className="flex items-center gap-2">{actions}</div>}
+            {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
           </div>
         </header>
 
-        <div className="mx-auto w-full max-w-[1600px] px-5 py-6 sm:px-8">
-          {children}
-        </div>
+        <div className="page-enter mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-8">{children}</div>
       </main>
     </div>
   );

@@ -33,7 +33,13 @@ export default function DashboardLayout({ title = "Wagenius", children }) {
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-10 lg:py-8">{children}</div>
+        <div className="relative">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-[320px] bg-[radial-gradient(900px_260px_at_75%_-60px,rgba(18,140,94,0.09),transparent)]"
+          />
+          <div className="page-enter relative mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-10 lg:py-8">{children}</div>
+        </div>
       </main>
     </div>
   );

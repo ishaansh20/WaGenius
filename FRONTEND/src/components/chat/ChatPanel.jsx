@@ -534,20 +534,11 @@ export function ChatPanel({
                   className="flex items-center gap-2 px-1"
                 >
                   <div className="flex h-8 items-center rounded-2xl rounded-tl-md border border-line bg-surface px-3">
-                    <motion.div className="flex gap-1">
-                      {[0, 1, 2].map((i) => (
-                        <motion.div
-                          key={i}
-                          className="h-1.5 w-1.5 rounded-full bg-ink-muted"
-                          animate={{ y: [-2, 0, -2] }}
-                          transition={{
-                            duration: 0.6,
-                            repeat: Infinity,
-                            delay: i * 0.1,
-                          }}
-                        />
-                      ))}
-                    </motion.div>
+                    <span className="typing-dots" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
                   </div>
                   <span className="text-[13px] text-ink-muted">Typing…</span>
                 </motion.div>

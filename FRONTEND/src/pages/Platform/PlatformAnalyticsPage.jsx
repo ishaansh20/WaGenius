@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import {
-  TrendingUp,
-  DollarSign,
-  Users,
-  Sparkles,
-  RefreshCw,
-  ArrowUpRight,
-} from "lucide-react";
+import { TrendingUp, IndianRupee, Users, Sparkles, RefreshCw, Wallet } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -22,6 +15,28 @@ import {
 
 import { fetchPlatformAnalytics } from "../../services/platformApi";
 import PlatformLayout from "../../components/layout/PlatformLayout";
+import { Button } from "../../components/ui";
+import { cn } from "../../utils/cn";
+
+const RANGES = [
+  { value: "7d", label: "7 days" },
+  { value: "30d", label: "30 days" },
+  { value: "90d", label: "90 days" },
+  { value: "1y", label: "1 year" },
+];
+
+const GREEN = "#128c5e";
+const RED = "#c62828";
+const NEUTRAL = "#c3cad1";
+const AXIS = { fontSize: 12, fill: "#5d6b66" };
+const TOOLTIP_STYLE = {
+  backgroundColor: "#ffffff",
+  borderColor: "#e3e7e4",
+  borderRadius: "10px",
+  fontSize: "13px",
+};
+const CARD =
+  "rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6";
 
 function formatCurrency(amount) {
   return new Intl.NumberFormat("en-IN", {
@@ -71,230 +86,181 @@ export default function PlatformAnalyticsPage() {
 
   return (
     <PlatformLayout
-      title="Platform SaaS Analytics"
-      description="Revenue run rate, company expansion trajectory, and global message throughput."
+      title="Analytics"
+      description="Revenue, new companies and message volume across the platform."
       actions={
-        <div className="flex items-center gap-2">
-          {/* Time range selector */}
-          <div className="flex rounded-xl border border-slate-200 bg-[#F5F8FB] p-1 text-xs font-medium text-slate-600 shadow-sm">
-            {["7d", "30d", "90d", "1y"].map((range) => (
-              <button
-                key={range}
-                onClick={() => setTimeRange(range)}
-                className={`rounded-lg px-2.5 py-1 uppercase transition ${
-                  timeRange === range
-                    ? "bg-slate-900 font-semibold text-white"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                {range}
-              </button>
-            ))}
+        <>
+          <div role="tablist" aria-label="Time range" className="inline-flex rounded-lg border border-line bg-surface p-1">
+            {RANGES.map((range) => {
+              const active = timeRange === range.value;
+              return (
+                <button
+                  key={range.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setTimeRange(range.value)}
+                  className={cn(
+                    "h-8 whitespace-nowrap rounded-md px-3 text-[14px] font-medium transition-colors",
+                    active ? "bg-brand-900 text-white" : "text-ink-muted hover:bg-canvas hover:text-ink",
+                  )}
+                >
+                  {range.label}
+                </button>
+              );
+            })}
           </div>
-
-          <button
-            onClick={loadAnalytics}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-[#F5F8FB] px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          <Button variant="secondary" onClick={loadAnalytics}>
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Refresh
-          </button>
-        </div>
+          </Button>
+        </>
       }
     >
-      <div className="space-y-6">
-        {/* FINANCIAL KPI CARDS */}
-        <div className="grid gap-4 sm:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Monthly Recurring (MRR)</span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                <DollarSign className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-black tracking-tight text-slate-900">{formatCurrency(financials.mrr)}</p>
-            <p className="mt-1 flex items-center gap-1 text-[13px] text-emerald-600 font-medium">
-              <ArrowUpRight className="h-3 w-3" />
-              Based on active subscriptions
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Annual Run Rate (ARR)</span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                <TrendingUp className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-black tracking-tight text-slate-900">{formatCurrency(financials.arr)}</p>
-            <p className="mt-1 text-[13px] text-slate-400">Annualized revenue pace</p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Active Paid Tenants</span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
-                <Users className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-black tracking-tight text-purple-700">{financials.activePaidSubscriptions}</p>
-            <p className="mt-1 text-[13px] text-slate-500">
-              Plus <span className="font-semibold text-slate-800">{financials.activeTrials}</span> active trials
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400">ARPU (Avg Revenue)</span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-                <DollarSign className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-black tracking-tight text-slate-900">{formatCurrency(financials.arpu)}</p>
-            <p className="mt-1 text-[13px] text-slate-400">Per paying tenant / mo</p>
-          </div>
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Kpi icon={IndianRupee} label="Monthly recurring revenue" value={formatCurrency(financials.mrr)} caption="Based on active subscriptions" />
+          <Kpi icon={TrendingUp} label="Annual run rate" value={formatCurrency(financials.arr)} caption="Yearly revenue at the current pace" />
+          <Kpi
+            icon={Users}
+            label="Paying companies"
+            value={financials.activePaidSubscriptions}
+            caption={
+              <>
+                Plus <span className="font-medium text-ink">{financials.activeTrials}</span> active trials
+              </>
+            }
+          />
+          <Kpi icon={Wallet} label="Average revenue per company" value={formatCurrency(financials.arpu)} caption="Per paying company, per month" />
         </div>
 
-        {/* CHARTS GRID */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* DAILY MESSAGE THROUGHPUT */}
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <section className={CARD}>
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Platform Message Throughput</h3>
-                <p className="text-xs text-slate-400">Daily sent, delivered, and read volume</p>
+                <h2 className="text-[17px] font-semibold text-ink">Message volume</h2>
+                <p className="mt-1 text-[14px] text-ink-muted">Sent, delivered and failed messages per day</p>
               </div>
-              <div className="flex items-center gap-3 text-[12px] font-semibold">
-                <span className="flex items-center gap-1 text-emerald-600">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" /> Delivered
-                </span>
-                <span className="flex items-center gap-1 text-sky-600">
-                  <span className="h-2 w-2 rounded-full bg-sky-500" /> Sent
-                </span>
-                <span className="flex items-center gap-1 text-rose-500">
-                  <span className="h-2 w-2 rounded-full bg-rose-500" /> Failed
-                </span>
+              <div className="flex items-center gap-3 text-[13px] text-ink-muted">
+                <Legend color={GREEN} label="Delivered" />
+                <Legend color={NEUTRAL} label="Sent" />
+                <Legend color={RED} label="Failed" />
               </div>
             </div>
 
             <div className="h-64 w-full">
               {throughput.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-xs text-slate-400">
-                  No message activity in this time window.
-                </div>
+                <EmptyChart text="No messages were sent in this time range." />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={throughput} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="#94a3b8" />
-                    <YAxis tick={{ fontSize: 10 }} stroke="#94a3b8" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#ffffff",
-                        borderColor: "#e2e8f0",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Line type="monotone" dataKey="sent" stroke="#0284c7" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="delivered" stroke="#10b981" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="failed" stroke="#f43f5e" strokeWidth={1.5} dot={false} />
+                  <LineChart data={throughput} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef0ee" vertical={false} />
+                    <XAxis dataKey="date" tick={AXIS} stroke="#e3e7e4" />
+                    <YAxis tick={AXIS} stroke="#e3e7e4" />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} />
+                    <Line type="monotone" dataKey="sent" stroke={NEUTRAL} strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="delivered" stroke={GREEN} strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="failed" stroke={RED} strokeWidth={1.5} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               )}
             </div>
-          </div>
+          </section>
 
-          {/* MONTHLY COMPANY ONBOARDING VELOCITY */}
-          <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-6 shadow-sm">
+          <section className={CARD}>
             <div className="mb-4">
-              <h3 className="text-sm font-bold text-slate-900">Tenant Acquisition Velocity</h3>
-              <p className="text-xs text-slate-400">New company onboardings over time</p>
+              <h2 className="text-[17px] font-semibold text-ink">New companies</h2>
+              <p className="mt-1 text-[14px] text-ink-muted">Companies that signed up each month</p>
             </div>
 
             <div className="h-64 w-full">
               {growth.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-xs text-slate-400">
-                  No tenant acquisition data available.
-                </div>
+                <EmptyChart text="No new companies in this time range." />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={growth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="companyGrowth" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="month" tick={{ fontSize: 10 }} stroke="#94a3b8" />
-                    <YAxis tick={{ fontSize: 10 }} stroke="#94a3b8" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#ffffff",
-                        borderColor: "#e2e8f0",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                      }}
-                    />
+                  <AreaChart data={growth} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef0ee" vertical={false} />
+                    <XAxis dataKey="month" tick={AXIS} stroke="#e3e7e4" />
+                    <YAxis tick={AXIS} stroke="#e3e7e4" />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} />
                     <Area
                       type="monotone"
                       dataKey="companies"
-                      stroke="#7c3aed"
+                      stroke={GREEN}
                       strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#companyGrowth)"
+                      fillOpacity={0.12}
+                      fill={GREEN}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
             </div>
-          </div>
+          </section>
         </div>
 
-        {/* AI & AUTOMATION INTELLIGENCE */}
-        <div className="rounded-2xl border border-slate-200 bg-[#F5F8FB] p-6 shadow-sm">
-          <div className="mb-5 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                <Sparkles className="h-4 w-4" />
-              </div>
+        <section className={CARD}>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+                <Sparkles size={18} />
+              </span>
               <div>
-                <h3 className="text-sm font-bold text-slate-900">AI Auto-Reply Intelligence (Groq LLM)</h3>
-                <p className="text-xs text-slate-400">Turn consumption and automated resolution tracking</p>
+                <h2 className="text-[17px] font-semibold text-ink">AI auto-replies (Groq)</h2>
+                <p className="mt-0.5 text-[14px] text-ink-muted">How many conversations the AI is answering</p>
               </div>
             </div>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-bold text-emerald-700">
-              Active LLaMA 3.3 Engine
+            <span className="rounded-full bg-brand-50 px-3 py-1 text-[13px] font-medium text-brand-800">
+              Model: LLaMA 3.3
             </span>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Conversations</p>
-              <p className="mt-1 text-xl font-bold text-slate-900">{ai.totalConversations}</p>
-            </div>
-
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total AI Auto-Replies</p>
-              <p className="mt-1 text-xl font-bold text-emerald-700">{ai.totalAITurns}</p>
-            </div>
-
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Avg Turns / Conversation</p>
-              <p className="mt-1 text-xl font-bold text-slate-900">{ai.avgTurnsPerConversation}</p>
-            </div>
-
-            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-              <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Total Message Volume</p>
-              <p className="mt-1 text-xl font-bold text-slate-900">
-                {new Intl.NumberFormat("en-IN").format(ai.totalMessages || 0)}
-              </p>
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <AiFact label="Conversations" value={ai.totalConversations} />
+            <AiFact label="AI auto-replies" value={ai.totalAITurns} />
+            <AiFact label="Average replies per conversation" value={ai.avgTurnsPerConversation} />
+            <AiFact label="Total messages" value={new Intl.NumberFormat("en-IN").format(ai.totalMessages || 0)} />
           </div>
-        </div>
+        </section>
       </div>
     </PlatformLayout>
+  );
+}
+
+function Kpi({ icon: Icon, label, value, caption }) {
+  return (
+    <div className="flex flex-col rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
+      <span className="flex items-center gap-2 text-[14px] font-medium text-ink-muted">
+        <Icon size={16} className="text-brand-600" />
+        {label}
+      </span>
+      <p className="mt-4 text-[30px] font-semibold leading-none tracking-[-0.02em] text-ink tabular-nums">{value}</p>
+      <p className="mt-2 text-[13px] text-ink-muted">{caption}</p>
+    </div>
+  );
+}
+
+function Legend({ color, label }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+      {label}
+    </span>
+  );
+}
+
+function EmptyChart({ text }) {
+  return (
+    <div className="flex h-full items-center justify-center rounded-xl bg-canvas px-4 text-center text-[14px] text-ink-muted">
+      {text}
+    </div>
+  );
+}
+
+function AiFact({ label, value }) {
+  return (
+    <div className="rounded-xl bg-canvas p-4">
+      <p className="text-[14px] text-ink-muted">{label}</p>
+      <p className="mt-1 text-[24px] font-semibold tracking-[-0.02em] text-ink tabular-nums">{value}</p>
+    </div>
   );
 }

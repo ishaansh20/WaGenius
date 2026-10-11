@@ -548,7 +548,7 @@ export default function BillingPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-3">
+          <div className="stagger grid grid-cols-1 items-stretch gap-5 md:grid-cols-3">
             {plans.map((plan) => {
               const current = isCurrent(plan);
               const price = getPrice(plan);
