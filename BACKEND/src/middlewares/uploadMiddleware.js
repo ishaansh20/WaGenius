@@ -2,6 +2,24 @@ const multer = require("multer");
 
 const path = require("path");
 
+const EXTENSION_BY_TYPE = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "application/pdf": ".pdf",
+  "video/mp4": ".mp4",
+  "video/3gpp": ".3gp",
+  "text/csv": ".csv",
+};
+
+function safeExtension(file) {
+  if (file.mimetype === "application/vnd.ms-excel") {
+    // Windows browsers label .csv files this way.
+    return path.extname(file.originalname).toLowerCase() === ".xls" ? ".xls" : ".csv";
+  }
+  return EXTENSION_BY_TYPE[file.mimetype] || "";
+}
+
 // STORAGE CONFIG
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -32,10 +50,13 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
 
+  // The saved extension comes from the (allow-listed) file type, never from
+  // the uploaded file name, so "photo.html" sent as an image can't be
+  // stored and served as a web page.
   filename: function (req, file, cb) {
     const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9);
 
-    cb(null, uniqueName + path.extname(file.originalname));
+    cb(null, uniqueName + safeExtension(file));
   },
 });
 

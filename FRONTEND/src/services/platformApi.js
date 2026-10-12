@@ -62,7 +62,6 @@ platformApi.interceptors.response.use(
 export async function platformLogin(payload) {
   const { data } = await platformApi.post("/api/platform/auth/login", payload);
 
-  console.log("PLATFORM LOGIN API RESPONSE:", data);
 
   return data;
 }

@@ -12,6 +12,15 @@ const companySchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Business details the AI assistant may use when replying to this
+    // company's customers (products, timings, policies). Optional.
+    aiInstructions: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 4000,
+    },
+
     slug: {
       type: String,
       required: true,

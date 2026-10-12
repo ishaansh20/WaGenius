@@ -58,7 +58,26 @@ app.use(
     },
   }),
 );
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+// Only template media (images/videos/PDFs that WhatsApp and the app load by
+// link) is public. Uploaded contact lists (campaigns/, contacts/) hold
+// customer phone numbers and are never served, and file types a browser
+// could run as a page are refused outright.
+const PRIVATE_UPLOAD_DIRS = /^\/(campaigns|contacts)(\/|$)/i;
+const BLOCKED_UPLOAD_TYPES = /\.(csv|tsv|xls|xlsx|html?|xhtml|svg|xml|js|mjs|json|php|sh|exe)$/i;
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    const requested = decodeURIComponent(req.path || "");
+    if (PRIVATE_UPLOAD_DIRS.test(requested) || BLOCKED_UPLOAD_TYPES.test(requested)) {
+      return res.status(404).end();
+    }
+    next();
+  },
+  express.static(path.join(__dirname, "../uploads"), {
+    dotfiles: "ignore",
+    setHeaders: (res) => res.setHeader("X-Content-Type-Options", "nosniff"),
+  }),
+);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/platform", platformRoutes);

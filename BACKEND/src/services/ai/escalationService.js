@@ -1,5 +1,5 @@
 const Conversation = require("../../models/conversation");
-const { getIO } = require("../../sockets/socket");
+const { emitToCompany } = require("../../sockets/socket");
 
 // Max number of AI-authored replies allowed in a conversation before it is
 // handed to a human regardless of content, so a customer never gets stuck
@@ -59,8 +59,7 @@ const escalateConversation = async (conversationId, reason) => {
 
   const updatedConversation = await Conversation.findById(conversationId).populate("contact");
 
-  const io = getIO();
-  io.to("inbox").emit("conversation_updated", updatedConversation);
+  emitToCompany(updatedConversation?.companyId, "inbox", "conversation_updated", updatedConversation);
 
   return updatedConversation;
 };

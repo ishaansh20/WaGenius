@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 const Contact = require("../models/contact");
 const Conversation = require("../models/conversation");
 const Segment = require("../models/segment");
-const { getIO } = require("../sockets/socket");
+const { emitToCompany } = require("../sockets/socket");
 const { findOrCreateContact } = require("../services/contactService");
 const { buildContactFilter } = require("../services/contact/contactQueryService");
 
@@ -122,7 +122,7 @@ const updateContact = async (req, res) => {
     }).populate("contact");
 
     if (updatedConversation) {
-      getIO().to("inbox").emit("conversation_updated", updatedConversation);
+      emitToCompany(req.companyId, "inbox", "conversation_updated", updatedConversation);
     }
 
     res.status(200).json({ success: true, contact });
@@ -223,10 +223,9 @@ const bulkUpdateTags = async (req, res) => {
       companyId: req.companyId,
       contact: { $in: ids },
     }).populate("contact");
-    const io = getIO();
 
     affectedConversations.forEach((conversation) => {
-      io.to("inbox").emit("conversation_updated", conversation);
+      emitToCompany(req.companyId, "inbox", "conversation_updated", conversation);
     });
 
     res.status(200).json({ success: true, updatedCount: ids.length });

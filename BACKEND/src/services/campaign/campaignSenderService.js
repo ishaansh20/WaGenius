@@ -6,7 +6,7 @@ const { getCompanyWhatsAppCredentials } = require("../whatsapp/companyCredential
 const Template = require("../../models/template");
 const Campaign = require("../../models/campaign");
 const saveCampaignMessage = require("./saveCampaignMessage");
-const { getIO } = require("../../sockets/socket");
+const { emitToCompany } = require("../../sockets/socket");
 
 // How many sends are in flight at once. WhatsApp's Cloud API has its own
 // per-number rate limits, so this isn't about raw parallelism — it's about
@@ -46,7 +46,7 @@ const updateContactStatus = async (campaignId, phone, status, counterField) => {
 
   const campaign = await Campaign.findById(campaignId);
   if (campaign) {
-    getIO().to("campaigns").emit("campaign_updated", campaign);
+    emitToCompany(campaign.companyId, "campaigns", "campaign_updated", campaign);
   }
 };
 
@@ -190,7 +190,7 @@ const executeCampaign = async (campaign) => {
 
   const finalCampaign = await Campaign.findById(campaign.campaignId);
   if (finalCampaign) {
-    getIO().to("campaigns").emit("campaign_updated", finalCampaign);
+    emitToCompany(finalCampaign.companyId, "campaigns", "campaign_updated", finalCampaign);
   }
 };
 

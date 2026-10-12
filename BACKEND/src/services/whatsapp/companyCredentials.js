@@ -52,14 +52,6 @@ function decryptToken(encrypted) {
   return plaintext.toString("utf8");
 }
 
-function hasEnvWhatsAppCredentials() {
-  return !!(
-    process.env.META_ACCESS_TOKEN &&
-    process.env.META_PHONE_NUMBER_ID &&
-    process.env.META_WABA_ID
-  );
-}
-
 // The single place every Meta-calling service should get a company's
 // WhatsApp credentials from — never read Company.whatsapp directly.
 async function getCompanyWhatsAppCredentials(companyId) {
@@ -76,16 +68,9 @@ async function getCompanyWhatsAppCredentials(companyId) {
     };
   }
 
-  if (hasEnvWhatsAppCredentials()) {
-    return {
-      accessToken: process.env.META_ACCESS_TOKEN,
-      phoneNumberId: process.env.META_PHONE_NUMBER_ID,
-      wabaId: process.env.META_WABA_ID,
-      apiVersion: process.env.META_API_VERSION || "v23.0",
-      pin: null,
-    };
-  }
-
+  // No fallback to the platform's own .env credentials: a company that
+  // hasn't connected WhatsApp must not send from someone else's number.
+  // Every caller handles null ("WhatsApp not connected").
   return null;
 }
 

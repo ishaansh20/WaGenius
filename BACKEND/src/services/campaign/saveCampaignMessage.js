@@ -5,7 +5,7 @@ const {
   createMessage,
   updateConversation,
 } = require("../whatsapp/messageService");
-const { getIO } = require("../../sockets/socket");
+const { emitToCompany } = require("../../sockets/socket");
 
 const saveCampaignMessage = async ({
   companyId,
@@ -52,11 +52,9 @@ const saveCampaignMessage = async ({
     conversation._id,
   ).populate("contact");
 
-  const io = getIO();
+  emitToCompany(companyId, "inbox", "new_message", newMessage);
 
-  io.to("inbox").emit("new_message", newMessage);
-
-  io.to("inbox").emit("conversation_updated", updatedConversation);
+  emitToCompany(companyId, "inbox", "conversation_updated", updatedConversation);
 };
 
 module.exports = saveCampaignMessage;

@@ -1,12 +1,12 @@
 const axios = require("axios");
 
-const SYSTEM_PROMPT = require("../../config/aiPrompt");
+const { buildSystemPrompt } = require("../../config/aiPrompt");
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
-const generateReply = async (userMessage) => {
+const generateReply = async (userMessage, { systemPrompt } = {}) => {
   try {
     const response = await axios.post(
       GROQ_URL,
@@ -15,7 +15,7 @@ const generateReply = async (userMessage) => {
         messages: [
           {
             role: "system",
-            content: SYSTEM_PROMPT,
+            content: systemPrompt || buildSystemPrompt(),
           },
           {
             role: "user",

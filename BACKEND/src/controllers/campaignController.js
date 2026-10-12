@@ -1,6 +1,6 @@
 const Campaign = require("../models/campaign");
 const Template = require("../models/template");
-const { getIO } = require("../sockets/socket");
+const { getIO, emitToCompany } = require("../sockets/socket");
 const Message = require("../models/message");
 const { executeCampaign, resolvePlaceholder } = require("../services/campaign/campaignSenderService");
 const { estimateCostSummary } = require("../services/campaign/costEstimationService");
@@ -317,7 +317,7 @@ const updateCampaignStatus = async (req, res) => {
     if (io) {
       const latestCampaign = await Campaign.findById(campaignId);
 
-      io.to("campaigns").emit("campaign_updated", latestCampaign);
+      emitToCompany(latestCampaign?.companyId, "campaigns", "campaign_updated", latestCampaign);
     }
 
     res.status(200).json({
@@ -382,7 +382,7 @@ const retryFailedCampaignMessages = async (req, res) => {
     const io = getIO();
 
     if (io) {
-      io.to("campaigns").emit("campaign_updated", campaign);
+      emitToCompany(campaign.companyId, "campaigns", "campaign_updated", campaign);
     }
 
     res.status(200).json({

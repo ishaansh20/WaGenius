@@ -305,12 +305,31 @@ const platformLogin = async (req, res) => {
 const refreshToken = async (req, res) => {
   try {
     // req.user comes from verifyTokenWithGrace — already validated
-    // (allowing a short post-expiry grace window)
+    // (allowing a short post-expiry grace window). Re-read the account so a
+    // deactivated user or suspended company can't keep extending a session,
+    // and so role changes take effect.
+    const user = await User.findById(req.user.userId).select("role companyId isActive");
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        code: "ACCOUNT_INACTIVE",
+        message: "Your account is no longer active. Please contact your admin.",
+      });
+    }
+    const company = await Company.findById(user.companyId).select("status");
+    if (!company || company.status === "suspended") {
+      return res.status(403).json({
+        success: false,
+        code: "COMPANY_SUSPENDED",
+        message: "This company's access has been suspended",
+      });
+    }
+
     const token = jwt.sign(
       {
-        userId: req.user.userId,
-        role: req.user.role,
-        companyId: req.user.companyId,
+        userId: user._id,
+        role: user.role,
+        companyId: user.companyId,
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN },
@@ -328,10 +347,19 @@ const refreshToken = async (req, res) => {
 
 const refreshPlatformToken = async (req, res) => {
   try {
+    const platformUser = await PlatformUser.findById(req.platformUser.platformUserId).select("role isActive");
+    if (!platformUser || !platformUser.isActive) {
+      return res.status(401).json({
+        success: false,
+        code: "ACCOUNT_INACTIVE",
+        message: "Your account is no longer active.",
+      });
+    }
+
     const token = jwt.sign(
       {
-        platformUserId: req.platformUser.platformUserId,
-        platformRole: req.platformUser.platformRole,
+        platformUserId: platformUser._id,
+        platformRole: platformUser.role,
       },
       process.env.PLATFORM_JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN },

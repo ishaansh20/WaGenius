@@ -36,14 +36,21 @@ const initSocket = (server) => {
     // Clients join whichever feature-area room(s) match the page(s) they
     // currently have open — see constants/socketRooms.js for why these are
     // feature-area rooms rather than per-conversation ones.
+    // Rooms are per company: a client asking for "inbox" joins
+    // "company:<id>:inbox", taken from its verified token, so one company
+    // never receives another company's events.
     socket.on("join_room", (room) => {
       if (!SOCKET_ROOMS.includes(room)) return;
-      socket.join(room);
+      const companyId = socket.user?.companyId;
+      if (!companyId) return;
+      socket.join(companyRoom(companyId, room));
     });
 
     socket.on("leave_room", (room) => {
       if (!SOCKET_ROOMS.includes(room)) return;
-      socket.leave(room);
+      const companyId = socket.user?.companyId;
+      if (!companyId) return;
+      socket.leave(companyRoom(companyId, room));
     });
 
     socket.on("disconnect", () => {
@@ -62,7 +69,25 @@ const getIO = () => {
   return io;
 };
 
+const companyRoom = (companyId, room) => `company:${String(companyId)}:${room}`;
+
+/**
+ * The only way the server should broadcast. Sends `event` to the clients of
+ * one company that have joined `room` ("inbox" | "campaigns" | "templates").
+ * Without a companyId nothing is sent — never fall back to a global room.
+ */
+const emitToCompany = (companyId, room, event, payload) => {
+  if (!io) return;
+  if (!companyId) {
+    console.warn(`[socket] skipped "${event}" on "${room}": no companyId`);
+    return;
+  }
+  io.to(companyRoom(companyId, room)).emit(event, payload);
+};
+
 module.exports = {
   initSocket,
   getIO,
+  emitToCompany,
+  companyRoom,
 };

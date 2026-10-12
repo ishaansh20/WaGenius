@@ -1,5 +1,5 @@
 const Contact = require("../../models/contact");
-const { getIO } = require("../../sockets/socket");
+const { emitToCompany } = require("../../sockets/socket");
 const Conversation = require("../../models/conversation");
 
 // Matched against the whole message, case-insensitively, after trimming. Kept
@@ -42,8 +42,7 @@ const setContactOptOut = async (companyId, contact, optedOut) => {
   }).populate("contact");
 
   if (updatedConversation) {
-    const io = getIO();
-    io.to("inbox").emit("conversation_updated", updatedConversation);
+    emitToCompany(companyId, "inbox", "conversation_updated", updatedConversation);
   }
 
   return updatedConversation;

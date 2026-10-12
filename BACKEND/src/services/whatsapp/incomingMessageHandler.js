@@ -359,7 +359,8 @@ const handleIncomingMessage = async (
       const result =
         await executeAIWorkflow(
           credentials,
-          message
+          message,
+          { companyId }
         );
 
 

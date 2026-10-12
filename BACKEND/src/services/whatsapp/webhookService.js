@@ -2,7 +2,7 @@ const { handleIncomingMessage } = require("./incomingMessageHandler");
 const { updateMessageStatus } = require("../../controllers/messageController");
 const { createMockResponse } = require("../../utils/mockExpress");
 const Template = require("../../models/template");
-const { getIO } = require("../../sockets/socket");
+const { emitToCompany } = require("../../sockets/socket");
 
 // PAUSED/DISABLED arrive through the same message_template_status_update
 // webhook field and `event` key as APPROVED/REJECTED/PENDING — Meta pauses
@@ -94,8 +94,7 @@ const processTemplateStatusUpdate = async (companyId, value) => {
 
   await template.save();
 
-  const io = getIO();
-  io.to("templates").emit("template_status_updated", template);
+  emitToCompany(companyId, "templates", "template_status_updated", template);
 };
 
 module.exports = {

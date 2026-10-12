@@ -9,7 +9,7 @@ const {
 const { getHeaderHandle } = require("../services/whatsapp/metaMediaService");
 const { applyMetaTemplateStatus } = require("../services/whatsapp/webhookService");
 const { getCompanyWhatsAppCredentials } = require("../services/whatsapp/companyCredentials");
-const { getIO } = require("../sockets/socket");
+const { emitToCompany } = require("../sockets/socket");
 const { slugify } = require("../utils/slugify");
 
 // The new template wizard never shows the raw "Meta Template Name" field to
@@ -612,9 +612,8 @@ const importTemplatesFromMeta = async (req, res) => {
       imported.push({ id: newTemplate._id, name: mt.name, metaStatus });
     }
 
-    const io = getIO();
     if (imported.length > 0) {
-      io.to("templates").emit("templates_imported", { count: imported.length });
+      emitToCompany(req.companyId, "templates", "templates_imported", { count: imported.length });
     }
 
     res.status(200).json({
@@ -655,7 +654,6 @@ const syncTemplatesFromMeta = async (req, res) => {
 
     const metaById = new Map(metaTemplates.map((t) => [String(t.id), t]));
     const metaByName = new Map(metaTemplates.map((t) => [t.name, t]));
-    const io = getIO();
     const updated = [];
 
     for (const template of localTemplates) {
@@ -707,7 +705,7 @@ const syncTemplatesFromMeta = async (req, res) => {
 
       if (changed || mediaChanged) {
         await template.save();
-        io.to("templates").emit("template_status_updated", template);
+        emitToCompany(req.companyId, "templates", "template_status_updated", template);
         updated.push({
           id: template._id,
           name: template.name,

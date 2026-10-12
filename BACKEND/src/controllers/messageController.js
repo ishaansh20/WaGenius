@@ -3,7 +3,7 @@ const Conversation = require("../models/conversation");
 const Message = require("../models/message");
 const User = require("../models/user");
 const ROLES = require("../constants/roles");
-const { getIO } = require("../sockets/socket");
+const { emitToCompany } = require("../sockets/socket");
 const Campaign = require("../models/campaign");
 
 const { recalculateCampaignStats } = require("./campaignController");
@@ -120,7 +120,7 @@ const saveMessage = async (req, res) => {
           );
 
           if (updatedCampaign) {
-            getIO().to("campaigns").emit("campaign_updated", updatedCampaign);
+            emitToCompany(companyId, "campaigns", "campaign_updated", updatedCampaign);
           }
         }
       }
@@ -148,10 +148,8 @@ const saveMessage = async (req, res) => {
       conversation._id,
     ).populate("contact");
 
-    const io = getIO();
-
-    io.to("inbox").emit("new_message", newMessage);
-    io.to("inbox").emit("conversation_updated", updatedConversation);
+    emitToCompany(companyId, "inbox", "new_message", newMessage);
+    emitToCompany(companyId, "inbox", "conversation_updated", updatedConversation);
 
     contact.lastMessage = message;
     await contact.save();
@@ -413,10 +411,10 @@ const updateMessageStatus = async (req, res) => {
         lastMessage.campaignId,
       );
 
-      getIO().to("campaigns").emit("campaign_updated", updatedCampaign);
+      emitToCompany(companyId, "campaigns", "campaign_updated", updatedCampaign);
     }
 
-    getIO().to("inbox").emit("message_status_updated", lastMessage);
+    emitToCompany(companyId, "inbox", "message_status_updated", lastMessage);
 
     res.status(200).json({
       success: true,
@@ -466,9 +464,7 @@ const toggleConversationAi = async (req, res) => {
     const updatedConversation =
       await Conversation.findById(conversationId).populate("contact");
 
-    const io = getIO();
-
-    io.to("inbox").emit("conversation_updated", updatedConversation);
+    emitToCompany(updatedConversation?.companyId, "inbox", "conversation_updated", updatedConversation);
 
     res.status(200).json({
       success: true,
@@ -528,10 +524,8 @@ const updateContactTags = async (req, res) => {
       contact: contact._id,
     }).populate("contact");
 
-    const io = getIO();
-
     if (updatedConversation) {
-      io.to("inbox").emit("conversation_updated", updatedConversation);
+      emitToCompany(req.companyId, "inbox", "conversation_updated", updatedConversation);
     }
 
     res.status(200).json({
@@ -575,10 +569,8 @@ const updateContactConsent = async (req, res) => {
       contact: contact._id,
     }).populate("contact");
 
-    const io = getIO();
-
     if (updatedConversation) {
-      io.to("inbox").emit("conversation_updated", updatedConversation);
+      emitToCompany(req.companyId, "inbox", "conversation_updated", updatedConversation);
     }
 
     res.status(200).json({
@@ -618,8 +610,7 @@ const assignConversation = async (req, res) => {
       const updatedConversation =
         await Conversation.findById(id).populate("contact");
 
-      const io = getIO();
-      io.to("inbox").emit("conversation_assigned", {
+      emitToCompany(companyId, "inbox", "conversation_assigned", {
         conversationId: id,
         assignedAgent: null,
         assignedBy: null,
@@ -653,8 +644,7 @@ const assignConversation = async (req, res) => {
       .populate("contact")
       .populate("assignedAgent", "_id name email");
 
-    const io = getIO();
-    io.to("inbox").emit("conversation_assigned", {
+    emitToCompany(companyId, "inbox", "conversation_assigned", {
       conversationId: id,
       assignedAgent: updatedConversation.assignedAgent,
       assignedBy: req.user.userId,
