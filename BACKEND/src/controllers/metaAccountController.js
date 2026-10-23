@@ -12,16 +12,19 @@ const getHealth = async (req, res) => {
   try {
     const { companyId } = req;
     const force = req.query.force === "true";
-    const entry = cache.get(companyId);
+    // Optional: health of one specific number (default number when omitted).
+    const phoneNumberId = req.query.phoneNumberId ? String(req.query.phoneNumberId) : "";
+    const cacheKey = `${companyId}:${phoneNumberId}`;
+    const entry = cache.get(cacheKey);
     const isStale = !entry || Date.now() - entry.cachedAt > CACHE_TTL_MS;
 
     if (force || isStale) {
-      const credentials = await getCompanyWhatsAppCredentials(companyId);
+      const credentials = await getCompanyWhatsAppCredentials(companyId, phoneNumberId || undefined);
       const data = credentials ? await getAccountHealth(credentials) : { available: false };
-      cache.set(companyId, { data, cachedAt: Date.now() });
+      cache.set(cacheKey, { data, cachedAt: Date.now() });
     }
 
-    res.status(200).json(cache.get(companyId).data);
+    res.status(200).json(cache.get(cacheKey).data);
   } catch (error) {
     console.log(error);
     res.status(500).json({ available: false });

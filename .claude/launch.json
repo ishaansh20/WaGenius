@@ -5,8 +5,8 @@
       "name": "frontend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "FRONTEND", "run", "dev"],
-      "port": 3000,
-      "url": "http://localhost:3000"
+      "port": 5173,
+      "url": "http://localhost:5173"
     }
   ]
 }

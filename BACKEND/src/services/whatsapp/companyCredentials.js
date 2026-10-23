@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const Company = require("../../models/company");
 const Subscription = require("../../models/subscription");
 const { resolveSetupStatus, SETUP_STATUS } = require("../../utils/setupStatus");
+const { entriesOf, isCompanyNumber } = require("../../utils/whatsappNumberList");
 
 // A company's WhatsApp access token is stored encrypted at rest — it's a
 // real production secret (equivalent to what used to live in this app's own
@@ -54,13 +55,20 @@ function decryptToken(encrypted) {
 
 // The single place every Meta-calling service should get a company's
 // WhatsApp credentials from — never read Company.whatsapp directly.
-async function getCompanyWhatsAppCredentials(companyId) {
+//
+// `phoneNumberId` is optional: omit it to send from the company's default
+// number, or pass one of the company's own numbers to send from that one.
+// A number that isn't in this company's list returns null (never falls back
+// to the default — that would send from a different number than asked).
+async function getCompanyWhatsAppCredentials(companyId, phoneNumberId) {
   const company = await Company.findById(companyId).select("whatsapp");
 
   if (company && company.whatsapp?.connected && company.whatsapp.accessToken) {
+    if (phoneNumberId && !isCompanyNumber(company, phoneNumberId)) return null;
+
     return {
       accessToken: decryptToken(company.whatsapp.accessToken),
-      phoneNumberId: company.whatsapp.phoneNumberId,
+      phoneNumberId: phoneNumberId ? String(phoneNumberId) : company.whatsapp.phoneNumberId,
       wabaId: company.whatsapp.wabaId,
       apiVersion:
         company.whatsapp.apiVersion || process.env.META_API_VERSION || "v23.0",
@@ -97,6 +105,26 @@ async function setCompanyWhatsAppCredentials(
     ? phoneStatus === "registered"
     : true; // manual "Connect WhatsApp" path always supplies a real number
 
+  // Keep the number list in step with the default number: the number being
+  // connected must be in it, and a number connected earlier is never lost.
+  let phoneNumbers;
+  if (phoneNumberId) {
+    const existing = await Company.findById(companyId).select("whatsapp");
+    const entries = entriesOf(existing);
+    if (!entries.some((n) => n.phoneNumberId === phoneNumberId)) {
+      entries.push({
+        phoneNumberId,
+        displayNumber: "",
+        verifiedName: "",
+        qualityRating: "",
+        status: "",
+        isPrimary: entries.length === 0,
+        addedAt: new Date(),
+      });
+    }
+    phoneNumbers = entries;
+  }
+
   const updateFields = {
     // When fully connected, require payment verification before moving to READY
     setupStatus: isFullyConnected
@@ -112,6 +140,10 @@ async function setCompanyWhatsAppCredentials(
     "whatsapp.phoneStatus": phoneStatus || "",
     "whatsapp.connectedAt": new Date(),
   };
+
+  if (phoneNumbers) {
+    updateFields["whatsapp.phoneNumbers"] = phoneNumbers;
+  }
 
   if (pin) {
     updateFields["whatsapp.pin"] = encryptToken(String(pin));

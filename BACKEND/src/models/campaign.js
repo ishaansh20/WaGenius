@@ -65,6 +65,13 @@ const campaignSchema = new mongoose.Schema(
       default: "broadcast",
     },
 
+    // The WhatsApp number this campaign sends from (snapshotted at launch).
+    // Empty on older campaigns, which send from the company default.
+    phoneNumberId: {
+      type: String,
+      default: "",
+    },
+
     message: {
       type: String,
       required: true,

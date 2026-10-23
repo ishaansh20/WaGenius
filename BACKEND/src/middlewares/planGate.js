@@ -5,6 +5,7 @@ const Contact = require("../models/contact");
 const Campaign = require("../models/campaign");
 const Template = require("../models/template");
 const Company = require("../models/company");
+const { entriesOf } = require("../utils/whatsappNumberList");
 
 /**
  * Safely fetches the subscription for a company without auto-creating one.
@@ -33,7 +34,7 @@ async function getCompanyUsage(companyId) {
       Company.findById(companyId).select("whatsapp").lean(),
     ]);
 
-  const whatsappNumbersCount = companyDoc?.whatsapp?.phoneNumberId ? 1 : 0;
+  const whatsappNumbersCount = entriesOf(companyDoc).length;
 
   return {
     contacts: contactCount,
@@ -207,7 +208,7 @@ const checkLimit = (resourceName) => async (req, res, next) => {
       // In single-number plans, if one number is already connected, allow updating/reconnecting existing connection
       const companyDoc = await Company.findById(companyId).select("whatsapp").lean();
       const isReconnecting = companyDoc?.whatsapp?.connected === true;
-      const currentNumbers = companyDoc?.whatsapp?.phoneNumberId ? 1 : 0;
+      const currentNumbers = entriesOf(companyDoc).length;
       if (!isReconnecting && allowedNumbers !== -1 && currentNumbers >= allowedNumbers) {
         return res.status(403).json({
           success: false,

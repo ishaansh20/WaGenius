@@ -16,6 +16,16 @@ const conversationSchema = new mongoose.Schema(
       index: true,
     },
 
+    // Which of the company's WhatsApp numbers this chat happens on. One
+    // customer messaging two numbers is two separate conversations, and every
+    // reply goes out from the number the chat belongs to. Empty = created
+    // before multi-number support (owned by the company's primary number).
+    phoneNumberId: {
+      type: String,
+      default: "",
+      index: true,
+    },
+
     status: {
       type: String,
       enum: ["AI_ACTIVE", "HUMAN_PENDING", "RESOLVED"],

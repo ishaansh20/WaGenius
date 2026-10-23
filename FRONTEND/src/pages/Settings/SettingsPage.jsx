@@ -13,6 +13,7 @@ import CreateUserModal from "../../components/users/CreateUserModal";
 import EditRoleModal from "../../components/users/EditRoleModal";
 import PricingSettingsPanel from "../../components/settings/PricingSettingsPanel";
 import ConnectWhatsAppPanel from "../../components/settings/ConnectWhatsAppPanel";
+import WhatsAppNumbersPanel from "../../components/settings/WhatsAppNumbersPanel";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { Button, Skeleton } from "../../components/ui";
 import { cn } from "../../utils/cn";
@@ -246,7 +247,10 @@ export default function SettingsPage() {
               {activeTab === "pricing" ? (
                 <PricingSettingsPanel />
               ) : activeTab === "whatsapp" ? (
-                <ConnectWhatsAppPanel />
+                <>
+                  <ConnectWhatsAppPanel />
+                  <WhatsAppNumbersPanel />
+                </>
               ) : (
                 <>
                   {/* Stats */}

@@ -5,6 +5,8 @@ const User = require("../models/user");
 const ROLES = require("../constants/roles");
 const { emitToCompany } = require("../sockets/socket");
 const Campaign = require("../models/campaign");
+const Company = require("../models/company");
+const { resolveNumberId, primaryNumberId } = require("../utils/whatsappNumberList");
 
 const { recalculateCampaignStats } = require("./campaignController");
 const {
@@ -65,6 +67,24 @@ const saveMessage = async (req, res) => {
     } = req.body;
     const { companyId } = req;
 
+    // Which of the company's numbers this message travels on: the requested
+    // one if it really belongs to this company, otherwise the default. A
+    // number from another company can never be used here.
+    const company = await Company.findById(companyId).select("whatsapp").lean();
+    let requestedNumberId = req.body.phoneNumberId;
+    // A save that names its conversation (the inbox's plain-save fallback)
+    // stays on that conversation's number.
+    if (!requestedNumberId && req.body.conversationId) {
+      const chat = await Conversation.findOne({
+        _id: req.body.conversationId,
+        companyId,
+      })
+        .select("phoneNumberId")
+        .lean();
+      requestedNumberId = chat?.phoneNumberId || primaryNumberId(company);
+    }
+    const phoneNumberId = resolveNumberId(company, requestedNumberId);
+
     // 1. Find or create contact
     const contact = await findOrCreateContact({
       companyId,
@@ -72,8 +92,8 @@ const saveMessage = async (req, res) => {
       name,
     });
 
-    // 2. Find or create conversation
-    const conversation = await findOrCreateConversation(companyId, contact._id);
+    // 2. Find or create the conversation for this contact on this number
+    const conversation = await findOrCreateConversation(companyId, contact._id, phoneNumberId);
 
     let replyAttributedCampaign = null;
 
@@ -192,6 +212,20 @@ const getConversations = async (req, res) => {
       ...(before ? { lastMessageTime: { $lt: before } } : {}),
     };
 
+    // Chats made before multi-number support carry no number; they belong to
+    // the company's primary number, so they are shown (and filtered) as such.
+    const company = await Company.findById(req.companyId).select("whatsapp").lean();
+    const primaryId = primaryNumberId(company);
+    const numberFilter = req.query.phoneNumberId ? String(req.query.phoneNumberId) : "";
+
+    if (numberFilter) {
+      filter.$and = [
+        numberFilter === primaryId
+          ? { $or: [{ phoneNumberId: numberFilter }, { phoneNumberId: { $in: ["", null] } }] }
+          : { phoneNumberId: numberFilter },
+      ];
+    }
+
     const rows = await Conversation.find(filter)
       .populate("contact")
       .populate("assignedAgent", "_id name email")
@@ -199,7 +233,12 @@ const getConversations = async (req, res) => {
       .limit(limit + 1); // fetch one extra to know if there's another page
 
     const hasMore = rows.length > limit;
-    const conversations = hasMore ? rows.slice(0, limit) : rows;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    const conversations = page.map((row) => {
+      const plain = row.toObject();
+      if (!plain.phoneNumberId) plain.phoneNumberId = primaryId;
+      return plain;
+    });
     const nextCursor =
       conversations.length > 0
         ? conversations[conversations.length - 1].lastMessageTime
@@ -300,11 +339,31 @@ const resolveSenderName = async (req) => {
 };
 
 const sendMessage = async (req, res) => {
-  const { phone, message, sender } = req.body;
+  const { phone, message, sender, conversationId } = req.body;
   const senderName = await resolveSenderName(req);
 
   try {
-    const credentials = await getCompanyWhatsAppCredentials(req.companyId);
+    // A reply goes out from the number its chat belongs to - never from
+    // whichever number happens to be the default.
+    let phoneNumberId = "";
+    if (conversationId) {
+      const chat = await Conversation.findOne({ _id: conversationId, companyId: req.companyId }).select(
+        "phoneNumberId",
+      );
+      if (!chat) {
+        return res.status(404).json({ success: false, message: "Conversation not found" });
+      }
+      if (chat.phoneNumberId) {
+        phoneNumberId = chat.phoneNumberId;
+      } else {
+        const company = await Company.findById(req.companyId).select("whatsapp").lean();
+        phoneNumberId = primaryNumberId(company);
+      }
+    }
+    // saveMessage reads this to file the message under the same chat.
+    req.body.phoneNumberId = phoneNumberId;
+
+    const credentials = await getCompanyWhatsAppCredentials(req.companyId, phoneNumberId || undefined);
     if (!credentials) {
       return res.status(400).json({
         success: false,
@@ -484,7 +543,11 @@ const getConversationByPhone = async (req, res) => {
   try {
     const { phone } = req.params;
 
-    const result = await getConversationSettings(req.companyId, phone);
+    const result = await getConversationSettings(
+      req.companyId,
+      phone,
+      req.query.phoneNumberId ? String(req.query.phoneNumberId) : "",
+    );
 
     return res.status(200).json({
       aiEnabled: result.aiEnabled,

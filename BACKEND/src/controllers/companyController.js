@@ -9,6 +9,11 @@ const {
 const {
   checkWabaHealthStatus,
 } = require("../services/whatsapp/embeddedSignupService");
+const {
+  listCompanyNumbers,
+  syncCompanyNumbers,
+  setDefaultNumber,
+} = require("../services/whatsapp/whatsappNumbers");
 
 function hasEnvWhatsAppCredentials() {
   return !!(
@@ -158,6 +163,7 @@ const disconnectWhatsApp = async (req, res) => {
           "whatsapp.accessToken": "",
           "whatsapp.pin": "",
           "whatsapp.phoneNumberId": "",
+          "whatsapp.phoneNumbers": [],
           "whatsapp.wabaId": "",
           "whatsapp.apiVersion": "",
           "whatsapp.tokenType": "",
@@ -243,7 +249,55 @@ const healthCheckWhatsApp = async (req, res) => {
   }
 };
 
+// The company's own WhatsApp numbers and which one is the default.
+const getWhatsAppNumbers = async (req, res) => {
+  try {
+    const data = await listCompanyNumbers(req.companyId);
+    res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    console.error("[WhatsApp] Failed to list numbers:", error);
+    res.status(500).json({ success: false, message: "Failed to load WhatsApp numbers" });
+  }
+};
+
+// Pulls this company's numbers from its own WhatsApp Business Account.
+const syncWhatsAppNumbers = async (req, res) => {
+  try {
+    const result = await syncCompanyNumbers(req.companyId);
+    const data = await listCompanyNumbers(req.companyId);
+    res.status(200).json({ success: true, ...data, skippedByPlan: result.skippedByPlan });
+  } catch (error) {
+    console.error("[WhatsApp] Failed to sync numbers:", error.response?.data || error.message);
+    res.status(error.statusCode || 502).json({
+      success: false,
+      message: error.statusCode ? error.message : "Could not fetch your numbers from WhatsApp right now.",
+    });
+  }
+};
+
+const setDefaultWhatsAppNumber = async (req, res) => {
+  try {
+    const { phoneNumberId } = req.body || {};
+    if (!phoneNumberId) {
+      return res.status(400).json({ success: false, message: "phoneNumberId is required" });
+    }
+
+    await setDefaultNumber(req.companyId, phoneNumberId);
+    const data = await listCompanyNumbers(req.companyId);
+    res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    if (!error.statusCode) console.error("[WhatsApp] Failed to set default number:", error);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.statusCode ? error.message : "Failed to change the default number",
+    });
+  }
+};
+
 module.exports = {
+  getWhatsAppNumbers,
+  syncWhatsAppNumbers,
+  setDefaultWhatsAppNumber,
   getWhatsAppStatus,
   getCompanySetupStatus,
   connectWhatsApp,

@@ -50,7 +50,7 @@ export default function TemplatePreviewModal({ template, badges = [], onClose, o
                   <img
                     src={resolveMediaUrl(imgUrl)}
                     alt=""
-                    className="max-h-56 w-full object-cover"
+                    className="max-h-[420px] w-full object-contain"
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
                       if (e.currentTarget.nextElementSibling) {
@@ -107,7 +107,7 @@ export default function TemplatePreviewModal({ template, badges = [], onClose, o
 
             {/* Legacy or fallback mediaUrl without explicit headerType */}
             {(!template.headerType || template.headerType === "NONE") && template.mediaUrl && (
-              <img src={resolveMediaUrl(template.mediaUrl)} alt="" className="max-h-56 w-full object-cover" />
+              <img src={resolveMediaUrl(template.mediaUrl)} alt="" className="max-h-[420px] w-full object-contain" />
             )}
 
             <BubbleBody>{template.description}</BubbleBody>

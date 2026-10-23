@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+  Check,
   ChevronDown,
   ChevronRight,
   ChevronsLeft,
@@ -12,6 +13,8 @@ import { cn } from "../../utils/cn";
 import useAuthStore from "../../store/authStore";
 import usePlan from "../../hooks/usePlan";
 import { LogoMark } from "../ui/Logo";
+import useWhatsAppNumbersStore, { numberLabel } from "../../store/whatsappNumbersStore";
+import { toast } from "react-hot-toast";
 import {
   ROLE_LABELS,
   getHomePathForRole,
@@ -27,21 +30,154 @@ function NavTooltip({ label }) {
   );
 }
 
+// Shows which WhatsApp number messages are sent from. With several numbers,
+// an admin can switch the default right here; other roles just see it.
+function SendingNumber({ collapsed }) {
+  const user = useAuthStore((s) => s.user);
+  const numbers = useWhatsAppNumbersStore((s) => s.numbers);
+  const defaultId = useWhatsAppNumbersStore((s) => s.defaultPhoneNumberId);
+  const load = useWhatsAppNumbersStore((s) => s.load);
+  const setDefault = useWhatsAppNumbersStore((s) => s.setDefault);
+  const [open, setOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const current = numbers.find((n) => n.phoneNumberId === defaultId);
+  const label = current ? numberLabel(current) : "";
+  const canSwitch = user?.role === "ADMIN" && numbers.length > 1;
+
+  async function choose(number) {
+    if (number.phoneNumberId === defaultId) return setOpen(false);
+    try {
+      setSwitching(true);
+      await setDefault(number.phoneNumberId);
+      toast.success(`Now sending from ${numberLabel(number)}`);
+      setOpen(false);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Could not change the number");
+    } finally {
+      setSwitching(false);
+    }
+  }
+
+  const status = label ? `Sending from ${label}` : "WhatsApp connected";
+
+  if (collapsed) {
+    return (
+      <div ref={ref} className="relative">
+        <button
+          type="button"
+          onClick={() => canSwitch && setOpen((v) => !v)}
+          aria-label={status}
+          className="group relative mx-auto flex h-9 w-9 items-center justify-center rounded-lg transition hover:bg-canvas"
+        >
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-500 ring-4 ring-brand-100" />
+          {!open && <NavTooltip label={status} />}
+        </button>
+        {open && (
+          <NumberMenu
+            numbers={numbers}
+            defaultId={defaultId}
+            onChoose={choose}
+            busy={switching}
+            className="left-[calc(100%+12px)] top-0"
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => canSwitch && setOpen((v) => !v)}
+        aria-haspopup={canSwitch ? "listbox" : undefined}
+        aria-expanded={canSwitch ? open : undefined}
+        className={cn(
+          "flex w-full items-center gap-2.5 rounded-lg border border-brand-100 bg-brand-50 px-3 py-2 text-left text-brand-800",
+          canSwitch ? "cursor-pointer transition hover:border-brand-200" : "cursor-default",
+        )}
+      >
+        <span className="h-2 w-2 shrink-0 rounded-full bg-brand-500 ring-4 ring-brand-100" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[12px] text-brand-800/80">{label ? "Sending from" : "WhatsApp"}</span>
+          <span className="block truncate text-[13px] font-semibold tabular-nums">{label || "Connected"}</span>
+        </span>
+        {canSwitch && <ChevronDown size={15} className={cn("shrink-0 transition-transform", open && "rotate-180")} />}
+      </button>
+      {open && (
+        <NumberMenu
+          numbers={numbers}
+          defaultId={defaultId}
+          onChoose={choose}
+          busy={switching}
+          className="left-0 right-0 top-[calc(100%+6px)]"
+        />
+      )}
+    </div>
+  );
+}
+
+function NumberMenu({ numbers, defaultId, onChoose, busy, className }) {
+  return (
+    <div
+      role="listbox"
+      aria-label="Choose the WhatsApp number to send from"
+      className={cn(
+        "absolute z-50 min-w-[220px] rounded-xl border border-line bg-surface p-1.5 text-ink shadow-[var(--shadow-pop)]",
+        className,
+      )}
+    >
+      <p className="px-3 pb-1 pt-1.5 text-[13px] font-medium text-ink-subtle">Send new messages from</p>
+      {numbers.map((number) => {
+        const active = number.phoneNumberId === defaultId;
+        const ready = !number.status || number.status === "CONNECTED";
+        return (
+          <button
+            key={number.phoneNumberId}
+            type="button"
+            role="option"
+            aria-selected={active}
+            disabled={busy || (!ready && !active)}
+            onClick={() => onChoose(number)}
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[14px] transition disabled:opacity-50",
+              active ? "bg-brand-50 font-medium text-brand-900" : "text-ink hover:bg-canvas",
+            )}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block truncate tabular-nums">{numberLabel(number)}</span>
+              {number.verifiedName && (
+                <span className="block truncate text-[12px] text-ink-muted">{number.verifiedName}</span>
+              )}
+            </span>
+            {active && <Check size={16} className="shrink-0 text-brand-700" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function WhatsAppStatus({ collapsed, onConnect }) {
   const setupStatus = useAuthStore((s) => s.setupStatus);
 
   if (setupStatus === "READY") {
-    return collapsed ? (
-      <div className="group relative flex justify-center py-1" aria-label="WhatsApp connected">
-        <span className="h-2.5 w-2.5 rounded-full bg-brand-500 ring-4 ring-brand-100" />
-        <NavTooltip label="WhatsApp connected" />
-      </div>
-    ) : (
-      <div className="flex items-center gap-2.5 rounded-lg border border-brand-100 bg-brand-50 px-3 py-2 text-[13px] font-medium text-brand-800">
-        <span className="h-2 w-2 rounded-full bg-brand-500 ring-4 ring-brand-100" />
-        WhatsApp connected
-      </div>
-    );
+    return <SendingNumber collapsed={collapsed} />;
   }
 
   if (setupStatus === "WHATSAPP_ONBOARDING_REQUIRED") {

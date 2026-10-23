@@ -104,6 +104,7 @@ export function InboxPage() {
   const [nameValue, setNameValue] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [selectedTag, setSelectedTag] = useState("all");
+  const [selectedNumberId, setSelectedNumberId] = useState("all");
   const [agents, setAgents] = useState([]);
 
   const currentUser = useAuthStore((s) => s.user);
@@ -148,6 +149,7 @@ export function InboxPage() {
     );
 
     return filtered.filter((conversation) => {
+      if (selectedNumberId !== "all" && conversation.phoneNumberId !== selectedNumberId) return false;
       if (selectedTag === "all") return true;
 
       return (conversation.contact.tags || []).includes(selectedTag);
@@ -157,6 +159,7 @@ export function InboxPage() {
     state.conversations,
     state.filter,
     selectedTag,
+    selectedNumberId,
     currentUserId,
   ]);
 
@@ -491,6 +494,8 @@ export function InboxPage() {
 
     try {
       const response = await sendInboxMessage({
+        // The server sends from the number this chat belongs to.
+        conversationId: activeConversation.id,
         phone: activeConversation.contact.phone,
         message: messageText,
         sender: "agent",
@@ -648,6 +653,8 @@ export function InboxPage() {
           onFilterChange={(value) =>
             dispatch({ type: "SET_FILTER", payload: value })
           }
+          selectedNumberId={selectedNumberId}
+          onNumberChange={setSelectedNumberId}
           selectedTag={selectedTag}
           onTagChange={setSelectedTag}
           allTags={allTags}

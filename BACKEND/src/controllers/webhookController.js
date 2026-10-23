@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const Company = require("../models/company");
+const { ensureNumberRegistered } = require("../services/whatsapp/whatsappNumbers");
 const {
   processIncomingMessage,
   processStatusUpdate,
@@ -69,7 +70,10 @@ const resolveCompanyIdForEntry = async (entry) => {
     $or: [
       { "whatsapp.wabaId": entry.id },
       ...(phoneNumberIds.length > 0
-        ? [{ "whatsapp.phoneNumberId": { $in: phoneNumberIds } }]
+        ? [
+            { "whatsapp.phoneNumberId": { $in: phoneNumberIds } },
+            { "whatsapp.phoneNumbers.phoneNumberId": { $in: phoneNumberIds } },
+          ]
         : []),
     ],
   }).select("_id");
@@ -106,6 +110,15 @@ const receiveWebhook = async (req, res) => {
         const value = change.value;
 
         if (!value) continue;
+
+        // A number added to the WABA after the last sync: register it so the
+        // chat and the reply stay on that number.
+        if (value.messages && value.metadata?.phone_number_id) {
+          await ensureNumberRegistered(companyId, {
+            phoneNumberId: value.metadata.phone_number_id,
+            displayNumber: value.metadata.display_phone_number,
+          });
+        }
 
         // Incoming Messages
         if (value.messages) {

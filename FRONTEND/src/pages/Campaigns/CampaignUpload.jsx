@@ -32,6 +32,7 @@ import { ContactSheetEditor, SheetPreview, VariableSourceInput } from "../../com
 import { fetchSegments, fetchTemplateCategories } from "../../services/api";
 import { fetchSegmentAsCsvFile } from "../../utils/segmentToCsv";
 import usePlan from "../../hooks/usePlan";
+import useWhatsAppNumbersStore, { numberLabel } from "../../store/whatsappNumbersStore";
 import { Lock } from "lucide-react";
 import { Button, Card, Field, Input, Select, Textarea } from "../../components/ui";
 import { cn } from "../../utils/cn";
@@ -114,6 +115,16 @@ export default function CampaignUpload() {
   const [segments, setSegments] = useState([]);
   const [selectedSegmentId, setSelectedSegmentId] = useState("");
   const [segmentAudienceCount, setSegmentAudienceCount] = useState(null);
+  // Which of the company's WhatsApp numbers this campaign sends from.
+  // Empty = the default number (only shown as a choice when there are several).
+  const waNumbers = useWhatsAppNumbersStore((s) => s.numbers);
+  const waDefaultId = useWhatsAppNumbersStore((s) => s.defaultPhoneNumberId);
+  const loadWaNumbers = useWhatsAppNumbersStore((s) => s.load);
+  const [sendFromId, setSendFromId] = useState("");
+  const sendFromNumber = waNumbers.find((n) => n.phoneNumberId === (sendFromId || waDefaultId)) || null;
+  useEffect(() => {
+    loadWaNumbers();
+  }, [loadWaNumbers]);
   const [testPhone, setTestPhone] = useState(() => localStorage.getItem("campaignTestPhone") || "");
   const [testSending, setTestSending] = useState(false);
   const [campaignName, setCampaignName] = useState(
@@ -335,6 +346,9 @@ export default function CampaignUpload() {
     const formData = new FormData();
     formData.append("file", sheetToCsvFile(sheet, file.name || "contacts.csv"));
     formData.append("campaignName", campaignName);
+    // Pinned to the campaign now, so changing the default number later never
+    // redirects a campaign that is already scheduled.
+    if (sendFromNumber) formData.append("phoneNumberId", sendFromNumber.phoneNumberId);
     formData.append("campaignType", campaignType);
     formData.append("scheduleAt", scheduleAt || "");
     formData.append("message", payload.message);
@@ -390,7 +404,11 @@ export default function CampaignUpload() {
       const resolved = payload.useMetaTemplate
         ? { ...payload, templateVariables: payload.templateVariables.map(fill), buttonVariables: (payload.buttonVariables || []).map((v) => (v ? fill(v) : v)) }
         : { ...payload, message: fill(payload.message) };
-      await api.post("api/campaigns/test-send", { ...resolved, phone: testPhone.trim() });
+      await api.post("api/campaigns/test-send", {
+        ...resolved,
+        phone: testPhone.trim(),
+        ...(sendFromNumber ? { phoneNumberId: sendFromNumber.phoneNumberId } : {}),
+      });
       toast.success("Test message sent — check WhatsApp");
     } catch (err) {
       toast.error(err?.response?.data?.message || "Test send failed");
@@ -516,6 +534,28 @@ export default function CampaignUpload() {
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </Select>
+
+                  {waNumbers.length > 1 && (
+                    <Select
+                      label="Send from"
+                      value={sendFromNumber?.phoneNumberId || ""}
+                      onChange={(e) => setSendFromId(e.target.value)}
+                      inputClassName="cursor-pointer"
+                      help="Customers will see this WhatsApp number. Replies come back to the same number."
+                    >
+                      {waNumbers.map((n) => (
+                        <option
+                          key={n.phoneNumberId}
+                          value={n.phoneNumberId}
+                          disabled={Boolean(n.status) && n.status !== "CONNECTED"}
+                        >
+                          {numberLabel(n)}
+                          {n.verifiedName ? ` · ${n.verifiedName}` : ""}
+                          {n.phoneNumberId === waDefaultId ? " (default)" : ""}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </div>
               </FormSection>
 
@@ -1085,6 +1125,9 @@ export default function CampaignUpload() {
                 <div className="mt-3">
                   <SummaryRow label="Name" value={campaignName.trim() || "—"} />
                   <SummaryRow label="Type" value={campaignType || "—"} />
+                  {waNumbers.length > 1 && sendFromNumber && (
+                    <SummaryRow label="Send from" value={numberLabel(sendFromNumber)} />
+                  )}
                   <SummaryRow
                     label="When"
                     value={isScheduled ? "Scheduled" : "Send now"}

@@ -64,6 +64,25 @@ const companySchema = new mongoose.Schema(
 
       phoneNumberId: { type: String, default: "", index: true },
 
+      // Every number in this company's WABA that the app may use. The DEFAULT
+      // sending number is still `phoneNumberId` above. `isPrimary` marks the
+      // number that owns chats/campaigns made before multi-number support.
+      phoneNumbers: {
+        type: [
+          {
+            _id: false,
+            phoneNumberId: { type: String, required: true },
+            displayNumber: { type: String, default: "" },
+            verifiedName: { type: String, default: "" },
+            qualityRating: { type: String, default: "" },
+            status: { type: String, default: "" },
+            isPrimary: { type: Boolean, default: false },
+            addedAt: { type: Date, default: Date.now },
+          },
+        ],
+        default: [],
+      },
+
       wabaId: { type: String, default: "", index: true },
 
       // "pending" = WABA linked via Embedded Signup but no phone number

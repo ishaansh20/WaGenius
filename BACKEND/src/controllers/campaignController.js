@@ -404,6 +404,7 @@ const retryFailedCampaignMessages = async (req, res) => {
       mediaUrl: campaign.mediaUrl,
       mediaType: campaign.mediaType,
       campaignType: campaign.campaignType,
+      phoneNumberId: campaign.phoneNumberId,
       isScheduled: false,
       templateId: campaign.templateId,
       templateVariables: campaign.templateVariables,
@@ -590,13 +591,22 @@ const sendCampaignTestMessage = async (req, res) => {
       buttonVariables,
       message,
       mediaUrl,
+      phoneNumberId,
     } = req.body;
 
     if (!phone || !phone.trim()) {
       return res.status(400).json({ success: false, message: "Phone number is required" });
     }
 
-    const credentials = await getCompanyWhatsAppCredentials(req.companyId);
+    // Test from the same number the campaign will use. An unknown number is
+    // rejected rather than silently swapped for the default.
+    const credentials = await getCompanyWhatsAppCredentials(req.companyId, phoneNumberId || undefined);
+    if (!credentials && phoneNumberId) {
+      return res.status(400).json({
+        success: false,
+        message: "That WhatsApp number isn't linked to your account",
+      });
+    }
     if (!credentials) {
       return res.status(400).json({
         success: false,

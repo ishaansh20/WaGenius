@@ -6,6 +6,9 @@ const {
   connectWhatsApp,
   disconnectWhatsApp,
   healthCheckWhatsApp,
+  getWhatsAppNumbers,
+  syncWhatsAppNumbers,
+  setDefaultWhatsAppNumber,
 } = require("../controllers/companyController");
 const {
   completeEmbeddedSignup,
@@ -48,6 +51,25 @@ router.get(
   companyScope,
   authorize(PERMISSIONS.SETTINGS),
   healthCheckWhatsApp,
+);
+
+// WhatsApp numbers of this company. Listing is open to every signed-in user
+// of the company (campaign makers and inbox agents need to see which number
+// they use); syncing and changing the default are settings-only.
+router.get("/whatsapp/numbers", verifyToken, companyScope, getWhatsAppNumbers);
+router.post(
+  "/whatsapp/numbers/sync",
+  verifyToken,
+  companyScope,
+  authorize(PERMISSIONS.SETTINGS),
+  syncWhatsAppNumbers,
+);
+router.put(
+  "/whatsapp/numbers/default",
+  verifyToken,
+  companyScope,
+  authorize(PERMISSIONS.SETTINGS),
+  setDefaultWhatsAppNumber,
 );
 
 // Meta Embedded Signup completion endpoint

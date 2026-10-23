@@ -32,6 +32,8 @@ export function normalizeConversation(conversation) {
       tags: contact.tags || conversation.tags || [],
       optedOut: Boolean(contact.optedOut),
     },
+    // Which of the company's WhatsApp numbers this chat is on.
+    phoneNumberId: conversation.phoneNumberId || "",
     status: conversation.status || "AI_ACTIVE",
     escalationReason: conversation.escalationReason || null,
     assignedAgent: (function () {
@@ -122,6 +124,9 @@ function upsertConversation(list, updatedConversation) {
   next[index] = {
     ...next[index],
     ...normalized,
+    // A socket update for an older chat can arrive without its number; never
+    // let that blank out the one we already know.
+    phoneNumberId: normalized.phoneNumberId || next[index].phoneNumberId,
     contact: {
       ...next[index].contact,
       ...normalized.contact,

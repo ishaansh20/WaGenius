@@ -4,6 +4,8 @@ const fs = require("fs");
 
 const Campaign = require("../models/campaign");
 const Contact = require("../models/contact");
+const Company = require("../models/company");
+const { isCompanyNumber } = require("../utils/whatsappNumberList");
 const { findOrCreateContact } = require("../services/contactService");
 const {
   scheduleCampaign,
@@ -55,6 +57,19 @@ const uploadCampaign = async (req, res) => {
       });
     }
 
+    // The WhatsApp number to send from. Must be one of this company's own
+    // numbers; empty means the company's current default, which is pinned
+    // onto the campaign now so a later default change can't redirect it.
+    const company = await Company.findById(req.companyId).select("whatsapp").lean();
+    const requestedNumberId = req.body.phoneNumberId ? String(req.body.phoneNumberId).trim() : "";
+    if (requestedNumberId && !isCompanyNumber(company, requestedNumberId)) {
+      return res.status(400).json({
+        success: false,
+        message: "That WhatsApp number isn't linked to your account",
+      });
+    }
+    const phoneNumberId = requestedNumberId || company?.whatsapp?.phoneNumberId || "";
+
     const contacts = [];
 
     const stream = fs.createReadStream(req.file.path);
@@ -97,6 +112,7 @@ const uploadCampaign = async (req, res) => {
             companyId,
             campaignName,
             campaignType,
+            phoneNumberId,
             message,
             mediaUrl: mediaUrl || "",
             mediaType: mediaType || "",
@@ -118,6 +134,7 @@ const uploadCampaign = async (req, res) => {
             mediaUrl: mediaUrl || "",
             mediaType: mediaType || "",
             campaignType,
+            phoneNumberId,
             scheduleAt,
             isScheduled: Boolean(scheduleAt),
             templateId: templateId || null,

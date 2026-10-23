@@ -132,12 +132,12 @@ export default function WhatsAppPreview({
       {body.trim() || headerType !== "NONE" ? (
         <ChatBubble>
           {isMediaHeader && (
-            <div className="relative flex h-36 w-full items-center justify-center bg-black/5">
+            <div className={`relative flex w-full items-center justify-center bg-black/5 ${mediaPreviewUrl ? "" : "h-36"}`}>
               {mediaPreviewUrl ? (
                 <img
                   src={mediaPreviewUrl}
                   alt="Header preview"
-                  className="h-full w-full object-cover"
+                  className="block h-auto max-h-[420px] w-full object-contain"
                   onError={(e) => {
                     e.currentTarget.style.display = "none";
                     if (e.currentTarget.nextElementSibling) {

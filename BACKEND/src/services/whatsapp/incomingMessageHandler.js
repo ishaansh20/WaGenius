@@ -29,9 +29,14 @@ const handleIncomingMessage = async (
     ============================================
     */
 
+    // The company number this customer wrote to (from Meta's signed
+    // payload). The whole exchange - saved chat, AI reply - stays on it.
+    const phoneNumberId = metadata?.phone_number_id || "";
+
     const req = {
       companyId,
       body: {
+        phoneNumberId,
         phone: message.from,
         message: message.text?.body || "",
         sender: "user",
@@ -117,7 +122,8 @@ const handleIncomingMessage = async (
     const conversationSettings =
       await getConversationSettings(
         companyId,
-        message.from
+        message.from,
+        phoneNumberId
       );
 
 
@@ -307,7 +313,8 @@ const handleIncomingMessage = async (
 
     const credentials =
       await getCompanyWhatsAppCredentials(
-        companyId
+        companyId,
+        phoneNumberId || undefined
       );
 
 
@@ -391,6 +398,7 @@ const handleIncomingMessage = async (
       const aiReq = {
         companyId,
         body: {
+          phoneNumberId: credentials.phoneNumberId,
           phone: message.from,
           message: result.aiReply,
           sender: "ai",

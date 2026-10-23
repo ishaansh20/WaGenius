@@ -9,6 +9,7 @@ const { emitToCompany } = require("../../sockets/socket");
 
 const saveCampaignMessage = async ({
   companyId,
+  phoneNumberId,
   phone,
   name,
   message,
@@ -23,7 +24,7 @@ const saveCampaignMessage = async ({
     name,
   });
 
-  const conversation = await findOrCreateConversation(companyId, contact._id);
+  const conversation = await findOrCreateConversation(companyId, contact._id, phoneNumberId);
 
   const newMessage = await createMessage({
     companyId,

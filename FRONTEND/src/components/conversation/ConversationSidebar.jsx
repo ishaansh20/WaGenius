@@ -1,7 +1,9 @@
-import { ChevronDown, MessageSquareText, Search, X, Menu } from "lucide-react";
+import { useEffect } from "react";
+import { ChevronDown, MessageSquareText, Phone, Search, X, Menu } from "lucide-react";
 import { Virtuoso } from "react-virtuoso";
 import { cn } from "../../utils/cn";
 import { formatPhone } from "../../utils/formatPhone";
+import useWhatsAppNumbersStore, { numberLabel } from "../../store/whatsappNumbersStore";
 
 // Tags are labels, not status: one calm neutral style for all of them.
 const TAG_CHIP =
@@ -52,6 +54,11 @@ function formatCardTime(value) {
 
 function ConversationCard({ conversation, active, onClick }) {
   const unread = conversation.unreadCount > 0;
+  // Only worth showing which number a chat is on when there is a choice.
+  const hasSeveralNumbers = useWhatsAppNumbersStore((s) => s.numbers.length > 1);
+  const chatNumber = useWhatsAppNumbersStore((s) =>
+    s.numbers.find((n) => n.phoneNumberId === conversation.phoneNumberId),
+  );
   const displayName =
     !conversation.contact.name || conversation.contact.name === "Unknown Contact"
       ? formatPhone(conversation.contact.phone)
@@ -129,6 +136,13 @@ function ConversationCard({ conversation, active, onClick }) {
             )}
           </div>
 
+          {hasSeveralNumbers && chatNumber && (
+            <p className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[12px] text-ink-muted">
+              <Phone size={12} className="shrink-0" />
+              <span className="truncate tabular-nums">{numberLabel(chatNumber)}</span>
+            </p>
+          )}
+
           {tags.length > 0 && (
             <div className="mt-2 flex min-w-0 gap-1 overflow-hidden">
               {tags.slice(0, 2).map((tag) => (
@@ -163,6 +177,8 @@ export function ConversationSidebar({
   onFilterChange,
   selectedTag,
   onTagChange,
+  selectedNumberId = "all",
+  onNumberChange,
   allTags,
   activeConversationId,
   onConversationSelect,
@@ -178,6 +194,12 @@ export function ConversationSidebar({
 }) {
   const isAdminOrLead =
     currentUser?.role === "ADMIN" || currentUser?.role === "TEAM_LEAD";
+  const numbers = useWhatsAppNumbersStore((s) => s.numbers);
+  const loadNumbers = useWhatsAppNumbersStore((s) => s.load);
+
+  useEffect(() => {
+    loadNumbers();
+  }, [loadNumbers]);
   const agentFilterId = filter.startsWith("agent:") ? filter.slice(6) : "";
 
   const tagChipClass = (active) =>
@@ -319,6 +341,26 @@ export function ConversationSidebar({
                 </div>
               )}
             </div>
+
+            {/* WhatsApp number filter: only when the company has more than one */}
+            {numbers.length > 1 && onNumberChange && (
+              <div className="relative">
+                <select
+                  value={selectedNumberId}
+                  onChange={(e) => onNumberChange(e.target.value)}
+                  aria-label="Filter by WhatsApp number"
+                  className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-line-strong bg-surface pl-3 pr-8 text-[14px] font-medium text-ink outline-none transition-colors hover:border-ink-subtle focus:border-brand-600 focus:ring-4 focus:ring-brand-600/12"
+                >
+                  <option value="all">All WhatsApp numbers</option>
+                  {numbers.map((n) => (
+                    <option key={n.phoneNumberId} value={n.phoneNumberId}>
+                      {numberLabel(n)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
+              </div>
+            )}
 
             {/* Tag filter */}
             <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide">

@@ -113,6 +113,7 @@ const sendToContact = async (credentials, campaign, template, contact) => {
 
     await saveCampaignMessage({
       companyId: campaign.companyId,
+      phoneNumberId: credentials.phoneNumberId,
       phone: contact.phone,
       name: contact.name,
       message: messageToSave,
@@ -140,10 +141,15 @@ const executeCampaign = async (campaign) => {
       `${campaign.contacts.length} contact(s), concurrency ${CONCURRENCY}`,
   );
 
-  const credentials = await getCompanyWhatsAppCredentials(campaign.companyId);
+  // The campaign sends from the number chosen at launch (empty on older
+  // campaigns = the company default).
+  const credentials = await getCompanyWhatsAppCredentials(
+    campaign.companyId,
+    campaign.phoneNumberId || undefined,
+  );
   if (!credentials) {
     console.error(
-      `Campaign ${campaign.campaignId} belongs to a company with no connected WhatsApp account — aborting send.`,
+      `Campaign ${campaign.campaignId} belongs to a company with no connected WhatsApp account (or the chosen number is no longer linked) — aborting send.`,
     );
     await Campaign.updateOne({ _id: campaign.campaignId }, { $set: { status: "failed" } });
     return;

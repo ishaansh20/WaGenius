@@ -42,6 +42,7 @@ const claimAndExecute = async (campaignDoc) => {
       mediaUrl: claimed.mediaUrl,
       mediaType: claimed.mediaType,
       campaignType: claimed.campaignType,
+      phoneNumberId: claimed.phoneNumberId,
       isScheduled: false, // scheduling already happened — this is the actual send
       templateId: claimed.templateId,
       templateVariables: claimed.templateVariables,

@@ -77,9 +77,9 @@ export async function refreshAuthToken() {
   return data.token;
 }
 
-export async function fetchConversations({ before, limit } = {}) {
+export async function fetchConversations({ before, limit, phoneNumberId } = {}) {
   const { data } = await api.get("/api/conversations", {
-    params: { before, limit },
+    params: { before, limit, phoneNumberId },
   });
   return data; // { conversations, hasMore, nextCursor }
 }
@@ -259,6 +259,21 @@ export async function completeEmbeddedSignup(payload) {
     payload,
     { timeout: 45000 },
   );
+  return data;
+}
+
+export async function fetchWhatsAppNumbers() {
+  const { data } = await api.get("/api/company/whatsapp/numbers");
+  return data;
+}
+
+export async function syncWhatsAppNumbers() {
+  const { data } = await api.post("/api/company/whatsapp/numbers/sync", null, { timeout: 30000 });
+  return data;
+}
+
+export async function setDefaultWhatsAppNumber(phoneNumberId) {
+  const { data } = await api.put("/api/company/whatsapp/numbers/default", { phoneNumberId });
   return data;
 }
 

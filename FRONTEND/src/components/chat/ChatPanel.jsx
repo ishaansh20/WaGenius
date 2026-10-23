@@ -16,6 +16,7 @@ import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { cn } from "../../utils/cn";
 import { formatPhone } from "../../utils/formatPhone";
+import useWhatsAppNumbersStore, { numberLabel } from "../../store/whatsappNumbersStore";
 
 const ESCALATION_LABELS = {
   customer_request: "Customer asked to speak with a human",
@@ -235,6 +236,10 @@ export function ChatPanel({
 }) {
   const [msgSearch, setMsgSearch] = useState({ open: false, query: "", index: 0 });
   const searchInputRef = useRef(null);
+  const hasSeveralNumbers = useWhatsAppNumbersStore((s) => s.numbers.length > 1);
+  const chatNumber = useWhatsAppNumbersStore((s) =>
+    s.numbers.find((n) => n.phoneNumberId === conversation?.phoneNumberId),
+  );
 
   // Reset search when conversation changes
   useEffect(() => {
@@ -354,6 +359,14 @@ export function ChatPanel({
                   </h1>
                   <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-ink-muted">
                     <span className="tabular-nums">{formatPhone(conversation.contact.phone)}</span>
+                    {chatNumber && hasSeveralNumbers ? (
+                      <>
+                        <span aria-hidden className="text-line-strong">•</span>
+                        <span className="tabular-nums" title="Replies in this chat are sent from this number">
+                          via {numberLabel(chatNumber)}
+                        </span>
+                      </>
+                    ) : null}
                     <span aria-hidden className="text-line-strong">•</span>
                     <span className={conversation.online ? "font-medium text-brand-700" : ""}>
                       {conversation.online ? "Online" : "Offline"}

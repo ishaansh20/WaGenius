@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { resetInboxSocket } from "../services/socket";
 import usePlatformAuthStore from "./platformAuthStore";
+import useWhatsAppNumbersStore from "./whatsappNumbersStore";
 
 const useAuthStore = create((set, get) => ({
   token: localStorage.getItem("token") || null,
@@ -21,6 +22,7 @@ const useAuthStore = create((set, get) => ({
     // just the redirect-order patch above. Without this, the very next
     // platform login on this machine would silently re-trigger the issue.
     usePlatformAuthStore.getState().logout();
+    useWhatsAppNumbersStore.getState().reset();
 
     set({
       token,
@@ -51,6 +53,7 @@ const useAuthStore = create((set, get) => ({
     localStorage.removeItem("user");
     localStorage.removeItem("setupStatus");
     resetInboxSocket();
+    useWhatsAppNumbersStore.getState().reset();
 
     set({
       token: null,

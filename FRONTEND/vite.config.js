@@ -16,7 +16,7 @@ export default defineConfig({
       "fairfield-students-worldwide-vitamin.trycloudflare.com",
     ],
 
-    port: 3000,
+    port: 5173,
 
     proxy: {
       "/api": {
